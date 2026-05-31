@@ -55,3 +55,75 @@ export type GatewayErrorCode =
   | "internal_admin_invalid"
   | "unknown_error"
   | "gateway_request_failed";
+
+export type ChatRole = "system" | "user" | "assistant";
+
+export type ChatMessage = {
+  role: ChatRole;
+  content: string;
+};
+
+export type ChatRequest = {
+  model: string;
+  messages: ChatMessage[];
+  stream?: boolean;
+  search?: "auto" | "on" | "off";
+  tools?: "auto" | "off" | string[];
+  store?: boolean;
+  semantic_recall?: "auto" | "on" | "off";
+  conversation_id?: string;
+  temperature?: number;
+  max_tokens?: number;
+};
+
+export type ChatCompletionResponse = {
+  id?: string;
+  object?: string;
+  created?: number;
+  model?: string;
+  provider?: string;
+  choices?: Array<{
+    index?: number;
+    message?: {
+      role?: string;
+      content?: string;
+    };
+    finish_reason?: string | null;
+  }>;
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    total_tokens?: number;
+  };
+  conversation?: {
+    id?: string;
+    created?: boolean;
+    summary_mode?: string;
+    summary_used?: boolean;
+    summary_updated?: boolean;
+  };
+  error?: {
+    code?: string;
+    message?: string;
+  };
+};
+
+export type ChatStreamEvent = {
+  id?: string;
+  object?: string;
+  created?: number;
+  model?: string;
+  provider?: string;
+  choices?: Array<{
+    index?: number;
+    delta?: {
+      role?: string;
+      content?: string;
+    };
+    finish_reason?: string | null;
+  }>;
+  error?: {
+    code?: string;
+    message?: string;
+  };
+};

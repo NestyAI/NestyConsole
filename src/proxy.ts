@@ -10,7 +10,12 @@ function isProtectedPage(pathname: string): boolean {
   if (pathname === "/") {
     return true;
   }
-  return pathname.startsWith("/status") || pathname.startsWith("/models") || pathname.startsWith("/settings");
+  return (
+    pathname.startsWith("/chat") ||
+    pathname.startsWith("/status") ||
+    pathname.startsWith("/models") ||
+    pathname.startsWith("/settings")
+  );
 }
 
 function isPublicPath(pathname: string): boolean {

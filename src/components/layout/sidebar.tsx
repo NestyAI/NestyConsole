@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { KeyRound, LayoutDashboard, Settings, ShieldCheck, Waypoints } from "lucide-react";
+import { KeyRound, LayoutDashboard, MessageSquare, Settings, ShieldCheck, Waypoints } from "lucide-react";
 
 import { LogoutButton } from "@/components/auth/logout-button";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/chat", label: "Chat", icon: MessageSquare },
   { href: "/status", label: "Status", icon: ShieldCheck },
   { href: "/models", label: "Models", icon: Waypoints },
   { href: "/settings/gateway", label: "Gateway Creds", icon: KeyRound },

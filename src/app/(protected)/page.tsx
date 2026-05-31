@@ -3,6 +3,11 @@ import { ArrowRight } from "lucide-react";
 
 const cards = [
   {
+    href: "/chat",
+    title: "NestyChat Web MVP",
+    description: "Protected chat UI with server-side proxy requests to NestyAI."
+  },
+  {
     href: "/status",
     title: "Gateway Status",
     description: "Health, readiness, and runtime availability."
@@ -25,7 +30,7 @@ const cards = [
   {
     href: "#",
     title: "Future",
-    description: "Chat, Diagnostics, and Memory modules in upcoming versions."
+    description: "Diagnostics, model admin, and memory tools in upcoming versions."
   }
 ];
 

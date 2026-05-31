@@ -2,13 +2,16 @@
 
 Nesty Console is a separate frontend/admin project for operating a running `NestyAI Gateway`.
 
-Current status: **v0.2.1 - Admin Login & Route Protection**
+Current status: **v0.3.0 - NestyChat Web MVP**
+
+Changelog: [CHANGELOG.md](CHANGELOG.md)
 
 ## Relationship to NestyAI Gateway
 
 - `NestyAI` is backend-only and runs separately.
 - `NestyConsole` is a Next.js admin UI that calls the gateway through server-side API routes.
 - Internal/admin gateway tokens stay on the server side of `NestyConsole`.
+- Chat UI (`/chat`) also calls Gateway through server-side Console routes.
 
 ## Tech Stack
 
@@ -53,6 +56,7 @@ pnpm run dev
 - Never expose `NESTY_API_KEY` to browser/client components.
 - Never expose `NESTY_CONSOLE_ADMIN_PASSWORD` or `NESTY_CONSOLE_SESSION_SECRET` to browser/client components.
 - Browser pages should call same-origin routes (`/api/gateway/*`) only.
+- Chat page uses `/api/chat/completions`, which forwards to Gateway server-side.
 - Internal gateway calls must run in Next.js server routes or server actions only.
 - Gateway credentials are stored server-side in `data/nesty-console.db`.
 - Gateway API key and internal admin token are encrypted at rest with AES-256-GCM.
@@ -91,19 +95,25 @@ Recommended flow for Pterodactyl/container-panel deployments:
 - `POST /api/console/gateway-credentials`: save URL/keys/enabled flag (no secret echo)
 - `POST /api/console/gateway-credentials/test`: verifies `/health`, `/ready`, `/v1/models` and optional internal probe
 
+## Chat API
+
+- `POST /api/chat/completions`: forwards chat requests to `NestyAI /v1/chat/completions`.
+- Supports non-stream and SSE streaming responses.
+- Maps missing/invalid Gateway credentials to safe Console-friendly error responses.
+
 ## Admin Auth API
 
 - `POST /api/auth/login`: create signed admin session cookie
 - `POST /api/auth/logout`: clear session cookie
 - `GET /api/auth/me`: current auth status
-- Do not commit real `.env.local` values.
-
-## Implemented in v0.2.1
+## Implemented in v0.3.0
 
 - Console shell layout (sidebar + topbar)
 - Single-admin login page (`/login`)
 - Route protection middleware for pages and admin APIs
 - Logout controls in topbar and sidebar
+- Protected chat page (`/chat`) with model selector and core chat options
+- Server-side chat proxy route (`POST /api/chat/completions`) with streaming support
 - Dashboard landing page
 - Gateway status page (`/status`)
 - Models page (`/models`)
@@ -130,7 +140,6 @@ surfaces publicly without strict network controls.
 
 ## Roadmap
 
-- v0.3.0 NestyChat Web MVP
-- v0.4.0 Runtime Model Config Admin
-- v0.5.0 Diagnostics dashboard
+- v0.4.0 Diagnostics/Admin tooling
+- v0.5.0 Runtime Model Config Admin
 - v0.6.0 Conversations/Memory operations

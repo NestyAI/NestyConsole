@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { KeyRound, LayoutDashboard, Settings, ShieldCheck, Waypoints } from "lucide-react";
 
+import { LogoutButton } from "@/components/auth/logout-button";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -44,6 +45,9 @@ export function Sidebar() {
           );
         })}
       </nav>
+      <div className="mt-4 md:mt-8">
+        <LogoutButton className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-slate-100 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60" />
+      </div>
     </aside>
   );
 }

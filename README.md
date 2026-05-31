@@ -2,7 +2,7 @@
 
 Nesty Console is a separate frontend/admin project for operating a running `NestyAI Gateway`.
 
-Current status: **v0.2.0 - Gateway Credentials Manager**
+Current status: **v0.2.1 - Admin Login & Route Protection**
 
 ## Relationship to NestyAI Gateway
 
@@ -37,6 +37,9 @@ copy .env.local.example .env.local
 - `NESTY_API_KEY` (optional fallback)
 - `NESTY_INTERNAL_ADMIN_TOKEN` (recommended stable fallback)
 - `NESTY_CONSOLE_CREDENTIALS_SECRET` (required to save encrypted secrets in UI)
+- `NESTY_CONSOLE_ADMIN_USERNAME` (default `admin`)
+- `NESTY_CONSOLE_ADMIN_PASSWORD` (required for login)
+- `NESTY_CONSOLE_SESSION_SECRET` (required for signed session cookie)
 
 4. Run dev server:
 
@@ -48,10 +51,12 @@ pnpm run dev
 
 - Never expose `NESTY_INTERNAL_ADMIN_TOKEN` to browser/client components.
 - Never expose `NESTY_API_KEY` to browser/client components.
+- Never expose `NESTY_CONSOLE_ADMIN_PASSWORD` or `NESTY_CONSOLE_SESSION_SECRET` to browser/client components.
 - Browser pages should call same-origin routes (`/api/gateway/*`) only.
 - Internal gateway calls must run in Next.js server routes or server actions only.
 - Gateway credentials are stored server-side in `data/nesty-console.db`.
 - Gateway API key and internal admin token are encrypted at rest with AES-256-GCM.
+- Console login uses signed HTTP-only cookie sessions (`sameSite=lax`, `secure` in production).
 - Do not commit real `.env.local` values.
 - `NESTY_CONSOLE_CREDENTIALS_SECRET` should be long and random.
 
@@ -85,11 +90,20 @@ Recommended flow for Pterodactyl/container-panel deployments:
 - `GET /api/console/gateway-credentials`: safe metadata only
 - `POST /api/console/gateway-credentials`: save URL/keys/enabled flag (no secret echo)
 - `POST /api/console/gateway-credentials/test`: verifies `/health`, `/ready`, `/v1/models` and optional internal probe
+
+## Admin Auth API
+
+- `POST /api/auth/login`: create signed admin session cookie
+- `POST /api/auth/logout`: clear session cookie
+- `GET /api/auth/me`: current auth status
 - Do not commit real `.env.local` values.
 
-## Implemented in v0.2.0
+## Implemented in v0.2.1
 
 - Console shell layout (sidebar + topbar)
+- Single-admin login page (`/login`)
+- Route protection middleware for pages and admin APIs
+- Logout controls in topbar and sidebar
 - Dashboard landing page
 - Gateway status page (`/status`)
 - Models page (`/models`)
@@ -101,10 +115,18 @@ Recommended flow for Pterodactyl/container-panel deployments:
   - `GET /api/gateway/ready`
   - `GET /api/gateway/models`
 
+## Secret Generation Helper
+
+Generate strong random secrets:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
+```
+
 ## Ops Warning
 
-This project does not yet include a full web auth system. Do not expose Nesty Console directly to the public internet
-without reverse-proxy protection and access control.
+This project is single-admin and self-host focused. Keep reverse-proxy protection in place and avoid exposing admin
+surfaces publicly without strict network controls.
 
 ## Roadmap
 

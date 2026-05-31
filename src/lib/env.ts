@@ -5,6 +5,10 @@ type ConsoleEnvStatus = {
   apiKeyConfigured: boolean;
   internalAdminEnabled: boolean;
   internalAdminTokenConfigured: boolean;
+  adminUsernameConfigured: boolean;
+  adminPasswordConfigured: boolean;
+  sessionSecretConfigured: boolean;
+  adminAuthConfigured: boolean;
 };
 
 function toBool(value: string | undefined, defaultValue = false): boolean {
@@ -32,13 +36,21 @@ export function getGatewayBaseUrl(): string | null {
 }
 
 export function getServerEnvStatus(): ConsoleEnvStatus {
+  const adminUsername = process.env.NESTY_CONSOLE_ADMIN_USERNAME?.trim() || "admin";
+  const adminPassword = process.env.NESTY_CONSOLE_ADMIN_PASSWORD?.trim() || "";
+  const sessionSecret = process.env.NESTY_CONSOLE_SESSION_SECRET?.trim() || "";
+
   return {
     nodeEnv: process.env.NODE_ENV ?? "development",
     appName: process.env.NEXT_PUBLIC_APP_NAME?.trim() || "Nesty Console",
     gatewayUrlConfigured: Boolean(getGatewayBaseUrl()),
     apiKeyConfigured: Boolean(process.env.NESTY_API_KEY?.trim()),
     internalAdminEnabled: toBool(process.env.NESTY_CONSOLE_ENABLE_INTERNAL_ADMIN, false),
-    internalAdminTokenConfigured: Boolean(process.env.NESTY_INTERNAL_ADMIN_TOKEN?.trim())
+    internalAdminTokenConfigured: Boolean(process.env.NESTY_INTERNAL_ADMIN_TOKEN?.trim()),
+    adminUsernameConfigured: Boolean(adminUsername),
+    adminPasswordConfigured: Boolean(adminPassword),
+    sessionSecretConfigured: Boolean(sessionSecret),
+    adminAuthConfigured: Boolean(adminPassword && sessionSecret)
   };
 }
 

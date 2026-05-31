@@ -1,4 +1,7 @@
+import { cookies } from "next/headers";
 import Link from "next/link";
+
+import { parseSessionToken, SESSION_COOKIE_NAME } from "@/lib/auth/session";
 import { getServerEnvStatus } from "@/lib/env";
 
 type ConfigRowProps = {
@@ -21,8 +24,12 @@ function ConfigRow({ label, enabled }: ConfigRowProps) {
   );
 }
 
-export default function SettingsPage() {
+export default async function SettingsPage() {
   const env = getServerEnvStatus();
+  const cookieStore = await cookies();
+  const token = cookieStore.get(SESSION_COOKIE_NAME)?.value || null;
+  const session = await parseSessionToken(token);
+
   return (
     <section className="space-y-6">
       <div>
@@ -36,6 +43,18 @@ export default function SettingsPage() {
         <ConfigRow label="Internal admin enabled" enabled={env.internalAdminEnabled} />
         <ConfigRow label="Internal admin token configured" enabled={env.internalAdminTokenConfigured} />
       </div>
+
+      <article className="rounded-xl border border-white/10 bg-white/5 p-4">
+        <h2 className="text-sm font-semibold text-white">Authentication Status</h2>
+        <div className="mt-3 grid gap-3">
+          <ConfigRow label="Logged in session present" enabled={Boolean(session)} />
+          <ConfigRow label="Admin username configured" enabled={env.adminUsernameConfigured} />
+          <ConfigRow label="Admin password configured" enabled={env.adminPasswordConfigured} />
+          <ConfigRow label="Session secret configured" enabled={env.sessionSecretConfigured} />
+          <ConfigRow label="Auth runtime ready" enabled={env.adminAuthConfigured} />
+        </div>
+        {session ? <p className="mt-3 text-xs text-slate-300">Current admin: {session.username}</p> : null}
+      </article>
 
       <article className="rounded-xl border border-cyan-400/30 bg-cyan-500/10 p-4">
         <h2 className="text-sm font-semibold text-cyan-100">Gateway Credentials Manager</h2>

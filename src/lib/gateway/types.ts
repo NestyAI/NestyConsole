@@ -84,6 +84,26 @@ export type ChatRequest = {
   max_tokens?: number;
 };
 
+export type GatewayOrchestrationMode = "off" | "single" | "reduced" | "full" | "fallback" | "unknown" | string;
+
+export type GatewayOrchestrationMetadata = {
+  requested?: string | boolean;
+  used?: boolean;
+  mode?: GatewayOrchestrationMode;
+  decision_reason?: string | null;
+  complexity_score?: number | null;
+  roles?: string[];
+  completed_roles?: string[];
+  failed_roles?: string[];
+  skipped_roles?: string[];
+  internal_calls?: number;
+  fallback_used?: boolean;
+  fallback_reason?: string | null;
+  streaming_fallback?: boolean;
+  total_latency_ms?: number | null;
+  role_latency_ms?: Record<string, number>;
+};
+
 export type ChatCompletionMetadata = {
   model?: string;
   model_alias?: string;
@@ -94,8 +114,10 @@ export type ChatCompletionMetadata = {
     completion_tokens?: number;
     total_tokens?: number;
   };
-  orchestration?: Record<string, unknown>;
+  orchestration?: GatewayOrchestrationMetadata;
 };
+
+export type GatewayChatMetadata = ChatCompletionMetadata;
 
 export type ChatCompletionResponse = {
   id?: string;
@@ -106,7 +128,7 @@ export type ChatCompletionResponse = {
   provider?: string;
   conversation_id?: string;
   metadata?: Record<string, unknown>;
-  orchestration?: Record<string, unknown>;
+  orchestration?: GatewayOrchestrationMetadata;
   choices?: Array<{
     index?: number;
     message?: {
@@ -147,7 +169,7 @@ export type ChatStreamEvent = {
     completion_tokens?: number;
     total_tokens?: number;
   };
-  orchestration?: Record<string, unknown>;
+  orchestration?: GatewayOrchestrationMetadata;
   choices?: Array<{
     index?: number;
     delta?: {

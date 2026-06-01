@@ -10,6 +10,7 @@ import { ErrorBanner } from "@/components/ui/error-banner";
 import { LoadingBlock } from "@/components/ui/loading-block";
 import { Panel } from "@/components/ui/panel";
 import { TokenTag } from "@/components/ui/token-tag";
+import { ProOrchestrationDetails } from "@/components/chat/pro-orchestration-details";
 import {
   archiveOrDeleteConversation,
   formatConversationTitle,
@@ -105,40 +106,96 @@ function extractConversationId(payload: unknown): string | null {
   return id || null;
 }
 
+type TolerantPayload = {
+  model?: unknown;
+  model_alias?: unknown;
+  provider?: unknown;
+  conversation_id?: unknown;
+  conversation?: { id?: unknown };
+  usage?: unknown;
+  orchestration?: unknown;
+  metadata?: unknown;
+  mode?: unknown;
+  used?: unknown;
+  [key: string]: unknown;
+};
+
 function extractMetadata(payload: unknown): Partial<ChatCompletionMetadata> {
-  const data = payload as {
-    model?: unknown;
-    model_alias?: unknown;
-    provider?: unknown;
-    usage?: {
-      prompt_tokens?: unknown;
-      completion_tokens?: unknown;
-      total_tokens?: unknown;
-    };
-    conversation_id?: unknown;
-    conversation?: {
-      id?: unknown;
-    };
-    orchestration?: unknown;
-  };
+  const data = payload as TolerantPayload || {};
+  const metadataObj = data.metadata && typeof data.metadata === "object" ? (data.metadata as TolerantPayload) : null;
 
-  const model = String(data.model || "").trim() || undefined;
-  const modelAlias = String(data.model_alias || "").trim() || undefined;
-  const provider = String(data.provider || "").trim() || undefined;
-  const conversationId = extractConversationId(data) || undefined;
+  const model = String(data.model || metadataObj?.model || "").trim() || undefined;
+  const modelAlias = String(data.model_alias || metadataObj?.model_alias || "").trim() || undefined;
+  const provider = String(data.provider || metadataObj?.provider || "").trim() || undefined;
+  const conversationId = (extractConversationId(data) || (metadataObj ? extractConversationId(metadataObj) : null)) || undefined;
 
-  const usage = data.usage
+  const rawUsage = (data.usage || metadataObj?.usage) as Record<string, unknown> | null | undefined;
+  const usage = rawUsage && typeof rawUsage === "object"
     ? {
-        prompt_tokens: typeof data.usage.prompt_tokens === "number" ? data.usage.prompt_tokens : undefined,
-        completion_tokens: typeof data.usage.completion_tokens === "number" ? data.usage.completion_tokens : undefined,
-        total_tokens: typeof data.usage.total_tokens === "number" ? data.usage.total_tokens : undefined
+        prompt_tokens: typeof rawUsage.prompt_tokens === "number" ? rawUsage.prompt_tokens : undefined,
+        completion_tokens: typeof rawUsage.completion_tokens === "number" ? rawUsage.completion_tokens : undefined,
+        total_tokens: typeof rawUsage.total_tokens === "number" ? rawUsage.total_tokens : undefined
       }
     : undefined;
 
-  const orchestration =
-    data.orchestration && typeof data.orchestration === "object"
-      ? (data.orchestration as Record<string, unknown>)
-      : undefined;
+  // Tolerant orchestration lookup
+  const hasOrchFields = (obj: unknown): boolean => {
+    if (!obj || typeof obj !== "object") return false;
+    const r = obj as Record<string, unknown>;
+    return (
+      "mode" in r ||
+      "used" in r ||
+      "requested" in r ||
+      "decision_reason" in r ||
+      "complexity_score" in r ||
+      "roles" in r ||
+      "completed_roles" in r ||
+      "failed_roles" in r ||
+      "skipped_roles" in r ||
+      "internal_calls" in r ||
+      "fallback_used" in r ||
+      "fallback_reason" in r ||
+      "streaming_fallback" in r ||
+      "total_latency_ms" in r ||
+      "role_latency_ms" in r
+    );
+  };
+
+  let rawOrch: Record<string, unknown> | null | undefined = undefined;
+  if (metadataObj && metadataObj.orchestration && typeof metadataObj.orchestration === "object") {
+    rawOrch = metadataObj.orchestration as Record<string, unknown>;
+  } else if (data.orchestration && typeof data.orchestration === "object") {
+    rawOrch = data.orchestration as Record<string, unknown>;
+  } else if (hasOrchFields(metadataObj)) {
+    rawOrch = metadataObj as Record<string, unknown>;
+  } else if (hasOrchFields(data)) {
+    rawOrch = data as Record<string, unknown>;
+  }
+
+  const orchestration = rawOrch && typeof rawOrch === "object"
+    ? {
+        requested: rawOrch.requested,
+        used: rawOrch.used as boolean | undefined,
+        mode: rawOrch.mode as string | undefined,
+        decision_reason: rawOrch.decision_reason as string | null | undefined,
+        complexity_score: rawOrch.complexity_score as number | null | undefined,
+        roles: Array.isArray(rawOrch.roles) ? (rawOrch.roles as string[]) : undefined,
+        completed_roles: Array.isArray(rawOrch.completed_roles) ? (rawOrch.completed_roles as string[]) : undefined,
+        failed_roles: Array.isArray(rawOrch.failed_roles) ? (rawOrch.failed_roles as string[]) : undefined,
+        skipped_roles: Array.isArray(rawOrch.skipped_roles) ? (rawOrch.skipped_roles as string[]) : undefined,
+        internal_calls: typeof rawOrch.internal_calls === "number" ? rawOrch.internal_calls : undefined,
+        fallback_used: rawOrch.fallback_used as boolean | undefined,
+        fallback_reason: rawOrch.fallback_reason as string | null | undefined,
+        streaming_fallback: rawOrch.streaming_fallback as boolean | undefined,
+        total_latency_ms: typeof rawOrch.total_latency_ms === "number" ? rawOrch.total_latency_ms : undefined,
+        role_latency_ms: rawOrch.role_latency_ms && typeof rawOrch.role_latency_ms === "object" ? (rawOrch.role_latency_ms as Record<string, number>) : undefined
+      }
+    : undefined;
+
+  // Filter out undefined properties to avoid overwriting during merge
+  const cleanOrch = orchestration
+    ? Object.fromEntries(Object.entries(orchestration).filter(([, v]) => v !== undefined))
+    : undefined;
 
   return {
     model,
@@ -146,7 +203,7 @@ function extractMetadata(payload: unknown): Partial<ChatCompletionMetadata> {
     provider,
     conversation_id: conversationId,
     usage,
-    orchestration
+    orchestration: cleanOrch
   };
 }
 
@@ -172,20 +229,57 @@ function getEnumValue<T extends string>(value: unknown, allowed: readonly T[], f
   return fallback;
 }
 
+function cleanMerge<T extends Record<string, unknown>>(
+  current: T | undefined | null,
+  next: Partial<T> | undefined | null
+): T | undefined {
+  if (!current && !next) return undefined;
+  if (!current) {
+    const res: Record<string, unknown> = {};
+    if (next) {
+      for (const key of Object.keys(next)) {
+        if (next[key] !== undefined) {
+          res[key] = next[key];
+        }
+      }
+    }
+    return res as T;
+  }
+  if (!next) return current;
+
+  const res: Record<string, unknown> = { ...current };
+  for (const key of Object.keys(next)) {
+    if (next[key] !== undefined) {
+      res[key] = next[key];
+    }
+  }
+  return res as T;
+}
+
 function mergeMetadata(
   current: ChatCompletionMetadata | null,
   next: Partial<ChatCompletionMetadata>
 ): ChatCompletionMetadata | null {
-  if (!next.model && !next.model_alias && !next.provider && !next.conversation_id && !next.usage && !next.orchestration) {
-    return current;
-  }
+  const base = current || {};
+
+  const model = next.model !== undefined ? next.model : base.model;
+  const model_alias = next.model_alias !== undefined ? next.model_alias : base.model_alias;
+  const provider = next.provider !== undefined ? next.provider : base.provider;
+  const conversation_id = next.conversation_id !== undefined ? next.conversation_id : base.conversation_id;
+
+  const usage = cleanMerge(base.usage as Record<string, unknown> | null, next.usage as Record<string, unknown> | null);
+  const orchestration = cleanMerge(
+    base.orchestration as Record<string, unknown> | null,
+    next.orchestration as Record<string, unknown> | null
+  );
+
   return {
-    ...(current || {}),
-    ...next,
-    usage: {
-      ...(current?.usage || {}),
-      ...(next.usage || {})
-    }
+    model,
+    model_alias,
+    provider,
+    conversation_id,
+    usage: usage as ChatCompletionMetadata["usage"],
+    orchestration: orchestration as ChatCompletionMetadata["orchestration"]
   };
 }
 
@@ -396,10 +490,6 @@ export default function ChatPage() {
     window.localStorage.setItem(PREFERENCES_KEY, JSON.stringify(preferences));
   }, [model, search, tools, store, semanticRecall, stream, temperature, maxTokens, showSystemPrompt, systemPrompt]);
 
-  const hasCredentialError = useMemo(
-    () => error?.code === "credentials_not_configured" || error?.code === "invalid_gateway_api_key",
-    [error?.code]
-  );
   const sidebarCredentialError = useMemo(
     () =>
       conversationsError?.code === "credentials_not_configured" ||
@@ -539,11 +629,17 @@ export default function ChatPage() {
     const loadedMessages = conversationMessagesToUi(result.data.items);
     setMessages(loadedMessages);
     setConversationId(item.id);
-    setResponseMetadata((current) =>
-      mergeMetadata(current, {
+    // Find the last assistant message to populate responseMetadata
+    const lastAssistantMessage = [...result.data.items].reverse().find((row) => row.role === "assistant");
+    if (lastAssistantMessage) {
+      const extracted = extractMetadata(lastAssistantMessage);
+      extracted.conversation_id = item.id;
+      setResponseMetadata(extracted);
+    } else {
+      setResponseMetadata({
         conversation_id: item.id
-      })
-    );
+      });
+    }
 
     const latestUser = [...loadedMessages].reverse().find((row) => row.role === "user");
     setLastUserMessage(latestUser?.content || "");
@@ -963,12 +1059,52 @@ export default function ChatPage() {
 
       {error ? (
         <ErrorBanner code={error.code} message={error.message}>
-          {hasCredentialError ? (
-            <p className="mt-2">
+          {error.code === "invalid_gateway_api_key" ? (
+            <p className="mt-2 text-xs text-neural-text-secondary">
               Gateway API key is invalid or expired. If Gateway uses an ephemeral Console key, copy the new key from
               Gateway startup logs and update it in{" "}
-              <Link href="/settings/gateway" className="underline underline-offset-2">
+              <Link href="/settings/gateway" className="underline underline-offset-2 hover:text-neural-cyan">
                 Settings {"->"} Gateway Credentials
+              </Link>
+              .
+            </p>
+          ) : error.code === "credentials_not_configured" ? (
+            <p className="mt-2 text-xs text-neural-text-secondary">
+              Please configure your Gateway URL and API key in{" "}
+              <Link href="/settings/gateway" className="underline underline-offset-2 hover:text-neural-cyan">
+                Settings {"->"} Gateway Credentials
+              </Link>
+              .
+            </p>
+          ) : error.code === "gateway_upstream_failed" ? (
+            <p className="mt-2 text-xs text-neural-text-secondary">
+              The Gateway is reachable, but the upstream provider/model chain failed to execute. You can view diagnostics at{" "}
+              <Link href="/diagnostics" className="underline underline-offset-2 hover:text-neural-cyan">
+                Diagnostics
+              </Link>{" "}
+              or verify model strategic strategies in{" "}
+              <Link href="/model-configs" className="underline underline-offset-2 hover:text-neural-cyan">
+                Model Configs
+              </Link>
+              .
+            </p>
+          ) : error.code === "gateway_provider_unavailable" ? (
+            <p className="mt-2 text-xs text-neural-text-secondary">
+              The requested provider is temporarily unavailable or rate-limited. Verify provider health in{" "}
+              <Link href="/diagnostics" className="underline underline-offset-2 hover:text-neural-cyan">
+                Diagnostics Dashboard
+              </Link>
+              .
+            </p>
+          ) : error.code === "gateway_unreachable" ? (
+            <p className="mt-2 text-xs text-neural-text-secondary">
+              Console could not connect to Gateway. Please check your Gateway URL, Cloudflare tunnel status, and local network settings in{" "}
+              <Link href="/settings/gateway" className="underline underline-offset-2 hover:text-neural-cyan">
+                Settings
+              </Link>{" "}
+              or check general{" "}
+              <Link href="/status" className="underline underline-offset-2 hover:text-neural-cyan">
+                Gateway Status
               </Link>
               .
             </p>
@@ -1174,28 +1310,39 @@ export default function ChatPage() {
             </form>
           </div>
 
-          {responseMetadata ? (
-            <details
-              open={detailsOpen}
-              onToggle={(event) => setDetailsOpen((event.target as HTMLDetailsElement).open)}
-              className="rounded-lg border border-neural-text-muted/25 bg-neural-overlay/35 p-3"
-            >
-              <summary className="cursor-pointer font-display text-sm uppercase tracking-[0.07em] text-neural-text-primary">Response Details</summary>
-              <div className="mt-3 grid gap-2 font-mono text-xs text-neural-text-secondary">
-                {responseMetadata.model ? <p>model: {responseMetadata.model}</p> : null}
-                {responseMetadata.model_alias ? <p>model_alias: {responseMetadata.model_alias}</p> : null}
-                {responseMetadata.provider ? <p>provider: {responseMetadata.provider}</p> : null}
-                {responseMetadata.conversation_id ? <p>conversation_id: {responseMetadata.conversation_id}</p> : null}
-                {responseMetadata.usage?.total_tokens !== undefined ? (
-                  <p>
-                    tokens: prompt {responseMetadata.usage.prompt_tokens ?? "?"} / completion{" "}
-                    {responseMetadata.usage.completion_tokens ?? "?"} / total {responseMetadata.usage.total_tokens}
-                  </p>
-                ) : null}
-                {responseMetadata.orchestration ? <p>orchestration: available</p> : null}
-              </div>
-            </details>
-          ) : null}
+          {responseMetadata ? (() => {
+            const msgModel = responseMetadata.model_alias || responseMetadata.model || model;
+            return (
+              <details
+                open={detailsOpen}
+                onToggle={(event) => setDetailsOpen((event.target as HTMLDetailsElement).open)}
+                className="rounded-lg border border-neural-text-muted/25 bg-neural-overlay/35 p-3"
+              >
+                <summary className="cursor-pointer font-display text-sm uppercase tracking-[0.07em] text-neural-text-primary">Response Details</summary>
+                <div className="mt-3 grid gap-2 font-mono text-xs text-neural-text-secondary">
+                  {responseMetadata.model ? <p>model: {responseMetadata.model}</p> : null}
+                  {responseMetadata.model_alias ? <p>model_alias: {responseMetadata.model_alias}</p> : null}
+                  {responseMetadata.provider ? <p>provider: {responseMetadata.provider}</p> : null}
+                  {responseMetadata.conversation_id ? <p>conversation_id: {responseMetadata.conversation_id}</p> : null}
+                  {responseMetadata.usage?.total_tokens !== undefined ? (
+                    <p>
+                      tokens: prompt {responseMetadata.usage.prompt_tokens ?? "?"} / completion{" "}
+                      {responseMetadata.usage.completion_tokens ?? "?"} / total {responseMetadata.usage.total_tokens}
+                    </p>
+                  ) : null}
+                  {responseMetadata.orchestration ? (
+                    <div className="col-span-full font-sans">
+                      <ProOrchestrationDetails metadata={responseMetadata.orchestration} />
+                    </div>
+                  ) : msgModel === "nesty-pro-1.0" ? (
+                    <p className="mt-2 text-xs text-neural-text-muted italic col-span-full">
+                      No Pro orchestration metadata returned. Gateway may be older than v1.0.4 or this response used a basic fallback path.
+                    </p>
+                  ) : null}
+                </div>
+              </details>
+            );
+          })() : null}
         </Panel>
 
         <aside className="neural-panel space-y-3 rounded-xl p-4">

@@ -6,9 +6,11 @@
 
 Nesty Console is a separate frontend/admin project for operating a running `NestyAI Gateway`.
 
-Current status: **v0.6.2 - Neural Noir UI Refresh**
+Current status: **v0.6.3 - Pro Metadata Display & Chat Error Polish**
 
 Changelog: [CHANGELOG.md](CHANGELOG.md)
+
+v0.6.3 adds multi-model orchestration step visualization for `nesty-pro-1.0`, polished HTTP/Gateway chat completions error mapping, and improves user navigation to Gateway settings on authentication/connection failures.
 
 ## Relationship to NestyAI Gateway
 

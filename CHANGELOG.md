@@ -2,6 +2,21 @@
 
 All notable changes to Nesty Console will be documented in this file.
 
+## [0.6.3] - 2026-06-01
+
+### Added
+- Created `ProOrchestrationDetails` component to visualize multi-model orchestration steps, latencies, and roles (planner, researcher, critic, finalizer) for `nesty-pro-1.0`.
+- Integrated tolerant metadata parsing in chat page to handle `data.metadata.orchestration`, `data.metadata`, `data.orchestration`, and root properties from SSE streams.
+- Added message-level metadata extraction when opening existing conversations to display correct details.
+
+### Changed
+- Polished error mapping in `mapGatewayError` and `POST` completions API to inspect both HTTP status and Gateway JSON payload `error.code`, `error.details.upstream_status`, and `error.details.gateway_code`.
+- Preserved only safe details in client-facing error envelopes (`upstream_status` and `gateway_code`), ensuring no system secrets or internal tracebacks are leaked.
+- Improved client-side `ErrorBanner` displaying helpful instructions and links to configuration routes.
+
+### Limitations
+- "Clear stored credentials" is not supported in Nesty Console v0.6.3. Users can replace credentials but cannot completely clear them.
+
 ## [0.6.2] - Unreleased
 
 ### Changed

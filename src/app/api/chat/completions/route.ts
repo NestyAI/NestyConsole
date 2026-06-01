@@ -10,17 +10,21 @@ type ConsoleErrorCode =
   | "credentials_not_configured"
   | "invalid_gateway_api_key"
   | "gateway_unreachable"
+  | "gateway_upstream_failed"
+  | "gateway_provider_unavailable"
+  | "gateway_route_not_found"
   | "gateway_error"
   | "unknown_error"
   | "invalid_request_body";
 
-function consoleError(code: ConsoleErrorCode, message: string, status = 400) {
+function consoleError(code: ConsoleErrorCode, message: string, status = 400, details?: Record<string, unknown>) {
   return NextResponse.json(
     {
       error: {
         code,
         message,
-        type: "console_error"
+        type: "console_error",
+        ...(details ? { details } : {})
       }
     },
     { status }
@@ -90,27 +94,78 @@ async function safeJson(response: Response): Promise<unknown> {
 }
 
 function mapGatewayError(status: number, payload: unknown) {
-  const envelope = payload as { error?: { code?: string; message?: string } } | null;
+  const envelope = payload as { error?: { code?: string; message?: string; details?: Record<string, unknown> } } | null;
   const code = String(envelope?.error?.code || "").toLowerCase();
   const message = String(envelope?.error?.message || "").trim();
+
+  const details = {
+    upstream_status: status,
+    gateway_code: envelope?.error?.code || null
+  };
 
   if (code === "invalid_api_key" || code === "missing_api_key" || status === 401 || status === 403) {
     return consoleError(
       "invalid_gateway_api_key",
       "Gateway API key is invalid or expired. Update it in Settings -> Gateway Credentials.",
-      401
+      401,
+      details
     );
   }
 
   if (code === "credentials_not_configured") {
-    return consoleError("credentials_not_configured", "Gateway credentials are not configured.", 400);
+    return consoleError(
+      "credentials_not_configured",
+      "Gateway credentials are not configured. Add them in Settings -> Gateway Credentials.",
+      400,
+      details
+    );
+  }
+
+  if (status === 404) {
+    return consoleError(
+      "gateway_route_not_found",
+      "Gateway chat endpoint was not found. Check Gateway URL and API version.",
+      404,
+      details
+    );
+  }
+
+  if (status === 502) {
+    return consoleError(
+      "gateway_upstream_failed",
+      "Gateway is reachable, but the selected provider/model chain failed. Check Diagnostics or Model Configs.",
+      502,
+      details
+    );
+  }
+
+  if (status === 503) {
+    return consoleError(
+      "gateway_provider_unavailable",
+      "Gateway is reachable, but the selected provider is unavailable or rate-limited.",
+      503,
+      details
+    );
+  }
+
+  if (
+    code === "provider_unavailable" ||
+    code === "model_unavailable" ||
+    code === "openrouter_model_unavailable"
+  ) {
+    return consoleError(
+      "gateway_upstream_failed",
+      "Gateway is reachable, but the selected provider/model chain failed. Check Diagnostics or Model Configs.",
+      502,
+      details
+    );
   }
 
   if (status >= 400) {
-    return consoleError("gateway_error", message || "Gateway chat request failed.", status);
+    return consoleError("gateway_error", message || "Gateway chat request failed.", status, details);
   }
 
-  return consoleError("unknown_error", message || "Gateway chat request failed.", 500);
+  return consoleError("unknown_error", message || "Gateway chat request failed.", 500, details);
 }
 
 export async function POST(request: Request) {
@@ -128,7 +183,11 @@ export async function POST(request: Request) {
 
   const effective = resolveEffectiveGatewayCredentials();
   if (!effective.gatewayUrl || !effective.gatewayApiKey) {
-    return consoleError("credentials_not_configured", "Gateway credentials are not configured.", 400);
+    return consoleError(
+      "credentials_not_configured",
+      "Gateway credentials are not configured. Add them in Settings -> Gateway Credentials.",
+      400
+    );
   }
 
   const url = new URL("/v1/chat/completions", `${effective.gatewayUrl}/`);
@@ -148,7 +207,11 @@ export async function POST(request: Request) {
       signal: request.signal
     });
   } catch {
-    return consoleError("gateway_unreachable", "Gateway is unavailable or unreachable from Nesty Console.", 503);
+    return consoleError(
+      "gateway_unreachable",
+      "Console could not reach the Gateway. Check Gateway URL, tunnel, and network.",
+      503
+    );
   }
 
   if (!upstream.ok) {

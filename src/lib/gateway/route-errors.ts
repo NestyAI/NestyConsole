@@ -16,6 +16,9 @@ type ConsoleProxyErrorCode =
   | "invalid_memory_control_request"
   | "semantic_recall_unavailable"
   | "gateway_unreachable"
+  | "gateway_upstream_failed"
+  | "gateway_provider_unavailable"
+  | "gateway_route_not_found"
   | "gateway_error"
   | "not_found"
   | "unknown_error";
@@ -61,6 +64,15 @@ function normalizeGatewayErrorCode(code: string): ConsoleProxyErrorCode {
   if (lowered === "gateway_unreachable") {
     return "gateway_unreachable";
   }
+  if (lowered === "gateway_upstream_failed") {
+    return "gateway_upstream_failed";
+  }
+  if (lowered === "gateway_provider_unavailable") {
+    return "gateway_provider_unavailable";
+  }
+  if (lowered === "gateway_route_not_found") {
+    return "gateway_route_not_found";
+  }
   if (lowered === "not_found") {
     return "not_found";
   }
@@ -73,13 +85,13 @@ function normalizeGatewayErrorCode(code: string): ConsoleProxyErrorCode {
 function fallbackMessage(code: ConsoleProxyErrorCode): string {
   switch (code) {
     case "credentials_not_configured":
-      return "Gateway credentials are not configured.";
+      return "Gateway credentials are not configured. Add them in Settings -> Gateway Credentials.";
     case "unauthorized":
       return "Authentication required.";
     case "invalid_gateway_api_key":
-      return "Gateway API key is invalid or expired.";
+      return "Gateway API key is invalid or expired. Update it in Settings -> Gateway Credentials.";
     case "internal_admin_not_configured":
-      return "Internal admin access is not configured.";
+      return "Internal admin access is not configured. Add the admin token in Settings -> Gateway Credentials.";
     case "internal_admin_invalid":
       return "Internal admin token is invalid.";
     case "diagnostics_disabled":
@@ -97,7 +109,13 @@ function fallbackMessage(code: ConsoleProxyErrorCode): string {
     case "semantic_recall_unavailable":
       return "Semantic recall is unavailable on Gateway.";
     case "gateway_unreachable":
-      return "Gateway is unavailable or unreachable from Nesty Console.";
+      return "Console could not reach the Gateway. Check Gateway URL, tunnel, and network.";
+    case "gateway_upstream_failed":
+      return "Gateway is reachable, but the selected provider/model chain failed. Check Diagnostics or Model Configs.";
+    case "gateway_provider_unavailable":
+      return "Gateway is reachable, but the selected provider is unavailable or rate-limited.";
+    case "gateway_route_not_found":
+      return "Gateway chat endpoint was not found. Check Gateway URL and API version.";
     case "not_found":
       return "Requested resource was not found.";
     case "gateway_error":

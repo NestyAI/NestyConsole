@@ -4,8 +4,13 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2, RefreshCw, TriangleAlert } from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
+import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorBanner } from "@/components/ui/error-banner";
+import { Panel } from "@/components/ui/panel";
+import { StatCard } from "@/components/ui/stat-card";
+import { TokenTag } from "@/components/ui/token-tag";
 import {
   getLatestProviderHealth,
   getProviderHealthSummary,
@@ -81,33 +86,6 @@ function reliabilityLevel(row: ProviderReliabilityRecord): "high" | "medium" | "
     return "medium";
   }
   return "low";
-}
-
-function reliabilityBadgeClass(level: ReturnType<typeof reliabilityLevel>): string {
-  if (level === "high") {
-    return "bg-emerald-400/20 text-emerald-100";
-  }
-  if (level === "medium") {
-    return "bg-amber-400/20 text-amber-100";
-  }
-  if (level === "low") {
-    return "bg-rose-400/20 text-rose-100";
-  }
-  return "bg-slate-500/30 text-slate-200";
-}
-
-function statusBadgeClass(status: string): string {
-  const normalized = status.trim().toLowerCase();
-  if (normalized === "ok") {
-    return "bg-emerald-400/20 text-emerald-100";
-  }
-  if (normalized === "failed" || normalized === "timeout" || normalized === "unavailable") {
-    return "bg-rose-400/20 text-rose-100";
-  }
-  if (normalized === "skipped") {
-    return "bg-amber-400/20 text-amber-100";
-  }
-  return "bg-slate-500/30 text-slate-200";
 }
 
 function readHealthSummary(summary: ProviderHealthSummary) {
@@ -234,11 +212,16 @@ export default function DiagnosticsPage() {
   const summaryStats = useMemo(() => readHealthSummary(summary), [summary]);
 
   return (
-    <section className="space-y-6">
+    <section className="space-y-6 animate-fade-in-up">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-white">Diagnostics</h1>
-          <p className="text-sm text-slate-300">
+          <div className="flex items-center gap-2">
+            <h1 className="font-display text-2xl uppercase tracking-[0.08em] text-neural-text-primary">Diagnostics</h1>
+            <Badge variant="warning" withDot>
+              quota-aware
+            </Badge>
+          </div>
+          <p className="text-sm text-neural-text-secondary">
             Gateway provider health, reliability, and latest diagnostic checks.
           </p>
         </div>
@@ -246,7 +229,7 @@ export default function DiagnosticsPage() {
           <button
             type="button"
             onClick={() => void refresh()}
-            className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-white transition hover:bg-white/10"
+            className="inline-flex items-center gap-2 rounded-lg border border-neural-cyan/35 bg-neural-cyan/12 px-3 py-2 font-display text-xs uppercase tracking-[0.06em] text-neural-cyan transition hover:bg-neural-cyan/22"
             disabled={loading}
           >
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
@@ -255,7 +238,7 @@ export default function DiagnosticsPage() {
           <button
             type="button"
             onClick={() => void runHealthCheckNow()}
-            className="inline-flex items-center gap-2 rounded-lg border border-cyan-300/40 bg-cyan-400/15 px-3 py-2 text-sm text-cyan-100 transition hover:bg-cyan-400/25 disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-lg border border-neural-amber/35 bg-neural-amber/14 px-3 py-2 font-display text-xs uppercase tracking-[0.06em] text-neural-amber transition hover:bg-neural-amber/24 disabled:opacity-60"
             disabled={runningCheck}
           >
             {runningCheck ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
@@ -268,16 +251,16 @@ export default function DiagnosticsPage() {
         <div className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-4 text-sm text-emerald-100">{notice}</div>
       ) : null}
 
-      <article className="rounded-xl border border-white/10 bg-white/5 p-4">
+      <Panel accent="cyan">
         <div className="flex items-center gap-2">
-          <TriangleAlert className="h-4 w-4 text-cyan-200" />
-          <h2 className="text-sm font-semibold text-white">Admin Configuration Status</h2>
+          <TriangleAlert className="h-4 w-4 text-neural-cyan" />
+          <h2 className="font-display text-sm uppercase tracking-[0.07em] text-neural-text-primary">Admin Configuration Status</h2>
         </div>
-        <div className="mt-3 grid gap-2 text-sm text-slate-300">
+        <div className="mt-3 grid gap-2 text-sm text-neural-text-secondary">
           <p>Internal admin enabled: {credentialsView?.internal_admin_enabled ? "yes" : "no"}</p>
           <p>Internal admin token configured: {credentialsView?.internal_admin_token_configured ? "yes" : "no"}</p>
           {credentialsView ? (
-            <p className="text-xs text-slate-400">
+            <p className="font-mono text-xs text-neural-text-muted">
               Sources: enabled={credentialsView.internal_admin_enabled_source}, token=
               {credentialsView.internal_admin_token_source}
             </p>
@@ -297,7 +280,7 @@ export default function DiagnosticsPage() {
             </p>
           ) : null}
         </div>
-      </article>
+      </Panel>
 
       {combinedError ? (
         <ErrorBanner code={combinedError.code} message={combinedError.message}>
@@ -332,39 +315,24 @@ export default function DiagnosticsPage() {
       ) : null}
 
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold text-white">Provider Health Summary</h2>
+        <h2 className="font-display text-sm uppercase tracking-[0.07em] text-neural-text-primary">Provider Health Summary</h2>
         <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-5">
-          <article className="rounded-xl border border-white/10 bg-white/5 p-4">
-            <p className="text-xs text-slate-300">Total checks</p>
-            <p className="mt-1 text-xl font-semibold text-white">{summaryStats.total}</p>
-          </article>
-          <article className="rounded-xl border border-white/10 bg-white/5 p-4">
-            <p className="text-xs text-slate-300">Healthy / OK</p>
-            <p className="mt-1 text-xl font-semibold text-emerald-100">{summaryStats.ok}</p>
-          </article>
-          <article className="rounded-xl border border-white/10 bg-white/5 p-4">
-            <p className="text-xs text-slate-300">Failed / unavailable / timeout</p>
-            <p className="mt-1 text-xl font-semibold text-rose-100">{summaryStats.failed}</p>
-          </article>
-          <article className="rounded-xl border border-white/10 bg-white/5 p-4">
-            <p className="text-xs text-slate-300">Stale</p>
-            <p className="mt-1 text-xl font-semibold text-amber-100">{summaryStats.stale}</p>
-          </article>
-          <article className="rounded-xl border border-white/10 bg-white/5 p-4">
-            <p className="text-xs text-slate-300">Last check time</p>
-            <p className="mt-1 text-sm font-medium text-slate-100">{formatTimestamp(summaryStats.lastCheckAt)}</p>
-          </article>
+          <StatCard label="Total checks" value={summaryStats.total} accent="cyan" />
+          <StatCard label="Healthy / OK" value={summaryStats.ok} accent="green" />
+          <StatCard label="Failed / timeout" value={summaryStats.failed} accent="red" />
+          <StatCard label="Stale" value={summaryStats.stale} accent="amber" />
+          <StatCard label="Last check time" value={<TokenTag>{formatTimestamp(summaryStats.lastCheckAt)}</TokenTag>} accent="violet" />
         </div>
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold text-white">Reliability Scores</h2>
+        <h2 className="font-display text-sm uppercase tracking-[0.07em] text-neural-text-primary">Reliability Scores</h2>
         {reliability.length === 0 ? (
           <EmptyState title="No reliability records found yet." />
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-white/10 bg-white/5">
+          <DataTable>
             <table className="min-w-full text-sm">
-              <thead className="bg-white/5 text-left text-xs uppercase tracking-wide text-slate-300">
+              <thead className="bg-neural-overlay/55 text-left font-display text-[11px] uppercase tracking-[0.08em] text-neural-text-secondary">
                 <tr>
                   <th className="px-3 py-2">Provider</th>
                   <th className="px-3 py-2">Model / Alias</th>
@@ -383,39 +351,39 @@ export default function DiagnosticsPage() {
                   const samples = toNumber(row.sample_count);
                   const avgLatency = toNumber(row.avg_latency_ms);
                   return (
-                    <tr key={`${row.provider || "unknown"}-${row.model_alias || row.model || "model"}-${index}`} className="border-t border-white/10 text-slate-100">
-                      <td className="px-3 py-2">{String(row.provider || "-")}</td>
-                      <td className="px-3 py-2">{String(row.model_alias || row.model || "-")}</td>
-                      <td className="px-3 py-2">{String(row.role || "-")}</td>
-                      <td className="px-3 py-2">{score === null ? "-" : score.toFixed(2)}</td>
-                      <td className="px-3 py-2">{String(row.confidence || "-")}</td>
-                      <td className="px-3 py-2">{samples === null ? "-" : samples}</td>
-                      <td className="px-3 py-2">{avgLatency === null ? "-" : `${Math.round(avgLatency)} ms`}</td>
+                    <tr key={`${row.provider || "unknown"}-${row.model_alias || row.model || "model"}-${index}`} className="border-t border-neural-text-muted/20 text-neural-text-primary hover:bg-neural-overlay/25">
+                      <td className="px-3 py-2 font-mono">{String(row.provider || "-")}</td>
+                      <td className="px-3 py-2 font-mono">{String(row.model_alias || row.model || "-")}</td>
+                      <td className="px-3 py-2 font-mono">{String(row.role || "-")}</td>
+                      <td className="px-3 py-2 font-mono">{score === null ? "-" : score.toFixed(2)}</td>
+                      <td className="px-3 py-2 font-mono">{String(row.confidence || "-")}</td>
+                      <td className="px-3 py-2 font-mono">{samples === null ? "-" : samples}</td>
+                      <td className="px-3 py-2 font-mono">{avgLatency === null ? "-" : `${Math.round(avgLatency)} ms`}</td>
                       <td className="px-3 py-2">
-                        <span className={`rounded-full px-2 py-1 text-xs ${reliabilityBadgeClass(level)}`}>
+                        <Badge variant={level === "high" ? "success" : level === "medium" ? "warning" : level === "low" ? "error" : "inactive"}>
                           {level === "insufficient" ? "insufficient_data" : level}
-                        </span>
+                        </Badge>
                       </td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
-          </div>
+          </DataTable>
         )}
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold text-white">Latest Provider Checks</h2>
+        <h2 className="font-display text-sm uppercase tracking-[0.07em] text-neural-text-primary">Latest Provider Checks</h2>
         {latestChecks.length === 0 ? (
           <EmptyState
             title="No provider health check records found yet."
             description="Run a health check or use Gateway diagnostics scripts."
           />
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-white/10 bg-white/5">
+          <DataTable>
             <table className="min-w-full text-sm">
-              <thead className="bg-white/5 text-left text-xs uppercase tracking-wide text-slate-300">
+              <thead className="bg-neural-overlay/55 text-left font-display text-[11px] uppercase tracking-[0.08em] text-neural-text-secondary">
                 <tr>
                   <th className="px-3 py-2">Provider</th>
                   <th className="px-3 py-2">Model</th>
@@ -431,27 +399,37 @@ export default function DiagnosticsPage() {
                 {latestChecks.map((row, index) => (
                   <tr
                     key={`${String(row.provider || "provider")}-${String(row.model_alias || row.model || "model")}-${index}`}
-                    className="border-t border-white/10 text-slate-100"
+                    className="border-t border-neural-text-muted/20 text-neural-text-primary hover:bg-neural-overlay/25"
                   >
-                    <td className="px-3 py-2">{String(row.provider || "-")}</td>
-                    <td className="px-3 py-2">{String(row.model || "-")}</td>
-                    <td className="px-3 py-2">{String(row.model_alias || "-")}</td>
+                    <td className="px-3 py-2 font-mono">{String(row.provider || "-")}</td>
+                    <td className="px-3 py-2 font-mono">{String(row.model || "-")}</td>
+                    <td className="px-3 py-2 font-mono">{String(row.model_alias || "-")}</td>
                     <td className="px-3 py-2">
-                      <span className={`rounded-full px-2 py-1 text-xs ${statusBadgeClass(String(row.status || "unknown"))}`}>
+                      <Badge
+                        variant={
+                          String(row.status || "unknown").toLowerCase() === "ok"
+                            ? "success"
+                            : ["failed", "timeout", "unavailable"].includes(String(row.status || "").toLowerCase())
+                              ? "error"
+                              : String(row.status || "").toLowerCase() === "skipped"
+                                ? "warning"
+                                : "inactive"
+                        }
+                      >
                         {String(row.status || "unknown")}
-                      </span>
+                      </Badge>
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="px-3 py-2 font-mono">
                       {toNumber(row.latency_ms) === null ? "-" : `${Math.round(toNumber(row.latency_ms) || 0)} ms`}
                     </td>
-                    <td className="px-3 py-2">{formatTimestamp(row.checked_at || row.created_at)}</td>
-                    <td className="px-3 py-2">{String(row.error_code || "-")}</td>
-                    <td className="px-3 py-2 text-slate-300">{truncate(row.output_preview, 80)}</td>
+                    <td className="px-3 py-2 font-mono">{formatTimestamp(row.checked_at || row.created_at)}</td>
+                    <td className="px-3 py-2 font-mono">{String(row.error_code || "-")}</td>
+                    <td className="px-3 py-2 text-neural-text-secondary">{truncate(row.output_preview, 80)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
+          </DataTable>
         )}
       </section>
     </section>

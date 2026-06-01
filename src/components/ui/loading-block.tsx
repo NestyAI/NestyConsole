@@ -8,9 +8,9 @@ type LoadingBlockProps = {
 export function LoadingBlock({ label = "Loading...", className = "" }: LoadingBlockProps) {
   return (
     <div
-      className={`flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-slate-200 ${className}`}
+      className={`neural-panel flex items-center gap-2 rounded-xl p-4 text-sm text-neural-text-secondary ${className}`}
     >
-      <Loader2 className="h-4 w-4 animate-spin" />
+      <Loader2 className="h-4 w-4 animate-spin text-neural-cyan" />
       <span>{label}</span>
     </div>
   );

@@ -2,6 +2,18 @@
 
 All notable changes to Nesty Console will be documented in this file.
 
+## [0.6.2] - Unreleased
+
+### Changed
+
+- Refreshed Console UI with the Neural Noir design system.
+- Improved sidebar, topbar, cards, badges, tables, forms, and chat visual hierarchy.
+- Improved dark-theme readability, responsive spacing, and operator-console styling.
+
+### Security
+
+- UI refresh preserves server-side Gateway credential boundaries and does not expose secrets to browser JS.
+
 ## [0.6.1] - Unreleased
 
 ### Changed

@@ -4,13 +4,83 @@
 
 :root {
   color-scheme: dark;
+  --bg-void: #05070d;
+  --bg-base: #0a0e1a;
+  --bg-elevated: #101420;
+  --bg-panel: #161c2e;
+  --bg-overlay: #1d2438;
+  --bg-input: #0f1320;
+  --accent-cyan: #00e8ff;
+  --accent-amber: #ffb020;
+  --accent-violet: #8b5cf6;
+  --accent-green: #10d98a;
+  --accent-red: #ff4d6a;
+  --text-primary: #eef2ff;
+  --text-secondary: #8892a8;
+  --text-muted: #4a5268;
+  --text-code: #7ee8a2;
+  --border-subtle: rgba(136, 146, 168, 0.18);
+  --border-default: rgba(136, 146, 168, 0.28);
+  --border-strong: rgba(136, 146, 168, 0.42);
 }
 
 body {
   margin: 0;
   min-height: 100vh;
+  font-family: var(--font-dm-sans), sans-serif;
+  color: var(--text-primary);
   background:
-    radial-gradient(circle at 10% 10%, rgba(56, 189, 248, 0.16), transparent 45%),
-    radial-gradient(circle at 90% 20%, rgba(45, 212, 191, 0.12), transparent 35%),
-    #0a0f1c;
+    radial-gradient(circle at 14% 10%, rgba(0, 232, 255, 0.12), transparent 42%),
+    radial-gradient(circle at 85% 16%, rgba(139, 92, 246, 0.11), transparent 36%),
+    radial-gradient(circle at 58% 100%, rgba(16, 217, 138, 0.09), transparent 34%),
+    var(--bg-base);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-chakra-petch), sans-serif;
+  letter-spacing: 0.015em;
+}
+
+code,
+pre,
+.mono {
+  font-family: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, monospace;
+}
+
+* {
+  border-color: var(--border-subtle);
+}
+
+::selection {
+  background: rgba(0, 232, 255, 0.22);
+}
+
+.neural-panel {
+  background: rgba(22, 28, 46, 0.88);
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 0 0 1px rgba(107, 118, 150, 0.14), 0 10px 30px rgba(2, 7, 18, 0.65);
+}
+
+.neural-terminal {
+  background: var(--bg-void);
+  border: 1px solid var(--border-default);
+  color: var(--text-code);
+}
+
+.neural-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(136, 146, 168, 0.45) transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
 }

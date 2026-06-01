@@ -31,8 +31,8 @@ export function LogoutButton({ className }: LogoutButtonProps) {
       onClick={() => void handleLogout()}
       disabled={pending}
       className={
-        className ||
-        "inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-slate-100 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+      className ||
+        "inline-flex items-center gap-2 rounded-lg border border-neural-text-muted/25 bg-neural-panel/70 px-3 py-2 font-display text-xs uppercase tracking-[0.08em] text-neural-text-primary transition hover:border-neural-cyan/40 hover:text-neural-cyan disabled:cursor-not-allowed disabled:opacity-60"
       }
     >
       {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}

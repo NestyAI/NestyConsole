@@ -4,9 +4,12 @@ import Link from "next/link";
 import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Clipboard, Loader2, Menu, RefreshCcw, Send, Square, Trash2 } from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorBanner } from "@/components/ui/error-banner";
 import { LoadingBlock } from "@/components/ui/loading-block";
+import { Panel } from "@/components/ui/panel";
+import { TokenTag } from "@/components/ui/token-tag";
 import {
   archiveOrDeleteConversation,
   formatConversationTitle,
@@ -861,17 +864,22 @@ export default function ChatPage() {
   );
 
   return (
-    <section className="space-y-4">
+    <section className="space-y-4 animate-fade-in-up">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-white">NestyChat Web</h1>
-          <p className="text-sm text-slate-300">Protected chat UI that uses server-side Console routes only.</p>
+          <div className="flex items-center gap-2">
+            <h1 className="font-display text-2xl uppercase tracking-[0.08em] text-neural-text-primary">NestyChat Web</h1>
+            <Badge variant="live" withDot>
+              streaming
+            </Badge>
+          </div>
+          <p className="text-sm text-neural-text-secondary">Protected chat UI that uses server-side Console routes only.</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-200">
+        <div className="flex flex-wrap items-center gap-2 text-xs text-neural-text-secondary">
           <button
             type="button"
             onClick={() => setSidebarOpen((current) => !current)}
-            className="inline-flex items-center gap-1 rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 hover:bg-white/10 lg:hidden"
+            className="inline-flex items-center gap-1 rounded-lg border border-neural-text-muted/30 bg-neural-overlay/45 px-3 py-1.5 font-display text-[11px] uppercase tracking-[0.06em] hover:border-neural-cyan/40 lg:hidden"
           >
             <Menu className="h-3.5 w-3.5" />
             Conversations
@@ -879,7 +887,7 @@ export default function ChatPage() {
           <button
             type="button"
             onClick={startNewChat}
-            className="inline-flex items-center gap-1 rounded-lg border border-cyan-300/30 bg-cyan-400/10 px-3 py-1.5 hover:bg-cyan-400/20"
+            className="inline-flex items-center gap-1 rounded-lg border border-neural-cyan/35 bg-neural-cyan/12 px-3 py-1.5 font-display text-[11px] uppercase tracking-[0.06em] text-neural-cyan hover:bg-neural-cyan/22"
           >
             <RefreshCcw className="h-3.5 w-3.5" />
             New Chat
@@ -887,7 +895,7 @@ export default function ChatPage() {
           <button
             type="button"
             onClick={clearMessagesOnly}
-            className="inline-flex items-center gap-1 rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 hover:bg-white/10"
+            className="inline-flex items-center gap-1 rounded-lg border border-neural-amber/30 bg-neural-amber/10 px-3 py-1.5 font-display text-[11px] uppercase tracking-[0.06em] text-neural-amber hover:bg-neural-amber/18"
           >
             <Trash2 className="h-3.5 w-3.5" />
             Clear Messages
@@ -896,7 +904,7 @@ export default function ChatPage() {
             type="button"
             onClick={handleRetry}
             disabled={!lastUserMessage.trim() || sending}
-            className="inline-flex items-center gap-1 rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 hover:bg-white/10 disabled:opacity-50"
+            className="inline-flex items-center gap-1 rounded-lg border border-neural-text-muted/30 bg-neural-overlay/45 px-3 py-1.5 font-display text-[11px] uppercase tracking-[0.06em] hover:border-neural-cyan/40 disabled:opacity-50"
           >
             <RefreshCcw className="h-3.5 w-3.5" />
             Retry Last
@@ -905,7 +913,7 @@ export default function ChatPage() {
             type="button"
             onClick={() => void handleCopy(transcript, "transcript")}
             disabled={!messages.length}
-            className="inline-flex items-center gap-1 rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 hover:bg-white/10 disabled:opacity-50"
+            className="inline-flex items-center gap-1 rounded-lg border border-neural-text-muted/30 bg-neural-overlay/45 px-3 py-1.5 font-display text-[11px] uppercase tracking-[0.06em] hover:border-neural-cyan/40 disabled:opacity-50"
           >
             <Clipboard className="h-3.5 w-3.5" />
             {copiedKey === "transcript" ? "Copied" : "Copy Transcript"}
@@ -913,16 +921,14 @@ export default function ChatPage() {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 text-xs text-slate-300">
+      <div className="flex flex-wrap items-center gap-2 text-xs text-neural-text-secondary">
         {conversationId ? (
-          <span className="rounded-md border border-cyan-300/30 bg-cyan-400/10 px-2 py-1 text-cyan-100">
-            Conversation active: {shortConversationLabel(conversationId)}
-          </span>
+          <TokenTag>Conversation: {shortConversationLabel(conversationId)}</TokenTag>
         ) : (
-          <span className="rounded-md border border-white/10 bg-white/5 px-2 py-1">No active conversation</span>
+          <TokenTag>No active conversation</TokenTag>
         )}
         {activeConversationInList ? (
-          <span className="rounded-md border border-white/10 bg-white/5 px-2 py-1">{formatConversationTitle(activeConversationInList.raw)}</span>
+          <TokenTag>{formatConversationTitle(activeConversationInList.raw)}</TokenTag>
         ) : null}
         {store ? (
           <span className="rounded-md border border-emerald-300/30 bg-emerald-400/10 px-2 py-1 text-emerald-100">store=on</span>
@@ -971,14 +977,14 @@ export default function ChatPage() {
       ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)_320px]">
-        <aside className={`${sidebarOpen ? "block" : "hidden"} space-y-3 rounded-xl border border-white/10 bg-white/5 p-4 lg:block`}>
+        <aside className={`${sidebarOpen ? "block" : "hidden"} neural-panel space-y-3 rounded-xl p-4 lg:block`}>
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-white">Conversations</h2>
+            <h2 className="font-display text-sm uppercase tracking-[0.07em] text-neural-text-primary">Conversations</h2>
             <button
               type="button"
               onClick={() => void loadConversations()}
               disabled={conversationsLoading}
-              className="inline-flex items-center gap-1 rounded-lg border border-white/15 bg-white/5 px-2 py-1 text-xs text-slate-100 hover:bg-white/10 disabled:opacity-50"
+              className="inline-flex items-center gap-1 rounded-lg border border-neural-text-muted/30 bg-neural-overlay/45 px-2 py-1 font-display text-[11px] uppercase tracking-[0.06em] hover:border-neural-cyan/40 disabled:opacity-50"
             >
               <RefreshCcw className="h-3.5 w-3.5" />
               Refresh
@@ -990,11 +996,11 @@ export default function ChatPage() {
               value={conversationSearchInput}
               onChange={(event) => setConversationSearchInput(event.target.value)}
               placeholder="Search conversations..."
-              className="w-full rounded-lg border border-white/15 bg-surface-950/70 px-3 py-2 text-xs text-white"
+              className="w-full rounded-lg border border-neural-text-muted/30 bg-neural-input px-3 py-2 font-mono text-xs text-neural-text-primary"
             />
             <button
               type="submit"
-              className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-xs text-slate-100 hover:bg-white/10"
+              className="w-full rounded-lg border border-neural-cyan/35 bg-neural-cyan/10 px-3 py-2 font-display text-[11px] uppercase tracking-[0.06em] text-neural-cyan hover:bg-neural-cyan/18"
             >
               Search
             </button>
@@ -1016,7 +1022,7 @@ export default function ChatPage() {
             </div>
           ) : null}
 
-          <div className="max-h-[62vh] space-y-2 overflow-y-auto pr-1">
+          <div className="neural-scroll max-h-[62vh] space-y-2 overflow-y-auto pr-1">
             {conversationsLoading ? (
               <LoadingBlock label="Loading conversations..." className="p-3 text-xs" />
             ) : conversations.length === 0 ? (
@@ -1029,7 +1035,7 @@ export default function ChatPage() {
                   <article
                     key={item.id}
                     className={`rounded-lg border p-2 ${
-                      active ? "border-cyan-300/40 bg-cyan-400/10" : "border-white/10 bg-white/5"
+                      active ? "border-neural-cyan/45 bg-neural-cyan/12" : "border-neural-text-muted/25 bg-neural-overlay/40"
                     }`}
                   >
                     <button
@@ -1038,11 +1044,11 @@ export default function ChatPage() {
                       disabled={busy}
                       className="w-full text-left"
                     >
-                      <p className="text-xs font-medium text-slate-100">{formatConversationTitle(item.raw)}</p>
-                      <p className="mt-1 text-[11px] text-slate-300">
+                      <p className="text-xs font-medium text-neural-text-primary">{formatConversationTitle(item.raw)}</p>
+                      <p className="mt-1 font-mono text-[11px] text-neural-text-secondary">
                         {item.messageCount !== undefined ? `${item.messageCount} messages` : "message count unknown"}
                       </p>
-                      <p className="text-[11px] text-slate-400">
+                      <p className="font-mono text-[11px] text-neural-text-muted">
                         {formatDateTime(item.lastMessageAt || item.updatedAt || item.createdAt) || "time unknown"}
                       </p>
                       {item.archived ? (
@@ -1054,7 +1060,7 @@ export default function ChatPage() {
                         type="button"
                         disabled={busy}
                         onClick={() => void handleRenameConversation(item)}
-                        className="rounded border border-white/15 bg-white/5 px-2 py-1 text-[11px] text-slate-100 hover:bg-white/10 disabled:opacity-50"
+                        className="rounded border border-neural-text-muted/30 bg-neural-overlay/45 px-2 py-1 font-display text-[10px] uppercase tracking-[0.06em] text-neural-text-primary hover:border-neural-cyan/40 disabled:opacity-50"
                       >
                         Rename
                       </button>
@@ -1062,7 +1068,7 @@ export default function ChatPage() {
                         type="button"
                         disabled={busy}
                         onClick={() => void handleArchiveConversation(item)}
-                        className="rounded border border-white/15 bg-white/5 px-2 py-1 text-[11px] text-slate-100 hover:bg-white/10 disabled:opacity-50"
+                        className="rounded border border-neural-text-muted/30 bg-neural-overlay/45 px-2 py-1 font-display text-[10px] uppercase tracking-[0.06em] text-neural-text-primary hover:border-neural-cyan/40 disabled:opacity-50"
                       >
                         Archive
                       </button>
@@ -1070,7 +1076,7 @@ export default function ChatPage() {
                         type="button"
                         disabled={busy}
                         onClick={() => void handleDeleteConversation(item)}
-                        className="rounded border border-rose-300/30 bg-rose-500/10 px-2 py-1 text-[11px] text-rose-100 hover:bg-rose-500/20 disabled:opacity-50"
+                        className="rounded border border-neural-red/35 bg-neural-red/12 px-2 py-1 font-display text-[10px] uppercase tracking-[0.06em] text-rose-100 hover:bg-neural-red/22 disabled:opacity-50"
                       >
                         Delete
                       </button>
@@ -1082,9 +1088,9 @@ export default function ChatPage() {
           </div>
         </aside>
 
-        <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-          <div className="mb-3 flex min-h-[50vh] max-h-[68vh] flex-col overflow-hidden rounded-lg border border-white/10 bg-surface-950/60">
-            <div className="flex-1 space-y-3 overflow-y-auto p-3">
+        <Panel className="p-4">
+          <div className="mb-3 flex min-h-[50vh] max-h-[68vh] flex-col overflow-hidden rounded-lg border border-neural-text-muted/25 bg-neural-elevated/70">
+            <div className="neural-scroll flex-1 space-y-3 overflow-y-auto p-3">
               {messages.length === 0 ? (
                 <div className="space-y-3">
                   <p className="text-sm text-slate-300">Start chatting with NestyAI.</p>
@@ -1094,7 +1100,7 @@ export default function ChatPage() {
                         key={prompt}
                         type="button"
                         onClick={() => void handleQuickPrompt(prompt)}
-                        className="rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-xs text-slate-100 hover:bg-white/10"
+                        className="rounded-lg border border-neural-text-muted/30 bg-neural-overlay/45 px-3 py-1.5 font-display text-[11px] uppercase tracking-[0.06em] text-neural-text-primary hover:border-neural-cyan/40"
                       >
                         {prompt}
                       </button>
@@ -1105,20 +1111,28 @@ export default function ChatPage() {
                 <div className="space-y-3">
                   {messages.map((message) => {
                     const copyKey = `message:${message.id}`;
+                    const isUser = message.role === "user";
                     return (
-                      <article key={message.id} className="rounded-lg border border-white/10 bg-white/5 p-3">
+                      <article
+                        key={message.id}
+                        className={`animate-message-enter rounded-lg border p-3 ${
+                          isUser
+                            ? "border-neural-cyan/40 bg-neural-cyan/10"
+                            : "border-neural-text-muted/25 bg-neural-overlay/45"
+                        }`}
+                      >
                         <div className="flex items-start justify-between gap-2">
-                          <p className="text-xs uppercase tracking-wide text-cyan-200">{message.role}</p>
+                          <p className="font-display text-xs uppercase tracking-[0.08em] text-neural-cyan">{message.role}</p>
                           <button
                             type="button"
                             onClick={() => void handleCopy(message.content, copyKey)}
-                            className="inline-flex items-center gap-1 rounded-md border border-white/15 bg-white/5 px-2 py-1 text-xs text-slate-200 hover:bg-white/10"
+                            className="inline-flex items-center gap-1 rounded-md border border-neural-text-muted/30 bg-neural-overlay/45 px-2 py-1 font-display text-[10px] uppercase tracking-[0.06em] text-neural-text-secondary hover:border-neural-cyan/40"
                           >
                             <Clipboard className="h-3.5 w-3.5" />
                             {copiedKey === copyKey ? "Copied" : "Copy"}
                           </button>
                         </div>
-                        <p className="mt-1 whitespace-pre-wrap text-sm text-slate-100">{message.content || "..."}</p>
+                        <p className="mt-1 whitespace-pre-wrap text-sm text-neural-text-primary">{message.content || "..."}</p>
                       </article>
                     );
                   })}
@@ -1127,20 +1141,20 @@ export default function ChatPage() {
               )}
             </div>
 
-            <form onSubmit={handleSubmit} className="sticky bottom-0 space-y-3 border-t border-white/10 bg-surface-950/80 p-3 backdrop-blur">
+            <form onSubmit={handleSubmit} className="sticky bottom-0 space-y-3 border-t border-neural-text-muted/25 bg-neural-elevated/90 p-3 backdrop-blur">
               <textarea
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
                 onKeyDown={(event) => void handleInputKeyDown(event)}
                 rows={4}
                 placeholder="Type your message. Enter to send, Shift+Enter for newline."
-                className="w-full rounded-lg border border-white/15 bg-surface-950/70 px-3 py-2 text-sm text-white outline-none ring-cyan-300/40 focus:ring"
+                className="w-full rounded-lg border border-neural-text-muted/30 bg-neural-input px-3 py-2 text-sm text-neural-text-primary outline-none ring-neural-cyan/40 focus:ring"
               />
               <div className="flex items-center gap-2">
                 <button
                   type="submit"
                   disabled={sending}
-                  className="inline-flex items-center gap-2 rounded-lg border border-cyan-300/40 bg-cyan-400/15 px-3 py-2 text-sm text-cyan-100 transition hover:bg-cyan-400/25 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-lg border border-neural-cyan/40 bg-neural-cyan/15 px-3 py-2 font-display text-xs uppercase tracking-[0.07em] text-neural-cyan transition hover:bg-neural-cyan/24 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                   Send
@@ -1150,7 +1164,7 @@ export default function ChatPage() {
                     type="button"
                     onClick={stopStreaming}
                     disabled={!sending}
-                    className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-slate-100 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex items-center gap-2 rounded-lg border border-neural-text-muted/30 bg-neural-overlay/45 px-3 py-2 font-display text-xs uppercase tracking-[0.07em] text-neural-text-primary transition hover:border-neural-cyan/40 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <Square className="h-4 w-4" />
                     Stop
@@ -1164,10 +1178,10 @@ export default function ChatPage() {
             <details
               open={detailsOpen}
               onToggle={(event) => setDetailsOpen((event.target as HTMLDetailsElement).open)}
-              className="rounded-lg border border-white/10 bg-white/5 p-3"
+              className="rounded-lg border border-neural-text-muted/25 bg-neural-overlay/35 p-3"
             >
-              <summary className="cursor-pointer text-sm font-medium text-slate-100">Response Details</summary>
-              <div className="mt-3 grid gap-2 text-xs text-slate-300">
+              <summary className="cursor-pointer font-display text-sm uppercase tracking-[0.07em] text-neural-text-primary">Response Details</summary>
+              <div className="mt-3 grid gap-2 font-mono text-xs text-neural-text-secondary">
                 {responseMetadata.model ? <p>model: {responseMetadata.model}</p> : null}
                 {responseMetadata.model_alias ? <p>model_alias: {responseMetadata.model_alias}</p> : null}
                 {responseMetadata.provider ? <p>provider: {responseMetadata.provider}</p> : null}
@@ -1182,17 +1196,17 @@ export default function ChatPage() {
               </div>
             </details>
           ) : null}
-        </div>
+        </Panel>
 
-        <aside className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-4">
-          <h2 className="text-sm font-semibold text-white">Chat Options</h2>
+        <aside className="neural-panel space-y-3 rounded-xl p-4">
+          <h2 className="font-display text-sm uppercase tracking-[0.07em] text-neural-text-primary">Chat Options</h2>
 
-          <label className="block space-y-1 text-sm text-slate-200">
+          <label className="block space-y-1 text-sm text-neural-text-secondary">
             <span>Model</span>
             <select
               value={model}
               onChange={(event) => setModel(event.target.value as (typeof MODELS)[number])}
-              className="w-full rounded-lg border border-white/15 bg-surface-950/70 px-3 py-2 text-sm text-white"
+              className="w-full rounded-lg border border-neural-text-muted/30 bg-neural-input px-3 py-2 font-mono text-sm text-neural-text-primary"
             >
               {MODELS.map((item) => (
                 <option key={item} value={item}>
@@ -1202,12 +1216,12 @@ export default function ChatPage() {
             </select>
           </label>
 
-          <label className="block space-y-1 text-sm text-slate-200">
+          <label className="block space-y-1 text-sm text-neural-text-secondary">
             <span>Search</span>
             <select
               value={search}
               onChange={(event) => setSearch(event.target.value as "auto" | "on" | "off")}
-              className="w-full rounded-lg border border-white/15 bg-surface-950/70 px-3 py-2 text-sm text-white"
+              className="w-full rounded-lg border border-neural-text-muted/30 bg-neural-input px-3 py-2 text-sm text-neural-text-primary"
             >
               <option value="auto">auto</option>
               <option value="on">on</option>
@@ -1215,24 +1229,24 @@ export default function ChatPage() {
             </select>
           </label>
 
-          <label className="block space-y-1 text-sm text-slate-200">
+          <label className="block space-y-1 text-sm text-neural-text-secondary">
             <span>Tools</span>
             <select
               value={tools}
               onChange={(event) => setTools(event.target.value as "auto" | "off")}
-              className="w-full rounded-lg border border-white/15 bg-surface-950/70 px-3 py-2 text-sm text-white"
+              className="w-full rounded-lg border border-neural-text-muted/30 bg-neural-input px-3 py-2 text-sm text-neural-text-primary"
             >
               <option value="auto">auto</option>
               <option value="off">off</option>
             </select>
           </label>
 
-          <label className="block space-y-1 text-sm text-slate-200">
+          <label className="block space-y-1 text-sm text-neural-text-secondary">
             <span>Semantic recall</span>
             <select
               value={semanticRecall}
               onChange={(event) => setSemanticRecall(event.target.value as "auto" | "on" | "off")}
-              className="w-full rounded-lg border border-white/15 bg-surface-950/70 px-3 py-2 text-sm text-white"
+              className="w-full rounded-lg border border-neural-text-muted/30 bg-neural-input px-3 py-2 text-sm text-neural-text-primary"
             >
               <option value="auto">auto</option>
               <option value="on">on</option>
@@ -1240,61 +1254,61 @@ export default function ChatPage() {
             </select>
           </label>
 
-          <label className="block space-y-1 text-sm text-slate-200">
+          <label className="block space-y-1 text-sm text-neural-text-secondary">
             <span>Temperature</span>
             <input
               value={temperature}
               onChange={(event) => setTemperature(event.target.value)}
-              className="w-full rounded-lg border border-white/15 bg-surface-950/70 px-3 py-2 text-sm text-white"
+              className="w-full rounded-lg border border-neural-text-muted/30 bg-neural-input px-3 py-2 font-mono text-sm text-neural-text-primary"
             />
           </label>
 
-          <label className="block space-y-1 text-sm text-slate-200">
+          <label className="block space-y-1 text-sm text-neural-text-secondary">
             <span>Max tokens</span>
             <input
               value={maxTokens}
               onChange={(event) => setMaxTokens(event.target.value)}
-              className="w-full rounded-lg border border-white/15 bg-surface-950/70 px-3 py-2 text-sm text-white"
+              className="w-full rounded-lg border border-neural-text-muted/30 bg-neural-input px-3 py-2 font-mono text-sm text-neural-text-primary"
             />
           </label>
 
-          <label className="flex items-center gap-2 text-sm text-slate-200">
+          <label className="flex items-center gap-2 text-sm text-neural-text-secondary">
             <input
               type="checkbox"
               checked={store}
               onChange={(event) => setStore(event.target.checked)}
-              className="h-4 w-4 rounded border-white/20 bg-surface-950/70"
+              className="h-4 w-4 rounded border-neural-text-muted/30 bg-neural-input"
             />
             store conversation
           </label>
 
-          <label className="flex items-center gap-2 text-sm text-slate-200">
+          <label className="flex items-center gap-2 text-sm text-neural-text-secondary">
             <input
               type="checkbox"
               checked={stream}
               onChange={(event) => setStream(event.target.checked)}
-              className="h-4 w-4 rounded border-white/20 bg-surface-950/70"
+              className="h-4 w-4 rounded border-neural-text-muted/30 bg-neural-input"
             />
             stream response
           </label>
 
-          <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+          <div className="rounded-lg border border-neural-text-muted/25 bg-neural-overlay/35 p-3">
             <button
               type="button"
               onClick={() => setShowSystemPrompt((current) => !current)}
-              className="text-sm text-slate-100 underline decoration-dotted underline-offset-2"
+              className="font-display text-xs uppercase tracking-[0.06em] text-neural-text-primary underline decoration-dotted underline-offset-2"
             >
               {showSystemPrompt ? "Hide" : "Show"} system prompt (optional)
             </button>
             {showSystemPrompt ? (
               <div className="mt-2 space-y-2">
-                <p className="text-xs text-slate-300">This field is local UI context only. Do not paste secrets.</p>
+                <p className="text-xs text-neural-text-secondary">This field is local UI context only. Do not paste secrets.</p>
                 <textarea
                   value={systemPrompt}
                   onChange={(event) => setSystemPrompt(event.target.value)}
                   rows={4}
                   placeholder="Optional system instruction for this browser session"
-                  className="w-full rounded-lg border border-white/15 bg-surface-950/70 px-3 py-2 text-xs text-white"
+                  className="w-full rounded-lg border border-neural-text-muted/30 bg-neural-input px-3 py-2 text-xs text-neural-text-primary"
                 />
               </div>
             ) : null}

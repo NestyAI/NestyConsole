@@ -8,6 +8,10 @@ import { ConfirmAction } from "@/components/ui/confirm-action";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorBanner } from "@/components/ui/error-banner";
 import { LoadingBlock } from "@/components/ui/loading-block";
+import { Badge } from "@/components/ui/badge";
+import { Panel } from "@/components/ui/panel";
+import { TerminalBlock } from "@/components/ui/terminal-block";
+import { TokenTag } from "@/components/ui/token-tag";
 import {
   getModelConfig,
   listModelConfigs,
@@ -396,16 +400,16 @@ export default function ModelConfigsPage() {
   };
 
   return (
-    <section className="space-y-6">
+    <section className="space-y-6 animate-fade-in-up">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-white">Model Configs</h1>
-          <p className="text-sm text-slate-300">Runtime model alias configuration and provider chains.</p>
+          <h1 className="font-display text-2xl uppercase tracking-[0.08em] text-neural-text-primary">Model Configs</h1>
+          <p className="text-sm text-neural-text-secondary">Runtime model alias configuration and provider chains.</p>
         </div>
         <button
           type="button"
           onClick={() => void refreshAll()}
-          className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-white transition hover:bg-white/10"
+          className="inline-flex items-center gap-2 rounded-lg border border-neural-cyan/35 bg-neural-cyan/12 px-3 py-2 font-display text-xs uppercase tracking-[0.06em] text-neural-cyan transition hover:bg-neural-cyan/22"
           disabled={listLoading || detailLoading}
         >
           <RefreshCw className={`h-4 w-4 ${listLoading || detailLoading ? "animate-spin" : ""}`} />
@@ -455,13 +459,13 @@ export default function ModelConfigsPage() {
       ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
-        <aside className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-4">
-          <h2 className="text-sm font-semibold text-white">Model Alias List</h2>
+        <Panel className="space-y-3">
+          <h2 className="font-display text-sm uppercase tracking-[0.07em] text-neural-text-primary">Model Alias List</h2>
           {listLoading ? <LoadingBlock label="Loading model aliases..." className="p-3 text-xs" /> : null}
           {!listLoading && listItems.length === 0 ? (
             <EmptyState title="No model aliases returned." className="p-3 text-xs" />
           ) : null}
-          <div className="max-h-[60vh] space-y-2 overflow-y-auto pr-1">
+          <div className="neural-scroll max-h-[60vh] space-y-2 overflow-y-auto pr-1">
             {listItems.map((item) => {
               const active = item.modelAlias === selectedAlias;
               return (
@@ -469,25 +473,25 @@ export default function ModelConfigsPage() {
                   type="button"
                   key={item.modelAlias}
                   onClick={() => void handleSelectAlias(item.modelAlias)}
-                  className={`w-full rounded-lg border p-3 text-left ${
+                  className={`w-full rounded-lg border p-3 text-left transition ${
                     active
-                      ? "border-cyan-300/40 bg-cyan-400/10 text-cyan-100"
-                      : "border-white/10 bg-white/5 text-slate-100 hover:bg-white/10"
+                      ? "border-neural-cyan/45 bg-neural-cyan/12 text-neural-cyan"
+                      : "border-neural-text-muted/25 bg-neural-overlay/35 text-neural-text-primary hover:bg-neural-overlay/55"
                   }`}
                 >
-                  <p className="text-sm font-medium">{item.modelAlias}</p>
-                  <p className="mt-1 text-xs text-slate-300">{item.displayName}</p>
+                  <p className="font-mono text-xs text-neural-text-code">{item.modelAlias}</p>
+                  <p className="mt-1 text-xs text-neural-text-secondary">{item.displayName}</p>
                   <p className="mt-1 text-xs">
-                    source: <span className="font-medium">{item.configSource || "unknown"}</span>
+                    source: <span className="font-mono">{item.configSource || "unknown"}</span>
                   </p>
-                  <p className="mt-1 text-[11px] text-slate-400">{providerChainSummary(item.providerChain)}</p>
+                  <p className="mt-1 font-mono text-[11px] text-neural-text-muted">{providerChainSummary(item.providerChain)}</p>
                 </button>
               );
             })}
           </div>
-        </aside>
+        </Panel>
 
-        <section className="space-y-4 rounded-xl border border-white/10 bg-white/5 p-4">
+        <Panel className="space-y-4">
           {detailLoading ? (
             <LoadingBlock label="Loading model config..." className="p-3 text-xs" />
           ) : null}
@@ -498,23 +502,25 @@ export default function ModelConfigsPage() {
 
           {detail ? (
             <div className="space-y-4">
-              <div className="rounded-lg border border-white/10 bg-white/5 p-3">
-                <p className="text-xs text-slate-300">Selected alias</p>
-                <h2 className="mt-1 text-lg font-semibold text-white">{detail.modelAlias}</h2>
-                <p className="mt-1 text-sm text-slate-300">Display name: {detail.displayName || "-"}</p>
-                <p className="text-sm text-slate-300">Config source: {detail.configSource || "unknown"}</p>
-                <p className="text-sm text-slate-300">
+              <div className="rounded-lg border border-neural-text-muted/25 bg-neural-overlay/40 p-3">
+                <p className="font-display text-[11px] uppercase tracking-[0.07em] text-neural-text-secondary">Selected alias</p>
+                <div className="mt-1 flex flex-wrap items-center gap-2">
+                  <TokenTag>{detail.modelAlias}</TokenTag>
+                  <Badge variant="live">{detail.configSource || "unknown"}</Badge>
+                </div>
+                <p className="mt-2 text-sm text-neural-text-secondary">Display name: {detail.displayName || "-"}</p>
+                <p className="text-sm text-neural-text-secondary">
                   Override status: {detail.overrideConfig ? "override active" : "default only"}
                 </p>
               </div>
 
-              <div className="space-y-2 rounded-lg border border-white/10 bg-white/5 p-3">
+              <div className="space-y-2 rounded-lg border border-neural-text-muted/25 bg-neural-overlay/35 p-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-white">Provider Chain Editor</h3>
+                  <h3 className="font-display text-sm uppercase tracking-[0.07em] text-neural-text-primary">Provider Chain Editor</h3>
                   <button
                     type="button"
                     onClick={addChainItem}
-                    className="inline-flex items-center gap-1 rounded border border-white/15 bg-white/5 px-2 py-1 text-xs text-slate-100 hover:bg-white/10"
+                    className="inline-flex items-center gap-1 rounded border border-neural-cyan/35 bg-neural-cyan/10 px-2 py-1 font-display text-[11px] uppercase tracking-[0.06em] text-neural-cyan hover:bg-neural-cyan/18"
                   >
                     <Plus className="h-3.5 w-3.5" />
                     Add
@@ -524,68 +530,68 @@ export default function ModelConfigsPage() {
                 {draftProviderChain.length === 0 ? (
                   <p className="text-xs text-slate-300">No provider chain items configured.</p>
                 ) : (
-                  <div className="space-y-2 overflow-x-auto">
+                  <div className="neural-scroll space-y-2 overflow-x-auto">
                     {draftProviderChain.map((item, index) => (
-                      <article key={`${item.provider}-${item.model}-${index}`} className="rounded border border-white/10 bg-surface-950/50 p-2">
+                      <article key={`${item.provider}-${item.model}-${index}`} className="rounded border border-neural-text-muted/25 bg-neural-elevated/70 p-2">
                         <div className="grid gap-2 md:grid-cols-2">
-                          <label className="space-y-1 text-xs text-slate-300">
+                          <label className="space-y-1 text-xs text-neural-text-secondary">
                             <span>provider</span>
                             <input
                               value={item.provider}
                               onChange={(event) =>
                                 updateChainItem(index, (prev) => ({ ...prev, provider: event.target.value }))
                               }
-                              className="w-full rounded border border-white/15 bg-surface-950/70 px-2 py-1 text-xs text-white"
+                              className="w-full rounded border border-neural-text-muted/30 bg-neural-input px-2 py-1 font-mono text-xs text-neural-text-primary focus:border-neural-cyan/50 focus:outline-none"
                             />
                           </label>
-                          <label className="space-y-1 text-xs text-slate-300">
+                          <label className="space-y-1 text-xs text-neural-text-secondary">
                             <span>model</span>
                             <input
                               value={item.model}
                               onChange={(event) =>
                                 updateChainItem(index, (prev) => ({ ...prev, model: event.target.value }))
                               }
-                              className="w-full rounded border border-white/15 bg-surface-950/70 px-2 py-1 text-xs text-white"
+                              className="w-full rounded border border-neural-text-muted/30 bg-neural-input px-2 py-1 font-mono text-xs text-neural-text-primary focus:border-neural-cyan/50 focus:outline-none"
                             />
                           </label>
-                          <label className="space-y-1 text-xs text-slate-300">
+                          <label className="space-y-1 text-xs text-neural-text-secondary">
                             <span>timeout_seconds</span>
                             <input
                               value={item.timeout_seconds || ""}
                               onChange={(event) =>
                                 updateChainItem(index, (prev) => ({ ...prev, timeout_seconds: event.target.value }))
                               }
-                              className="w-full rounded border border-white/15 bg-surface-950/70 px-2 py-1 text-xs text-white"
+                              className="w-full rounded border border-neural-text-muted/30 bg-neural-input px-2 py-1 font-mono text-xs text-neural-text-primary focus:border-neural-cyan/50 focus:outline-none"
                             />
                           </label>
-                          <label className="space-y-1 text-xs text-slate-300">
+                          <label className="space-y-1 text-xs text-neural-text-secondary">
                             <span>max_tokens</span>
                             <input
                               value={item.max_tokens || ""}
                               onChange={(event) =>
                                 updateChainItem(index, (prev) => ({ ...prev, max_tokens: event.target.value }))
                               }
-                              className="w-full rounded border border-white/15 bg-surface-950/70 px-2 py-1 text-xs text-white"
+                              className="w-full rounded border border-neural-text-muted/30 bg-neural-input px-2 py-1 font-mono text-xs text-neural-text-primary focus:border-neural-cyan/50 focus:outline-none"
                             />
                           </label>
-                          <label className="space-y-1 text-xs text-slate-300">
+                          <label className="space-y-1 text-xs text-neural-text-secondary">
                             <span>temperature</span>
                             <input
                               value={item.temperature || ""}
                               onChange={(event) =>
                                 updateChainItem(index, (prev) => ({ ...prev, temperature: event.target.value }))
                               }
-                              className="w-full rounded border border-white/15 bg-surface-950/70 px-2 py-1 text-xs text-white"
+                              className="w-full rounded border border-neural-text-muted/30 bg-neural-input px-2 py-1 font-mono text-xs text-neural-text-primary focus:border-neural-cyan/50 focus:outline-none"
                             />
                           </label>
-                          <label className="space-y-1 text-xs text-slate-300">
+                          <label className="space-y-1 text-xs text-neural-text-secondary">
                             <span>enabled</span>
                             <select
                               value={item.enabled === false ? "false" : "true"}
                               onChange={(event) =>
                                 updateChainItem(index, (prev) => ({ ...prev, enabled: event.target.value !== "false" }))
                               }
-                              className="w-full rounded border border-white/15 bg-surface-950/70 px-2 py-1 text-xs text-white"
+                              className="w-full rounded border border-neural-text-muted/30 bg-neural-input px-2 py-1 font-mono text-xs text-neural-text-primary focus:border-neural-cyan/50 focus:outline-none"
                             >
                               <option value="true">true</option>
                               <option value="false">false</option>
@@ -597,7 +603,7 @@ export default function ModelConfigsPage() {
                             type="button"
                             onClick={() => moveChainItem(index, -1)}
                             disabled={index === 0}
-                            className="rounded border border-white/15 bg-white/5 px-2 py-1 text-xs text-slate-100 hover:bg-white/10 disabled:opacity-50"
+                            className="rounded border border-neural-text-muted/30 bg-neural-overlay/45 px-2 py-1 font-display text-[11px] uppercase tracking-[0.06em] text-neural-text-primary hover:border-neural-cyan/40 disabled:opacity-50"
                           >
                             Up
                           </button>
@@ -605,14 +611,14 @@ export default function ModelConfigsPage() {
                             type="button"
                             onClick={() => moveChainItem(index, 1)}
                             disabled={index === draftProviderChain.length - 1}
-                            className="rounded border border-white/15 bg-white/5 px-2 py-1 text-xs text-slate-100 hover:bg-white/10 disabled:opacity-50"
+                            className="rounded border border-neural-text-muted/30 bg-neural-overlay/45 px-2 py-1 font-display text-[11px] uppercase tracking-[0.06em] text-neural-text-primary hover:border-neural-cyan/40 disabled:opacity-50"
                           >
                             Down
                           </button>
                           <button
                             type="button"
                             onClick={() => removeChainItem(index)}
-                            className="inline-flex items-center gap-1 rounded border border-rose-300/30 bg-rose-500/10 px-2 py-1 text-xs text-rose-100 hover:bg-rose-500/20"
+                            className="inline-flex items-center gap-1 rounded border border-neural-red/35 bg-neural-red/12 px-2 py-1 font-display text-[11px] uppercase tracking-[0.06em] text-rose-100 hover:bg-neural-red/22"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                             Remove
@@ -625,36 +631,34 @@ export default function ModelConfigsPage() {
               </div>
 
               <div className="grid gap-2 md:grid-cols-2">
-                <label className="space-y-1 text-xs text-slate-300">
+                <label className="space-y-1 text-xs text-neural-text-secondary">
                   <span>display_name</span>
                   <input
                     value={draftDisplayName}
                     onChange={(event) => setDraftDisplayName(event.target.value)}
-                    className="w-full rounded border border-white/15 bg-surface-950/70 px-2 py-1.5 text-xs text-white"
+                    className="w-full rounded border border-neural-text-muted/30 bg-neural-input px-2 py-1.5 font-mono text-xs text-neural-text-primary focus:border-neural-cyan/50 focus:outline-none"
                   />
                 </label>
-                <label className="space-y-1 text-xs text-slate-300">
+                <label className="space-y-1 text-xs text-neural-text-secondary">
                   <span>notes</span>
                   <input
                     value={draftNotes}
                     onChange={(event) => setDraftNotes(event.target.value)}
-                    className="w-full rounded border border-white/15 bg-surface-950/70 px-2 py-1.5 text-xs text-white"
+                    className="w-full rounded border border-neural-text-muted/30 bg-neural-input px-2 py-1.5 text-xs text-neural-text-primary focus:border-neural-cyan/50 focus:outline-none"
                   />
                 </label>
               </div>
 
-              <article className="rounded-lg border border-white/10 bg-white/5 p-3">
-                <h3 className="text-sm font-semibold text-white">Nesty Pro Orchestration Roles</h3>
+              <article className="rounded-lg border border-neural-text-muted/25 bg-neural-overlay/35 p-3">
+                <h3 className="font-display text-sm uppercase tracking-[0.07em] text-neural-text-primary">Nesty Pro Orchestration Roles</h3>
                 {Object.keys(detail.orchestrationRoles || {}).length === 0 ? (
                   <p className="mt-2 text-xs text-slate-300">No orchestration roles found.</p>
                 ) : (
                   <div className="mt-2 space-y-2">
                     {Object.entries(detail.orchestrationRoles).map(([roleName, roleValue]) => (
-                      <div key={roleName} className="rounded border border-white/10 bg-surface-950/50 p-2 text-xs text-slate-200">
-                        <p className="font-medium text-white">{roleName}</p>
-                        <pre className="mt-1 overflow-x-auto whitespace-pre-wrap text-[11px] text-slate-300">
-                          {JSON.stringify(redactSensitiveModelConfig(roleValue), null, 2)}
-                        </pre>
+                      <div key={roleName} className="rounded border border-neural-text-muted/25 bg-neural-elevated/70 p-2 text-xs text-slate-200">
+                        <p className="font-mono text-neural-text-primary">{roleName}</p>
+                        <TerminalBlock className="mt-1 max-h-36 text-[11px]">{safeStringify(redactSensitiveModelConfig(roleValue))}</TerminalBlock>
                       </div>
                     ))}
                   </div>
@@ -665,12 +669,7 @@ export default function ModelConfigsPage() {
               </article>
 
               <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => void handleSave()}
-                  disabled={saving || resetting || !dirty}
-                  className="inline-flex items-center gap-2 rounded-lg border border-cyan-300/40 bg-cyan-400/15 px-3 py-2 text-sm text-cyan-100 transition hover:bg-cyan-400/25 disabled:opacity-60"
-                >
+                <button type="button" onClick={() => void handleSave()} disabled={saving || resetting || !dirty} className="inline-flex items-center gap-2 rounded-lg border border-neural-cyan/40 bg-neural-cyan/15 px-3 py-2 font-display text-xs uppercase tracking-[0.06em] text-neural-cyan transition hover:bg-neural-cyan/25 disabled:opacity-60">
                   {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                   Save override
                 </button>
@@ -678,7 +677,7 @@ export default function ModelConfigsPage() {
                   type="button"
                   onClick={resetDraft}
                   disabled={saving || resetting || !dirty}
-                  className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-slate-100 transition hover:bg-white/10 disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-lg border border-neural-text-muted/30 bg-neural-overlay/45 px-3 py-2 font-display text-xs uppercase tracking-[0.06em] text-neural-text-primary transition hover:border-neural-cyan/40 disabled:opacity-60"
                 >
                   Cancel changes
                 </button>
@@ -688,7 +687,7 @@ export default function ModelConfigsPage() {
                     await handleResetOverride();
                   }}
                   disabled={saving || resetting}
-                  className="inline-flex items-center gap-2 rounded-lg border border-amber-300/40 bg-amber-400/15 px-3 py-2 text-sm text-amber-100 transition hover:bg-amber-400/25 disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-lg border border-neural-amber/40 bg-neural-amber/14 px-3 py-2 font-display text-xs uppercase tracking-[0.06em] text-neural-amber transition hover:bg-neural-amber/24 disabled:opacity-60"
                 >
                   {resetting ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
                   Reset override
@@ -697,22 +696,20 @@ export default function ModelConfigsPage() {
                   type="button"
                   onClick={() => void loadDetail(detail.modelAlias)}
                   disabled={saving || resetting}
-                  className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-slate-100 transition hover:bg-white/10 disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-lg border border-neural-text-muted/30 bg-neural-overlay/45 px-3 py-2 font-display text-xs uppercase tracking-[0.06em] text-neural-text-primary transition hover:border-neural-cyan/40 disabled:opacity-60"
                 >
                   <RefreshCw className="h-4 w-4" />
                   Refresh detail
                 </button>
               </div>
 
-              <details className="rounded-lg border border-white/10 bg-white/5 p-3">
-                <summary className="cursor-pointer text-sm font-medium text-slate-100">Raw effective config</summary>
-                <pre className="mt-2 overflow-x-auto whitespace-pre-wrap text-xs text-slate-300">
-                  {rawRedactedConfig || "No effective config available."}
-                </pre>
+              <details className="rounded-lg border border-neural-text-muted/25 bg-neural-overlay/35 p-3">
+                <summary className="cursor-pointer font-display text-sm uppercase tracking-[0.06em] text-neural-text-primary">Raw effective config</summary>
+                <TerminalBlock className="mt-2 text-xs">{rawRedactedConfig || "No effective config available."}</TerminalBlock>
               </details>
             </div>
           ) : null}
-        </section>
+        </Panel>
       </div>
     </section>
   );

@@ -8,6 +8,10 @@ import { ConfirmAction } from "@/components/ui/confirm-action";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorBanner } from "@/components/ui/error-banner";
 import { LoadingBlock } from "@/components/ui/loading-block";
+import { Badge } from "@/components/ui/badge";
+import { Panel } from "@/components/ui/panel";
+import { TerminalBlock } from "@/components/ui/terminal-block";
+import { TokenTag } from "@/components/ui/token-tag";
 import {
   clearConversation,
   exportConversation,
@@ -429,18 +433,23 @@ export default function MemoryPage() {
   };
 
   return (
-    <section className="space-y-6">
+    <section className="space-y-6 animate-fade-in-up">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-white">Memory</h1>
-          <p className="text-sm text-slate-300">
+          <div className="flex items-center gap-2">
+            <h1 className="font-display text-2xl uppercase tracking-[0.08em] text-neural-text-primary">Memory</h1>
+            <Badge variant="ai" withDot>
+              semantic
+            </Badge>
+          </div>
+          <p className="text-sm text-neural-text-secondary">
             Inspect and manage Gateway conversations, summaries, and message memory controls.
           </p>
         </div>
         <button
           type="button"
           onClick={() => void handleRefreshAll()}
-          className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-white transition hover:bg-white/10"
+          className="inline-flex items-center gap-2 rounded-lg border border-neural-cyan/35 bg-neural-cyan/12 px-3 py-2 font-display text-xs uppercase tracking-[0.06em] text-neural-cyan transition hover:bg-neural-cyan/22"
           disabled={conversationsLoading || detailLoading || recallBusy}
         >
           <RefreshCw className={`h-4 w-4 ${conversationsLoading || detailLoading || recallBusy ? "animate-spin" : ""}`} />
@@ -469,35 +478,35 @@ export default function MemoryPage() {
       ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[360px_minmax(0,1fr)]">
-        <aside className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-4">
-          <h2 className="text-sm font-semibold text-white">Conversation Search/List</h2>
+        <Panel className="space-y-3">
+          <h2 className="font-display text-sm uppercase tracking-[0.07em] text-neural-text-primary">Conversation Search/List</h2>
           <div className="space-y-2">
             <input
               value={searchText}
               onChange={(event) => setSearchText(event.target.value)}
               placeholder="Search conversations..."
-              className="w-full rounded-lg border border-white/15 bg-surface-950/70 px-3 py-2 text-sm text-white"
+              className="w-full rounded-lg border border-neural-text-muted/30 bg-neural-input px-3 py-2 text-sm text-neural-text-primary focus:border-neural-cyan/50 focus:outline-none"
             />
             <div className="grid grid-cols-2 gap-2">
               <input
                 value={limit}
                 onChange={(event) => setLimit(event.target.value)}
                 placeholder="limit"
-                className="w-full rounded-lg border border-white/15 bg-surface-950/70 px-3 py-2 text-xs text-white"
+                className="w-full rounded-lg border border-neural-text-muted/30 bg-neural-input px-3 py-2 font-mono text-xs text-neural-text-primary focus:border-neural-cyan/50 focus:outline-none"
               />
               <input
                 value={offset}
                 onChange={(event) => setOffset(event.target.value)}
                 placeholder="offset"
-                className="w-full rounded-lg border border-white/15 bg-surface-950/70 px-3 py-2 text-xs text-white"
+                className="w-full rounded-lg border border-neural-text-muted/30 bg-neural-input px-3 py-2 font-mono text-xs text-neural-text-primary focus:border-neural-cyan/50 focus:outline-none"
               />
             </div>
-            <label className="flex items-center gap-2 text-xs text-slate-200">
+            <label className="flex items-center gap-2 text-xs text-neural-text-secondary">
               <input
                 type="checkbox"
                 checked={archivedOnly}
                 onChange={(event) => setArchivedOnly(event.target.checked)}
-                className="h-4 w-4 rounded border-white/20 bg-surface-950/70"
+                className="h-4 w-4 rounded border-neural-text-muted/30 bg-neural-input"
               />
               archived only
             </label>
@@ -505,13 +514,13 @@ export default function MemoryPage() {
               type="button"
               onClick={() => void loadConversationsData()}
               disabled={conversationsLoading}
-              className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-slate-100 hover:bg-white/10 disabled:opacity-60"
+              className="w-full rounded-lg border border-neural-cyan/35 bg-neural-cyan/12 px-3 py-2 font-display text-xs uppercase tracking-[0.06em] text-neural-cyan hover:bg-neural-cyan/20 disabled:opacity-60"
             >
               {conversationsLoading ? "Loading..." : "Search / Refresh List"}
             </button>
           </div>
 
-          <div className="max-h-[58vh] space-y-2 overflow-y-auto pr-1">
+          <div className="neural-scroll max-h-[58vh] space-y-2 overflow-y-auto pr-1">
             {conversations.length === 0 && !conversationsLoading ? (
               <EmptyState title="No conversations found." className="p-3 text-xs" />
             ) : null}
@@ -525,19 +534,19 @@ export default function MemoryPage() {
                   key={id || `${conversation.title || "conversation"}-${index}`}
                   type="button"
                   onClick={() => setSelectedConversation(conversation)}
-                  className={`w-full rounded-lg border p-3 text-left ${
+                  className={`w-full rounded-lg border p-3 text-left transition ${
                     active
-                      ? "border-cyan-300/40 bg-cyan-400/10 text-cyan-100"
-                      : "border-white/10 bg-white/5 text-slate-100 hover:bg-white/10"
+                      ? "border-neural-cyan/45 bg-neural-cyan/12 text-neural-cyan"
+                      : "border-neural-text-muted/25 bg-neural-overlay/35 text-neural-text-primary hover:bg-neural-overlay/55"
                   }`}
                 >
                   <p className="text-sm font-medium">{toConversationTitle(conversation)}</p>
-                  <p className="mt-1 text-[11px] text-slate-300">{id || "id unavailable"}</p>
-                  <p className="mt-1 text-[11px] text-slate-300">
+                  <p className="mt-1"><TokenTag>{id || "id unavailable"}</TokenTag></p>
+                  <p className="mt-1 font-mono text-[11px] text-neural-text-secondary">
                     messages: {typeof conversation.message_count === "number" ? conversation.message_count : "-"} | summary:{" "}
                     {summaryExists ? "yes" : "no"}
                   </p>
-                  <p className="mt-1 text-[11px] text-slate-400">
+                  <p className="mt-1 font-mono text-[11px] text-neural-text-muted">
                     last: {formatDateTime(conversation.last_message_at || conversation.updated_at || conversation.created_at)}
                     {archived ? " | archived" : ""}
                   </p>
@@ -545,16 +554,18 @@ export default function MemoryPage() {
               );
             })}
           </div>
-        </aside>
+        </Panel>
 
-        <section className="space-y-4 rounded-xl border border-white/10 bg-white/5 p-4">
-          <article className="rounded-lg border border-white/10 bg-white/5 p-3">
-            <h2 className="text-sm font-semibold text-white">Conversation Detail</h2>
+        <Panel className="space-y-4">
+          <article className="rounded-lg border border-neural-text-muted/25 bg-neural-overlay/35 p-3">
+            <h2 className="font-display text-sm uppercase tracking-[0.07em] text-neural-text-primary">Conversation Detail</h2>
             {!selectedConversationId ? (
-              <p className="mt-2 text-sm text-slate-300">Select a conversation to view details and memory controls.</p>
+              <p className="mt-2 text-sm text-neural-text-secondary">Select a conversation to view details and memory controls.</p>
             ) : (
-              <div className="mt-2 grid gap-1 text-xs text-slate-200">
-                <p>id: {selectedConversationId}</p>
+              <div className="mt-2 grid gap-1 text-xs text-neural-text-secondary">
+                <p>
+                  id: <TokenTag>{selectedConversationId}</TokenTag>
+                </p>
                 <p>title: {toConversationTitle(selectedConversation)}</p>
                 <p>created_at: {formatDateTime(selectedConversation?.created_at)}</p>
                 <p>updated_at: {formatDateTime(selectedConversation?.updated_at)}</p>
@@ -572,7 +583,7 @@ export default function MemoryPage() {
                 type="button"
                 onClick={() => void runConversationAction("summarize")}
                 disabled={!selectedConversationId || Boolean(actionBusy)}
-                className="rounded-lg border border-cyan-300/40 bg-cyan-400/15 px-3 py-2 text-xs text-cyan-100 hover:bg-cyan-400/25 disabled:opacity-60"
+                className="rounded-lg border border-neural-cyan/40 bg-neural-cyan/15 px-3 py-2 font-display text-[11px] uppercase tracking-[0.06em] text-neural-cyan hover:bg-neural-cyan/25 disabled:opacity-60"
               >
                 {actionBusy === "summarize" ? "Running..." : "Summarize / Refresh Summary"}
               </button>
@@ -582,7 +593,7 @@ export default function MemoryPage() {
                   await runConversationAction("reset-summary");
                 }}
                 disabled={!selectedConversationId || Boolean(actionBusy)}
-                className="rounded-lg border border-amber-300/40 bg-amber-400/15 px-3 py-2 text-xs text-amber-100 hover:bg-amber-400/25 disabled:opacity-60"
+                className="rounded-lg border border-neural-amber/40 bg-neural-amber/15 px-3 py-2 font-display text-[11px] uppercase tracking-[0.06em] text-neural-amber hover:bg-neural-amber/25 disabled:opacity-60"
               >
                 {actionBusy === "reset-summary" ? "Running..." : "Reset Summary"}
               </ConfirmAction>
@@ -590,7 +601,7 @@ export default function MemoryPage() {
                 type="button"
                 onClick={() => void runConversationAction("export")}
                 disabled={!selectedConversationId || Boolean(actionBusy)}
-                className="rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-xs text-white hover:bg-white/10 disabled:opacity-60"
+                className="rounded-lg border border-neural-text-muted/30 bg-neural-overlay/45 px-3 py-2 font-display text-[11px] uppercase tracking-[0.06em] text-neural-text-primary hover:border-neural-cyan/40 disabled:opacity-60"
               >
                 {actionBusy === "export" ? "Exporting..." : "Export"}
               </button>
@@ -600,54 +611,56 @@ export default function MemoryPage() {
                   await runConversationAction("clear");
                 }}
                 disabled={!selectedConversationId || Boolean(actionBusy)}
-                className="rounded-lg border border-rose-300/40 bg-rose-500/15 px-3 py-2 text-xs text-rose-100 hover:bg-rose-500/25 disabled:opacity-60"
+                className="rounded-lg border border-neural-red/40 bg-neural-red/15 px-3 py-2 font-display text-[11px] uppercase tracking-[0.06em] text-rose-100 hover:bg-neural-red/25 disabled:opacity-60"
               >
                 {actionBusy === "clear" ? "Running..." : "Clear Conversation"}
               </ConfirmAction>
             </div>
 
             {exportJson ? (
-              <details className="mt-3 rounded-lg border border-white/10 bg-surface-950/40 p-3">
-                <summary className="cursor-pointer text-xs text-slate-100">Export JSON</summary>
+              <details className="mt-3 rounded-lg border border-neural-text-muted/25 bg-neural-overlay/35 p-3">
+                <summary className="cursor-pointer font-display text-xs uppercase tracking-[0.06em] text-neural-text-primary">Export JSON</summary>
                 <button
                   type="button"
                   onClick={async () => {
                     const copied = await copyText(exportJson);
                     setNotice(copied ? "Export JSON copied." : "Copy failed.");
                   }}
-                  className="mt-2 inline-flex items-center gap-1 rounded border border-white/15 bg-white/5 px-2 py-1 text-xs text-slate-100 hover:bg-white/10"
+                  className="mt-2 inline-flex items-center gap-1 rounded border border-neural-text-muted/30 bg-neural-overlay/45 px-2 py-1 font-display text-[11px] uppercase tracking-[0.06em] text-neural-text-primary hover:border-neural-cyan/40"
                 >
                   <Clipboard className="h-3.5 w-3.5" />
                   Copy JSON
                 </button>
-                <pre className="mt-2 max-h-72 overflow-auto whitespace-pre-wrap text-[11px] text-slate-300">{exportJson}</pre>
+                <TerminalBlock className="mt-2 max-h-72">{exportJson}</TerminalBlock>
               </details>
             ) : null}
           </article>
 
-          <article className="rounded-lg border border-white/10 bg-white/5 p-3">
-            <h2 className="text-sm font-semibold text-white">Messages Viewer</h2>
+          <article className="rounded-lg border border-neural-text-muted/25 bg-neural-overlay/35 p-3">
+            <h2 className="font-display text-sm uppercase tracking-[0.07em] text-neural-text-primary">Messages Viewer</h2>
             {detailLoading ? <LoadingBlock label="Loading messages..." className="mt-2 p-3 text-xs" /> : null}
             {!detailLoading && messages.length === 0 ? (
               <EmptyState title="No messages loaded." className="mt-2 p-3 text-xs" />
             ) : null}
 
-            <div className="mt-2 max-h-[48vh] space-y-2 overflow-y-auto pr-1">
+            <div className="neural-scroll mt-2 max-h-[48vh] space-y-2 overflow-y-auto pr-1">
               {messages.map((message, index) => {
                 const id = messageIdOf(message);
                 const draft = messageDrafts[id] || { pinned: false, excluded: false, tagsText: "" };
                 const busy = messageSaveBusyId === id;
                 return (
-                  <article key={id || `${message.role || "role"}-${index}`} className="rounded border border-white/10 bg-surface-950/50 p-2">
-                    <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-300">
-                      <span>message_id: {id || "-"}</span>
+                  <article key={id || `${message.role || "role"}-${index}`} className="rounded border border-neural-text-muted/25 bg-neural-elevated/72 p-2">
+                    <div className="flex flex-wrap items-center gap-2 text-[11px] text-neural-text-secondary">
+                      <span>
+                        message_id: <TokenTag>{id || "-"}</TokenTag>
+                      </span>
                       <span>role: {String(message.role || "-")}</span>
                       <span>{formatDateTime(message.created_at)}</span>
                     </div>
-                    <p className="mt-1 whitespace-pre-wrap text-xs text-slate-100">{truncateText(message.content, 500) || "-"}</p>
+                    <p className="mt-1 whitespace-pre-wrap text-xs text-neural-text-primary">{truncateText(message.content, 500) || "-"}</p>
 
                     <div className="mt-2 grid gap-2 md:grid-cols-[repeat(2,minmax(0,140px))_minmax(0,1fr)_auto]">
-                      <label className="flex items-center gap-2 text-xs text-slate-200">
+                      <label className="flex items-center gap-2 text-xs text-neural-text-secondary">
                         <input
                           type="checkbox"
                           checked={draft.pinned}
@@ -657,7 +670,7 @@ export default function MemoryPage() {
                         />
                         pinned
                       </label>
-                      <label className="flex items-center gap-2 text-xs text-slate-200">
+                      <label className="flex items-center gap-2 text-xs text-neural-text-secondary">
                         <input
                           type="checkbox"
                           checked={draft.excluded}
@@ -673,13 +686,13 @@ export default function MemoryPage() {
                           updateDraft(id, (current) => ({ ...current, tagsText: event.target.value }))
                         }
                         placeholder="tags: comma,separated"
-                        className="rounded border border-white/15 bg-surface-950/70 px-2 py-1 text-xs text-white"
+                        className="rounded border border-neural-text-muted/30 bg-neural-input px-2 py-1 font-mono text-xs text-neural-text-primary focus:border-neural-cyan/50 focus:outline-none"
                       />
                       <button
                         type="button"
                         onClick={() => void handleSaveMessageMemory(message)}
                         disabled={!selectedConversationId || !id || busy}
-                        className="rounded border border-cyan-300/40 bg-cyan-400/15 px-2 py-1 text-xs text-cyan-100 hover:bg-cyan-400/25 disabled:opacity-60"
+                        className="rounded border border-neural-cyan/40 bg-neural-cyan/15 px-2 py-1 font-display text-[11px] uppercase tracking-[0.06em] text-neural-cyan hover:bg-neural-cyan/25 disabled:opacity-60"
                       >
                         {busy ? "Saving..." : "Save"}
                       </button>
@@ -690,8 +703,8 @@ export default function MemoryPage() {
             </div>
           </article>
 
-          <article className="rounded-lg border border-white/10 bg-white/5 p-3">
-            <h2 className="text-sm font-semibold text-white">Memory Controls Overview</h2>
+          <article className="rounded-lg border border-neural-text-muted/25 bg-neural-overlay/35 p-3">
+            <h2 className="font-display text-sm uppercase tracking-[0.07em] text-neural-text-primary">Memory Controls Overview</h2>
             {memoryControlsError ? (
               <p className="mt-2 text-xs text-rose-200">
                 {memoryControlsError.code}: {memoryControlsError.message}
@@ -701,14 +714,12 @@ export default function MemoryPage() {
               <p className="mt-2 text-xs text-slate-300">No memory control data returned.</p>
             ) : null}
             {memoryControls ? (
-              <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap text-[11px] text-slate-300">
-                {safeStringify(redactSensitiveMemoryValue(memoryControls))}
-              </pre>
+              <TerminalBlock className="mt-2 max-h-48">{safeStringify(redactSensitiveMemoryValue(memoryControls))}</TerminalBlock>
             ) : null}
           </article>
 
-          <article className="rounded-lg border border-white/10 bg-white/5 p-3">
-            <h2 className="text-sm font-semibold text-white">Semantic Recall Test</h2>
+          <article className="rounded-lg border border-neural-violet/28 bg-neural-violet/8 p-3">
+            <h2 className="font-display text-sm uppercase tracking-[0.07em] text-violet-200">Semantic Recall Test</h2>
             {!adminConfigured ? (
               <p className="mt-2 text-xs text-amber-200">
                 Internal admin token is required. Configure in{" "}
@@ -730,22 +741,22 @@ export default function MemoryPage() {
                 onChange={(event) => setRecallText(event.target.value)}
                 rows={4}
                 placeholder="Enter text for recall test..."
-                className="w-full rounded-lg border border-white/15 bg-surface-950/70 px-3 py-2 text-xs text-white"
+                className="w-full rounded-lg border border-neural-violet/30 bg-neural-input px-3 py-2 text-xs text-neural-text-primary focus:border-neural-violet/60 focus:outline-none"
               />
               <div className="grid gap-2 md:grid-cols-3">
                 <input
                   value={recallTopK}
                   onChange={(event) => setRecallTopK(event.target.value)}
                   placeholder="top_k (optional)"
-                  className="rounded border border-white/15 bg-surface-950/70 px-2 py-1 text-xs text-white"
+                  className="rounded border border-neural-violet/25 bg-neural-input px-2 py-1 font-mono text-xs text-neural-text-primary focus:border-neural-violet/60 focus:outline-none"
                 />
                 <input
                   value={recallScope}
                   onChange={(event) => setRecallScope(event.target.value)}
                   placeholder="scope (optional)"
-                  className="rounded border border-white/15 bg-surface-950/70 px-2 py-1 text-xs text-white"
+                  className="rounded border border-neural-violet/25 bg-neural-input px-2 py-1 text-xs text-neural-text-primary focus:border-neural-violet/60 focus:outline-none"
                 />
-                <label className="flex items-center gap-2 text-xs text-slate-200">
+                <label className="flex items-center gap-2 text-xs text-violet-200">
                   <input
                     type="checkbox"
                     checked={recallIncludeArchived}
@@ -758,7 +769,7 @@ export default function MemoryPage() {
                 type="button"
                 onClick={() => void handleRunRecallTest()}
                 disabled={recallBusy || !adminConfigured}
-                className="rounded-lg border border-violet-300/40 bg-violet-400/15 px-3 py-2 text-xs text-violet-100 hover:bg-violet-400/25 disabled:opacity-60"
+                className="rounded-lg border border-neural-violet/40 bg-neural-violet/16 px-3 py-2 font-display text-[11px] uppercase tracking-[0.06em] text-violet-200 hover:bg-neural-violet/28 disabled:opacity-60"
               >
                 {recallBusy ? "Running..." : "Run recall test"}
               </button>
@@ -773,16 +784,14 @@ export default function MemoryPage() {
             {recallResult.length > 0 ? (
               <div className="mt-2 space-y-2">
                 {recallResult.map((item, index) => (
-                  <div key={index} className="rounded border border-white/10 bg-surface-950/50 p-2 text-xs text-slate-200">
-                    <pre className="max-h-40 overflow-auto whitespace-pre-wrap text-[11px] text-slate-300">
-                      {safeStringify(redactSensitiveMemoryValue(item))}
-                    </pre>
+                  <div key={index} className="rounded border border-neural-violet/25 bg-neural-elevated/65 p-2 text-xs text-slate-200">
+                    <TerminalBlock className="max-h-40">{safeStringify(redactSensitiveMemoryValue(item))}</TerminalBlock>
                   </div>
                 ))}
               </div>
             ) : null}
           </article>
-        </section>
+        </Panel>
       </div>
     </section>
   );

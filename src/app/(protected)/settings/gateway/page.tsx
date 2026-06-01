@@ -168,16 +168,16 @@ export default function GatewaySettingsPage() {
   );
 
   return (
-    <section className="space-y-6">
+    <section className="space-y-6 animate-fade-in-up">
       <div>
-        <h1 className="text-2xl font-semibold text-white">Gateway Credentials</h1>
-        <p className="text-sm text-slate-300">
+        <h1 className="font-display text-2xl uppercase tracking-[0.08em] text-neural-text-primary">Gateway Credentials</h1>
+        <p className="text-sm text-neural-text-secondary">
           Credentials are stored server-side with encryption. Secret values are never shown in the browser.
         </p>
       </div>
 
       <StateCard title="Effective configuration">
-        <div className="text-sm text-slate-300">
+        <div className="text-sm text-neural-text-secondary">
         <p className="mt-2">Gateway URL: {view?.gateway_url || "Not configured"}</p>
         <p>Gateway URL source: {view?.gateway_url_source || "missing"}</p>
         <p>API key configured: {view?.api_key_configured ? "yes" : "no"} ({view?.api_key_source || "missing"})</p>
@@ -189,8 +189,8 @@ export default function GatewaySettingsPage() {
           Internal admin enabled: {view?.internal_admin_enabled ? "yes" : "no"} (
           {view?.internal_admin_enabled_source || "env"})
         </p>
-        <p className="mt-2 text-xs text-slate-400">Last verified: {view?.last_verified_at || "Never tested"}</p>
-        <p className="text-xs text-slate-400">Last status: {view?.last_status || "-"}</p>
+        <p className="mt-2 font-mono text-xs text-neural-text-muted">Last verified: {view?.last_verified_at || "Never tested"}</p>
+        <p className="font-mono text-xs text-neural-text-muted">Last status: {view?.last_status || "-"}</p>
         {view?.last_error ? <p className="text-xs text-rose-200">Last error: {view.last_error}</p> : null}
         <p className="mt-2 text-xs text-cyan-200">
           Diagnostics dashboard requires internal admin enabled + internal admin token configured.
@@ -214,9 +214,9 @@ export default function GatewaySettingsPage() {
         </div>
       ) : null}
 
-      <form onSubmit={handleSave} className="space-y-4 rounded-xl border border-white/10 bg-white/5 p-4">
+      <form onSubmit={handleSave} className="neural-panel space-y-4 rounded-xl p-4">
         <div className="space-y-2">
-          <label htmlFor="gateway_url" className="text-sm text-slate-200">
+          <label htmlFor="gateway_url" className="font-display text-xs uppercase tracking-[0.06em] text-neural-text-secondary">
             Gateway URL
           </label>
           <input
@@ -224,12 +224,12 @@ export default function GatewaySettingsPage() {
             value={gatewayUrl}
             onChange={(event) => setGatewayUrl(event.target.value)}
             placeholder="https://your-gateway.example.com"
-            className="w-full rounded-lg border border-white/15 bg-surface-900/70 px-3 py-2 text-sm text-white outline-none ring-cyan-300/50 focus:ring"
+            className="w-full rounded-lg border border-neural-text-muted/30 bg-neural-input px-3 py-2 font-mono text-sm text-neural-text-primary outline-none ring-neural-cyan/50 focus:ring"
           />
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="gateway_api_key" className="text-sm text-slate-200">
+          <label htmlFor="gateway_api_key" className="font-display text-xs uppercase tracking-[0.06em] text-neural-text-secondary">
             Replace Gateway API Key (optional)
           </label>
           <input
@@ -238,12 +238,12 @@ export default function GatewaySettingsPage() {
             value={gatewayApiKey}
             onChange={(event) => setGatewayApiKey(event.target.value)}
             placeholder="Leave blank to keep existing value"
-            className="w-full rounded-lg border border-white/15 bg-surface-900/70 px-3 py-2 text-sm text-white outline-none ring-cyan-300/50 focus:ring"
+            className="w-full rounded-lg border border-neural-text-muted/30 bg-neural-input px-3 py-2 font-mono text-sm text-neural-text-primary outline-none ring-neural-cyan/50 focus:ring"
           />
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="internal_admin_token" className="text-sm text-slate-200">
+          <label htmlFor="internal_admin_token" className="font-display text-xs uppercase tracking-[0.06em] text-neural-text-secondary">
             Replace Internal Admin Token (optional)
           </label>
           <input
@@ -252,11 +252,11 @@ export default function GatewaySettingsPage() {
             value={internalAdminToken}
             onChange={(event) => setInternalAdminToken(event.target.value)}
             placeholder="Leave blank to keep existing value"
-            className="w-full rounded-lg border border-white/15 bg-surface-900/70 px-3 py-2 text-sm text-white outline-none ring-cyan-300/50 focus:ring"
+            className="w-full rounded-lg border border-neural-text-muted/30 bg-neural-input px-3 py-2 font-mono text-sm text-neural-text-primary outline-none ring-neural-cyan/50 focus:ring"
           />
         </div>
 
-        <label className="flex items-center gap-2 text-sm text-slate-200">
+        <label className="flex items-center gap-2 text-sm text-neural-text-secondary">
           <input
             type="checkbox"
             checked={internalAdminEnabled}
@@ -270,7 +270,7 @@ export default function GatewaySettingsPage() {
           <button
             type="submit"
             disabled={saving || loading}
-            className="inline-flex items-center gap-2 rounded-lg border border-cyan-300/40 bg-cyan-400/15 px-3 py-2 text-sm text-cyan-100 transition hover:bg-cyan-400/25 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-lg border border-neural-cyan/40 bg-neural-cyan/15 px-3 py-2 font-display text-xs uppercase tracking-[0.07em] text-neural-cyan transition hover:bg-neural-cyan/25 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             Save credentials
@@ -279,22 +279,22 @@ export default function GatewaySettingsPage() {
             type="button"
             onClick={() => void handleTest()}
             disabled={testing || loading}
-            className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-lg border border-neural-text-muted/30 bg-neural-overlay/45 px-3 py-2 font-display text-xs uppercase tracking-[0.07em] text-neural-text-primary transition hover:border-neural-cyan/40 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {testing ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             Test connection
           </button>
-          <Link href="/settings" className="text-sm text-slate-300 underline underline-offset-2">
+          <Link href="/settings" className="text-sm text-neural-text-secondary underline underline-offset-2">
             Back to settings
           </Link>
         </div>
       </form>
 
       {testResult ? (
-        <article className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-slate-200">
-          <p className="font-medium text-white">Test summary: {testResult.status}</p>
+        <article className="neural-panel rounded-xl p-4 text-sm text-neural-text-secondary">
+          <p className="font-display text-sm uppercase tracking-[0.06em] text-neural-text-primary">Test summary: {testResult.status}</p>
           <p className="mt-1">{testResult.message}</p>
-          <div className="mt-3 space-y-1 text-xs text-slate-300">
+          <div className="mt-3 space-y-1 font-mono text-xs text-neural-text-secondary">
             <p>health: {testResult.probes.health.ok ? "ok" : testResult.probes.health.error_code || "error"}</p>
             <p>ready: {testResult.probes.ready.ok ? "ok" : testResult.probes.ready.error_code || "error"}</p>
             <p>models: {testResult.probes.models.ok ? "ok" : testResult.probes.models.error_code || "error"}</p>

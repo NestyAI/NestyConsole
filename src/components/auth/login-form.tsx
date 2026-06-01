@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Loader2, LockKeyhole } from "lucide-react";
 
 type LoginError = {
@@ -49,20 +50,23 @@ export function LoginForm() {
   };
 
   return (
-    <div className="w-full max-w-md rounded-2xl border border-white/10 bg-surface-900/80 p-6 shadow-2xl backdrop-blur">
+    <div className="neural-panel w-full max-w-md rounded-2xl p-6 backdrop-blur">
+      <div className="mb-5 flex justify-center">
+        <Image src="/NestyAI_Full.svg" alt="Nesty Console" width={220} height={44} className="h-auto w-[220px]" />
+      </div>
       <div className="mb-5 flex items-center gap-3">
-        <div className="rounded-lg border border-cyan-300/40 bg-cyan-400/10 p-2">
-          <LockKeyhole className="h-5 w-5 text-cyan-200" />
+        <div className="rounded-lg border border-neural-cyan/40 bg-neural-cyan/10 p-2">
+          <LockKeyhole className="h-5 w-5 text-neural-cyan" />
         </div>
         <div>
-          <h1 className="text-xl font-semibold text-white">Admin Login</h1>
-          <p className="text-xs text-slate-400">Nesty Console secure access</p>
+          <h1 className="font-display text-xl uppercase tracking-[0.08em] text-neural-text-primary">Admin Login</h1>
+          <p className="text-xs text-neural-text-secondary">Nesty Console secure access</p>
         </div>
       </div>
 
       <form onSubmit={onSubmit} className="space-y-4">
         <div className="space-y-2">
-          <label htmlFor="username" className="text-sm text-slate-300">
+          <label htmlFor="username" className="font-display text-xs uppercase tracking-[0.06em] text-neural-text-secondary">
             Username
           </label>
           <input
@@ -70,12 +74,12 @@ export function LoginForm() {
             autoComplete="username"
             value={username}
             onChange={(event) => setUsername(event.target.value)}
-            className="w-full rounded-lg border border-white/15 bg-surface-950/80 px-3 py-2 text-sm text-white outline-none ring-cyan-300/40 focus:ring"
+            className="w-full rounded-lg border border-neural-text-muted/30 bg-neural-input px-3 py-2 font-mono text-sm text-neural-text-primary outline-none ring-neural-cyan/40 focus:ring"
           />
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="password" className="text-sm text-slate-300">
+          <label htmlFor="password" className="font-display text-xs uppercase tracking-[0.06em] text-neural-text-secondary">
             Password
           </label>
           <input
@@ -84,7 +88,7 @@ export function LoginForm() {
             autoComplete="current-password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            className="w-full rounded-lg border border-white/15 bg-surface-950/80 px-3 py-2 text-sm text-white outline-none ring-cyan-300/40 focus:ring"
+            className="w-full rounded-lg border border-neural-text-muted/30 bg-neural-input px-3 py-2 font-mono text-sm text-neural-text-primary outline-none ring-neural-cyan/40 focus:ring"
           />
         </div>
 
@@ -98,7 +102,7 @@ export function LoginForm() {
         <button
           type="submit"
           disabled={submitting}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-cyan-300/40 bg-cyan-400/15 px-3 py-2 text-sm font-medium text-cyan-100 transition hover:bg-cyan-400/25 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-neural-cyan/40 bg-neural-cyan/15 px-3 py-2 font-display text-xs uppercase tracking-[0.08em] text-neural-cyan transition hover:bg-neural-cyan/24 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
           Sign in

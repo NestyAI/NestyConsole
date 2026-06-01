@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Activity, HardDrive, KeyRound, LayoutDashboard, MessageSquare, Settings, ShieldCheck, Waypoints } from "lucide-react";
 
@@ -23,8 +24,20 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-full border-b border-white/10 bg-surface-900/70 p-4 backdrop-blur md:w-64 md:border-b-0 md:border-r">
-      <div className="mb-6 hidden text-sm font-medium text-slate-300 md:block">Navigation</div>
+    <aside className="w-full border-b border-neural-text-muted/20 bg-neural-elevated/90 px-3 pb-4 pt-3 backdrop-blur md:w-[220px] md:border-b-0 md:border-r">
+      <div className="mb-4 hidden h-[60px] items-center rounded-lg border border-neural-cyan/25 bg-neural-panel/80 px-3 md:flex">
+        <Image
+          src="/NestyAI_Full.svg"
+          alt="Nesty Console"
+          width={170}
+          height={34}
+          className="h-auto w-[170px]"
+          priority
+        />
+      </div>
+      <div className="mb-3 hidden font-display text-[11px] uppercase tracking-[0.08em] text-neural-text-secondary md:block">
+        Navigation
+      </div>
       <nav className="grid grid-cols-2 gap-2 md:grid-cols-1">
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -37,10 +50,10 @@ export function Sidebar() {
               key={item.href}
               href={item.href}
               className={cn(
-                "inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition",
+                "inline-flex items-center gap-2 rounded-lg border px-3 py-2 font-display text-xs uppercase tracking-[0.06em] transition",
                 active
-                  ? "border-cyan-400/40 bg-cyan-400/10 text-cyan-100"
-                  : "border-white/10 bg-white/5 text-slate-300 hover:border-white/25 hover:text-white"
+                  ? "border-neural-cyan/45 border-l-[3px] bg-neural-cyan/12 text-neural-cyan shadow-neural-glow"
+                  : "border-neural-text-muted/20 bg-neural-panel/40 text-neural-text-secondary hover:border-neural-text-muted/45 hover:text-neural-text-primary"
               )}
             >
               <Icon className="h-4 w-4" />
@@ -50,7 +63,7 @@ export function Sidebar() {
         })}
       </nav>
       <div className="mt-4 md:mt-8">
-        <LogoutButton className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-slate-100 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60" />
+        <LogoutButton className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-neural-text-muted/25 bg-neural-panel/60 px-3 py-2 font-display text-xs uppercase tracking-[0.08em] text-neural-text-primary transition hover:border-neural-cyan/45 hover:text-neural-cyan disabled:cursor-not-allowed disabled:opacity-60" />
       </div>
     </aside>
   );

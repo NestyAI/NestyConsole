@@ -1,8 +1,12 @@
+<p align="center">
+  <img src="public/NestyAI_Full.svg" alt="Nesty Console" width="560" />
+</p>
+
 # Nesty Console
 
 Nesty Console is a separate frontend/admin project for operating a running `NestyAI Gateway`.
 
-Current status: **v0.6.1 - Console UX Hardening & Runtime QA**
+Current status: **v0.6.2 - Neural Noir UI Refresh**
 
 Changelog: [CHANGELOG.md](CHANGELOG.md)
 
@@ -20,6 +24,13 @@ Changelog: [CHANGELOG.md](CHANGELOG.md)
 - Memory controls are handled through protected server-side routes.
 - Semantic recall testing uses internal admin routes and requires Internal Admin Token.
 - Gateway credentials remain server-side only.
+
+## Design System
+
+- Neural Noir: dark mission-control aesthetic for AI Gateway operations.
+- Typography: Chakra Petch + JetBrains Mono + DM Sans.
+- Electric cyan active states, green/amber/red operational status, violet memory/AI indicators.
+- All Gateway credentials remain server-side only.
 
 ## Tech Stack
 
@@ -196,7 +207,7 @@ Security checks:
 - `POST /api/auth/login`: create signed admin session cookie
 - `POST /api/auth/logout`: clear session cookie
 - `GET /api/auth/me`: current auth status
-## Implemented in v0.6.1
+## Implemented in v0.6.2
 
 - Console shell layout (sidebar + topbar)
 - Single-admin login page (`/login`)
@@ -262,5 +273,6 @@ surfaces publicly without strict network controls.
 - v0.4.0 Diagnostics/Admin tooling
 - v0.5.0 Runtime Model Config Admin
 - v0.6.0 Conversations/Memory operations
+- v0.6.2 Neural Noir UI refresh
 - v0.7.0 Analytics and operational insights (planned)
 - Full provider marketplace and enterprise configuration workflows are planned for a later version if needed.

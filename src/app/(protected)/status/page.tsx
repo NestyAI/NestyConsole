@@ -4,8 +4,10 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { RefreshCw } from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
 import { ErrorBanner } from "@/components/ui/error-banner";
 import { LoadingBlock } from "@/components/ui/loading-block";
+import { Panel } from "@/components/ui/panel";
 import { StatusCard } from "@/components/status-card";
 import type { GatewayHealthResponse, GatewayReadyResponse } from "@/lib/gateway/types";
 
@@ -78,16 +80,21 @@ export default function StatusPage() {
   );
 
   return (
-    <section className="space-y-6">
+    <section className="space-y-6 animate-fade-in-up">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-white">Gateway Status</h1>
-          <p className="text-sm text-slate-300">Live gateway health and readiness overview.</p>
+          <div className="flex items-center gap-2">
+            <h1 className="font-display text-2xl uppercase tracking-[0.08em] text-neural-text-primary">Gateway Status</h1>
+            <Badge variant={healthy ? "success" : "warning"} withDot>
+              {healthy ? "operational" : "attention"}
+            </Badge>
+          </div>
+          <p className="text-sm text-neural-text-secondary">Live gateway health and readiness overview.</p>
         </div>
         <button
           type="button"
           onClick={() => void refresh(true)}
-          className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-white transition hover:bg-white/10"
+          className="inline-flex items-center gap-2 rounded-lg border border-neural-cyan/35 bg-neural-cyan/12 px-3 py-2 font-display text-xs uppercase tracking-[0.06em] text-neural-cyan transition hover:bg-neural-cyan/22"
         >
           <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           Refresh
@@ -126,9 +133,12 @@ export default function StatusPage() {
         />
       </div>
 
-      <article className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
-        <p>Overall: {healthy ? "Healthy" : "Check gateway state"}</p>
-      </article>
+      <Panel accent={healthy ? "green" : "amber"}>
+        <p className="font-display text-xs uppercase tracking-[0.08em] text-neural-text-secondary">
+          Overall Signal
+        </p>
+        <p className="mt-1 text-sm text-neural-text-primary">{healthy ? "Healthy" : "Check gateway state"}</p>
+      </Panel>
     </section>
   );
 }

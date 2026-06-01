@@ -2,6 +2,15 @@
 
 All notable changes to Nesty Console will be documented in this file.
 
+## [0.6.6] - Unreleased
+
+### Changed
+
+* Improved responsive scaling for the Chat page.
+* Expanded the main chat canvas on wide screens.
+* Improved chat sidebar/options layout behavior across desktop and smaller screens.
+* Reduced cramped fixed-width layout behavior in main Console pages.
+
 ## [0.6.5] - 2026-06-01
 
 ### Added

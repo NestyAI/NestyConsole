@@ -1114,8 +1114,8 @@ export default function ChatPage() {
         </ErrorBanner>
       ) : null}
 
-      <div className="grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)_320px]">
-        <aside className={`${sidebarOpen ? "block" : "hidden"} neural-panel space-y-3 rounded-xl p-4 lg:block`}>
+      <div className="grid gap-4 lg:grid-cols-[minmax(260px,320px)_minmax(520px,1fr)_minmax(280px,340px)] 2xl:grid-cols-[minmax(280px,340px)_minmax(720px,1fr)_minmax(300px,360px)]">
+        <aside className={`${sidebarOpen ? "block" : "hidden"} neural-panel space-y-3 rounded-xl p-4 lg:block w-full min-w-0`}>
           <div className="flex items-center justify-between">
             <h2 className="font-display text-sm uppercase tracking-[0.07em] text-neural-text-primary">Conversations</h2>
             <button
@@ -1182,7 +1182,7 @@ export default function ChatPage() {
                       disabled={busy}
                       className="w-full text-left"
                     >
-                      <p className="text-xs font-medium text-neural-text-primary">{formatConversationTitle(item.raw)}</p>
+                      <p className="text-xs font-medium text-neural-text-primary truncate" title={formatConversationTitle(item.raw)}>{formatConversationTitle(item.raw)}</p>
                       <p className="mt-1 font-mono text-[11px] text-neural-text-secondary">
                         {item.messageCount !== undefined ? `${item.messageCount} messages` : "message count unknown"}
                       </p>
@@ -1226,9 +1226,9 @@ export default function ChatPage() {
           </div>
         </aside>
 
-        <Panel className="p-4">
-          <div className="mb-3 flex min-h-[50vh] max-h-[68vh] flex-col overflow-hidden rounded-lg border border-neural-text-muted/25 bg-neural-elevated/70">
-            <div className="neural-scroll flex-1 space-y-3 overflow-y-auto p-3">
+        <Panel className="flex flex-col min-w-0 p-4 w-full">
+          <div className="mb-3 flex min-h-[50vh] max-h-[72vh] 2xl:max-h-[78vh] flex-col overflow-hidden rounded-lg border border-neural-text-muted/25 bg-neural-elevated/70 w-full min-w-0">
+            <div className="neural-scroll flex-1 space-y-3 overflow-y-auto p-3 w-full min-w-0">
               {messages.length === 0 ? (
                 <div className="space-y-3">
                   <p className="text-sm text-slate-300">Start chatting with NestyAI.</p>
@@ -1396,7 +1396,7 @@ export default function ChatPage() {
           })() : null}
         </Panel>
 
-        <aside className="neural-panel space-y-3 rounded-xl p-4">
+        <aside className="neural-panel space-y-3 rounded-xl p-4 w-full min-w-0">
           <h2 className="font-display text-sm uppercase tracking-[0.07em] text-neural-text-primary">Chat Options</h2>
 
           <label className="block space-y-1 text-sm text-neural-text-secondary">

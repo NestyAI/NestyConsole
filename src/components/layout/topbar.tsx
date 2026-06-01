@@ -15,7 +15,7 @@ export async function Topbar() {
 
   return (
     <header className="sticky top-0 z-20 border-b border-neural-text-muted/20 bg-neural-elevated/92 backdrop-blur">
-      <div className="mx-auto flex h-[60px] w-full max-w-[1360px] items-center justify-between px-4 md:px-6">
+      <div className="mx-auto flex h-[60px] w-full max-w-[1800px] items-center justify-between px-4 md:px-6">
         <div>
           <div className="flex items-center gap-2">
             <Image src="/NestyAI_Logo.svg" alt="Nesty" width={18} height={18} className="h-[18px] w-[18px]" />

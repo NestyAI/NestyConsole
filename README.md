@@ -6,9 +6,13 @@
 
 Nesty Console is a separate frontend/admin project for operating a running `NestyAI Gateway`.
 
-Current status: **v0.6.5 - Vercel Deployment Compatibility**
+Current status: **v0.6.6 - Responsive Chat Layout Polish**
 
 Changelog: [CHANGELOG.md](CHANGELOG.md)
+
+v0.6.6 adds:
+* Chat layout now scales better across laptop, desktop, and wide displays.
+* The assistant response canvas gets more room while side panels remain usable.
 
 v0.6.5 adds:
 * Serverless hosting and read-only filesystem support (Vercel Compatibility).

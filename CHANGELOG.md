@@ -2,6 +2,24 @@
 
 All notable changes to Nesty Console will be documented in this file.
 
+## [0.6.4] - Unreleased
+
+### Added
+
+* Added Chat Canvas Renderer for polished assistant response rendering.
+* Added safe Markdown rendering for headings, lists, quotes, code blocks, and tables.
+* Added raw/rendered response toggle for chat messages.
+* Added improved copy actions for full response and code blocks.
+
+### Changed
+
+* Improved chat response readability and separated rendered answer content from response metadata/details.
+
+### Security
+
+* Rendered chat content is sanitized and does not execute raw HTML or scripts.
+* Gateway credentials and internal admin tokens remain server-side only.
+
 ## [0.6.3] - 2026-06-01
 
 ### Added

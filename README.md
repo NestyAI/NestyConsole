@@ -6,11 +6,15 @@
 
 Nesty Console is a separate frontend/admin project for operating a running `NestyAI Gateway`.
 
-Current status: **v0.6.3 - Pro Metadata Display & Chat Error Polish**
+Current status: **v0.6.4 - Chat Canvas Renderer**
 
 Changelog: [CHANGELOG.md](CHANGELOG.md)
 
-v0.6.3 adds multi-model orchestration step visualization for `nesty-pro-1.0`, polished HTTP/Gateway chat completions error mapping, and improves user navigation to Gateway settings on authentication/connection failures.
+v0.6.4 adds:
+* Chat responses now render in a safe canvas-like view.
+* Markdown/code/tables are displayed with Neural Noir styling.
+* Raw view is available for debugging.
+* Rendered content is sanitized and does not expose secrets.
 
 ## Relationship to NestyAI Gateway
 

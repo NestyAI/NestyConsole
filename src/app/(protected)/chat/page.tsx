@@ -11,6 +11,7 @@ import { LoadingBlock } from "@/components/ui/loading-block";
 import { Panel } from "@/components/ui/panel";
 import { TokenTag } from "@/components/ui/token-tag";
 import { ProOrchestrationDetails } from "@/components/chat/pro-orchestration-details";
+import { ChatCanvasRenderer } from "@/components/chat/chat-canvas-renderer";
 import {
   archiveOrDeleteConversation,
   formatConversationTitle,
@@ -418,6 +419,7 @@ export default function ChatPage() {
   const [streamingStopped, setStreamingStopped] = useState(false);
   const [responseMetadata, setResponseMetadata] = useState<ChatCompletionMetadata | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [messageModes, setMessageModes] = useState<Record<string, "rendered" | "raw">>({});
 
   const [conversations, setConversations] = useState<ConversationListItem[]>([]);
   const [conversationQuery, setConversationQuery] = useState("");
@@ -1248,27 +1250,76 @@ export default function ChatPage() {
                   {messages.map((message) => {
                     const copyKey = `message:${message.id}`;
                     const isUser = message.role === "user";
+
+                    if (isUser) {
+                      return (
+                        <article
+                          key={message.id}
+                          className="animate-message-enter rounded-lg border p-3 border-neural-cyan/40 bg-neural-cyan/10"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="font-display text-xs uppercase tracking-[0.08em] text-neural-cyan">{message.role}</p>
+                            <button
+                              type="button"
+                              onClick={() => void handleCopy(message.content, copyKey)}
+                              className="inline-flex items-center gap-1 rounded-md border border-neural-text-muted/30 bg-neural-overlay/45 px-2 py-1 font-display text-[10px] uppercase tracking-[0.06em] text-neural-text-secondary hover:border-neural-cyan/40 transition"
+                            >
+                              <Clipboard className="h-3.5 w-3.5" />
+                              {copiedKey === copyKey ? "Copied" : "Copy"}
+                            </button>
+                          </div>
+                          <p className="mt-1 whitespace-pre-wrap text-sm text-neural-text-primary">{message.content || "..."}</p>
+                        </article>
+                      );
+                    }
+
+                    // Assistant message rendering with canvas renderer and raw/rendered toggles
+                    const messageMode = messageModes[message.id] || "rendered";
                     return (
                       <article
                         key={message.id}
-                        className={`animate-message-enter rounded-lg border p-3 ${
-                          isUser
-                            ? "border-neural-cyan/40 bg-neural-cyan/10"
-                            : "border-neural-text-muted/25 bg-neural-overlay/45"
-                        }`}
+                        className="animate-message-enter rounded-lg border p-3 border-neural-text-muted/25 bg-neural-overlay/45"
                       >
-                        <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-start justify-between gap-2 border-b border-neural-text-muted/10 pb-2 mb-2 select-none">
                           <p className="font-display text-xs uppercase tracking-[0.08em] text-neural-cyan">{message.role}</p>
-                          <button
-                            type="button"
-                            onClick={() => void handleCopy(message.content, copyKey)}
-                            className="inline-flex items-center gap-1 rounded-md border border-neural-text-muted/30 bg-neural-overlay/45 px-2 py-1 font-display text-[10px] uppercase tracking-[0.06em] text-neural-text-secondary hover:border-neural-cyan/40"
-                          >
-                            <Clipboard className="h-3.5 w-3.5" />
-                            {copiedKey === copyKey ? "Copied" : "Copy"}
-                          </button>
+                          <div className="flex items-center gap-1.5">
+                            <div className="inline-flex rounded-lg border border-neural-text-muted/30 bg-neural-overlay/30 p-0.5 select-none">
+                              <button
+                                type="button"
+                                onClick={() => setMessageModes((prev) => ({ ...prev, [message.id]: "rendered" }))}
+                                className={`rounded-md px-2 py-0.5 text-[9px] font-display uppercase tracking-wider transition ${
+                                  messageMode === "rendered"
+                                    ? "bg-neural-cyan/15 text-neural-cyan font-bold"
+                                    : "text-neural-text-secondary hover:text-neural-text-primary"
+                                }`}
+                              >
+                                Rendered
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setMessageModes((prev) => ({ ...prev, [message.id]: "raw" }))}
+                                className={`rounded-md px-2 py-0.5 text-[9px] font-display uppercase tracking-wider transition ${
+                                  messageMode === "raw"
+                                    ? "bg-neural-cyan/15 text-neural-cyan font-bold"
+                                    : "text-neural-text-secondary hover:text-neural-text-primary"
+                                }`}
+                              >
+                                Raw
+                              </button>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => void handleCopy(message.content, copyKey)}
+                              className="inline-flex items-center gap-1 rounded-md border border-neural-text-muted/30 bg-neural-overlay/45 px-2.5 py-1 font-display text-[10px] uppercase tracking-[0.06em] text-neural-text-secondary hover:border-neural-cyan/40 transition"
+                            >
+                              <Clipboard className="h-3.5 w-3.5" />
+                              {copiedKey === copyKey ? "Copied" : "Copy"}
+                            </button>
+                          </div>
                         </div>
-                        <p className="mt-1 whitespace-pre-wrap text-sm text-neural-text-primary">{message.content || "..."}</p>
+                        <div className="mt-1">
+                          <ChatCanvasRenderer content={message.content} mode={messageMode} messageId={message.id} />
+                        </div>
                       </article>
                     );
                   })}

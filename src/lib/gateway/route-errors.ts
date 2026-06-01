@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import type { GatewayResult } from "@/lib/gateway/types";
 
 type ConsoleProxyErrorCode =
+  | "unauthorized"
   | "credentials_not_configured"
   | "invalid_gateway_api_key"
   | "internal_admin_not_configured"
@@ -23,6 +24,9 @@ function normalizeGatewayErrorCode(code: string): ConsoleProxyErrorCode {
   const lowered = code.trim().toLowerCase();
   if (lowered === "credentials_not_configured") {
     return "credentials_not_configured";
+  }
+  if (lowered === "unauthorized") {
+    return "unauthorized";
   }
   if (lowered === "internal_admin_invalid") {
     return "internal_admin_invalid";
@@ -70,6 +74,8 @@ function fallbackMessage(code: ConsoleProxyErrorCode): string {
   switch (code) {
     case "credentials_not_configured":
       return "Gateway credentials are not configured.";
+    case "unauthorized":
+      return "Authentication required.";
     case "invalid_gateway_api_key":
       return "Gateway API key is invalid or expired.";
     case "internal_admin_not_configured":
@@ -114,7 +120,8 @@ export function gatewayResultToResponse<T>(result: GatewayResult<T>) {
       error: {
         code,
         message,
-        type: "console_error"
+        type: "console_error",
+        ...(result.error.details ? { details: result.error.details } : {})
       }
     },
     { status }

@@ -4,6 +4,7 @@ import type {
   GatewayModelConfigListResponse,
   GatewayProviderChainItem
 } from "@/lib/gateway/types";
+import { redactSecrets } from "@/lib/security/redact";
 
 export type ModelConfigConsoleError = {
   code: string;
@@ -47,8 +48,6 @@ export type ModelConfigPatchInput = {
   display_name?: string;
   notes?: string;
 };
-
-const SECRET_LIKE_PATTERN = /(key|token|secret|password|auth|credential)/i;
 
 function normalizeError(payload: unknown, fallback: string): ModelConfigConsoleError {
   const data = payload as { error?: { code?: unknown; message?: unknown } } | null;
@@ -129,26 +128,8 @@ function extractList(payload: GatewayModelConfigListResponse): GatewayModelConfi
   return [];
 }
 
-function redactUnknown(value: unknown): unknown {
-  if (Array.isArray(value)) {
-    return value.map((item) => redactUnknown(item));
-  }
-  if (!value || typeof value !== "object") {
-    return value;
-  }
-  const output: Record<string, unknown> = {};
-  for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
-    if (SECRET_LIKE_PATTERN.test(key)) {
-      output[key] = "[redacted]";
-    } else {
-      output[key] = redactUnknown(entry);
-    }
-  }
-  return output;
-}
-
 export function redactSensitiveModelConfig(value: unknown): unknown {
-  return redactUnknown(value);
+  return redactSecrets(value);
 }
 
 export async function listModelConfigs(): Promise<RequestResult<ModelConfigListItem[]>> {

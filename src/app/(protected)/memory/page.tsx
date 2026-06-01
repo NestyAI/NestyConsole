@@ -2,8 +2,12 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { Clipboard, Loader2, RefreshCw } from "lucide-react";
+import { Clipboard, RefreshCw } from "lucide-react";
 
+import { ConfirmAction } from "@/components/ui/confirm-action";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ErrorBanner } from "@/components/ui/error-banner";
+import { LoadingBlock } from "@/components/ui/loading-block";
 import {
   clearConversation,
   exportConversation,
@@ -20,6 +24,7 @@ import {
   type MemoryConsoleError
 } from "@/lib/memory/client";
 import type { GatewayConversation, GatewayConversationMessage } from "@/lib/gateway/types";
+import { safeStringify } from "@/lib/security/redact";
 
 type GatewayCredentialsView = {
   internal_admin_enabled: boolean;
@@ -349,21 +354,6 @@ export default function MemoryPage() {
       return;
     }
 
-    if (kind === "clear") {
-      const confirmed = window.confirm(
-        "Clear conversation now? This may remove conversation messages depending on Gateway behavior."
-      );
-      if (!confirmed) {
-        return;
-      }
-    }
-    if (kind === "reset-summary") {
-      const confirmed = window.confirm("Reset summary for this conversation?");
-      if (!confirmed) {
-        return;
-      }
-    }
-
     setActionBusy(kind);
     setDetailError(null);
     setNotice(null);
@@ -463,9 +453,7 @@ export default function MemoryPage() {
       ) : null}
 
       {conversationsError ? (
-        <div className="rounded-xl border border-rose-400/30 bg-rose-500/10 p-4 text-sm text-rose-100">
-          <p className="font-medium">{conversationsError.code}</p>
-          <p className="mt-1">{conversationsError.message}</p>
+        <ErrorBanner code={conversationsError.code} message={conversationsError.message}>
           <p className="mt-2">
             Check Gateway credentials in{" "}
             <Link href="/settings/gateway" className="underline underline-offset-2">
@@ -473,14 +461,11 @@ export default function MemoryPage() {
             </Link>
             .
           </p>
-        </div>
+        </ErrorBanner>
       ) : null}
 
       {detailError ? (
-        <div className="rounded-xl border border-rose-400/30 bg-rose-500/10 p-4 text-sm text-rose-100">
-          <p className="font-medium">{detailError.code}</p>
-          <p className="mt-1">{detailError.message}</p>
-        </div>
+        <ErrorBanner code={detailError.code} message={detailError.message} />
       ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[360px_minmax(0,1fr)]">
@@ -528,7 +513,7 @@ export default function MemoryPage() {
 
           <div className="max-h-[58vh] space-y-2 overflow-y-auto pr-1">
             {conversations.length === 0 && !conversationsLoading ? (
-              <p className="text-xs text-slate-400">No conversations found.</p>
+              <EmptyState title="No conversations found." className="p-3 text-xs" />
             ) : null}
             {conversations.map((conversation, index) => {
               const id = toConversationId(conversation);
@@ -591,14 +576,16 @@ export default function MemoryPage() {
               >
                 {actionBusy === "summarize" ? "Running..." : "Summarize / Refresh Summary"}
               </button>
-              <button
-                type="button"
-                onClick={() => void runConversationAction("reset-summary")}
+              <ConfirmAction
+                confirmMessage="Reset summary for this conversation? Existing summary state may be lost."
+                onConfirm={async () => {
+                  await runConversationAction("reset-summary");
+                }}
                 disabled={!selectedConversationId || Boolean(actionBusy)}
                 className="rounded-lg border border-amber-300/40 bg-amber-400/15 px-3 py-2 text-xs text-amber-100 hover:bg-amber-400/25 disabled:opacity-60"
               >
                 {actionBusy === "reset-summary" ? "Running..." : "Reset Summary"}
-              </button>
+              </ConfirmAction>
               <button
                 type="button"
                 onClick={() => void runConversationAction("export")}
@@ -607,14 +594,16 @@ export default function MemoryPage() {
               >
                 {actionBusy === "export" ? "Exporting..." : "Export"}
               </button>
-              <button
-                type="button"
-                onClick={() => void runConversationAction("clear")}
+              <ConfirmAction
+                confirmMessage="Clear this conversation now? This can be irreversible depending on Gateway behavior."
+                onConfirm={async () => {
+                  await runConversationAction("clear");
+                }}
                 disabled={!selectedConversationId || Boolean(actionBusy)}
                 className="rounded-lg border border-rose-300/40 bg-rose-500/15 px-3 py-2 text-xs text-rose-100 hover:bg-rose-500/25 disabled:opacity-60"
               >
                 {actionBusy === "clear" ? "Running..." : "Clear Conversation"}
-              </button>
+              </ConfirmAction>
             </div>
 
             {exportJson ? (
@@ -638,14 +627,9 @@ export default function MemoryPage() {
 
           <article className="rounded-lg border border-white/10 bg-white/5 p-3">
             <h2 className="text-sm font-semibold text-white">Messages Viewer</h2>
-            {detailLoading ? (
-              <div className="mt-2 flex items-center gap-2 text-sm text-slate-200">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Loading messages...
-              </div>
-            ) : null}
+            {detailLoading ? <LoadingBlock label="Loading messages..." className="mt-2 p-3 text-xs" /> : null}
             {!detailLoading && messages.length === 0 ? (
-              <p className="mt-2 text-xs text-slate-300">No messages loaded.</p>
+              <EmptyState title="No messages loaded." className="mt-2 p-3 text-xs" />
             ) : null}
 
             <div className="mt-2 max-h-[48vh] space-y-2 overflow-y-auto pr-1">
@@ -718,7 +702,7 @@ export default function MemoryPage() {
             ) : null}
             {memoryControls ? (
               <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap text-[11px] text-slate-300">
-                {JSON.stringify(redactSensitiveMemoryValue(memoryControls), null, 2)}
+                {safeStringify(redactSensitiveMemoryValue(memoryControls))}
               </pre>
             ) : null}
           </article>
@@ -791,7 +775,7 @@ export default function MemoryPage() {
                 {recallResult.map((item, index) => (
                   <div key={index} className="rounded border border-white/10 bg-surface-950/50 p-2 text-xs text-slate-200">
                     <pre className="max-h-40 overflow-auto whitespace-pre-wrap text-[11px] text-slate-300">
-                      {JSON.stringify(redactSensitiveMemoryValue(item), null, 2)}
+                      {safeStringify(redactSensitiveMemoryValue(item))}
                     </pre>
                   </div>
                 ))}

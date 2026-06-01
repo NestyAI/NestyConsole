@@ -4,6 +4,9 @@ import Link from "next/link";
 import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Clipboard, Loader2, Menu, RefreshCcw, Send, Square, Trash2 } from "lucide-react";
 
+import { EmptyState } from "@/components/ui/empty-state";
+import { ErrorBanner } from "@/components/ui/error-banner";
+import { LoadingBlock } from "@/components/ui/loading-block";
 import {
   archiveOrDeleteConversation,
   formatConversationTitle,
@@ -486,6 +489,13 @@ export default function ChatPage() {
   };
 
   const clearMessagesOnly = () => {
+    const confirmed = window.confirm(
+      "Clear local chat messages now? This only clears this browser view, but cannot be undone locally."
+    );
+    if (!confirmed) {
+      return;
+    }
+
     setMessages([]);
     setError(null);
     setStreamingStopped(false);
@@ -562,7 +572,9 @@ export default function ChatPage() {
   };
 
   const handleArchiveConversation = async (item: ConversationListItem) => {
-    const confirmed = window.confirm("Archive this conversation?");
+    const confirmed = window.confirm(
+      "Archive this conversation? It will be hidden from active view and may require filters to reopen."
+    );
     if (!confirmed) {
       return;
     }
@@ -587,7 +599,7 @@ export default function ChatPage() {
 
   const handleDeleteConversation = async (item: ConversationListItem) => {
     const confirmed = window.confirm(
-      "Delete this conversation? If Gateway DELETE is hard-delete, this cannot be undone."
+      "Delete this conversation? If Gateway handles DELETE as hard-delete, this action is irreversible."
     );
     if (!confirmed) {
       return;
@@ -944,9 +956,7 @@ export default function ChatPage() {
       ) : null}
 
       {error ? (
-        <div className="rounded-xl border border-rose-400/30 bg-rose-500/10 p-4 text-sm text-rose-100">
-          <p className="font-medium">{error.code}</p>
-          <p className="mt-1">{error.message}</p>
+        <ErrorBanner code={error.code} message={error.message}>
           {hasCredentialError ? (
             <p className="mt-2">
               Gateway API key is invalid or expired. If Gateway uses an ephemeral Console key, copy the new key from
@@ -957,7 +967,7 @@ export default function ChatPage() {
               .
             </p>
           ) : null}
-        </div>
+        </ErrorBanner>
       ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)_320px]">
@@ -1008,9 +1018,9 @@ export default function ChatPage() {
 
           <div className="max-h-[62vh] space-y-2 overflow-y-auto pr-1">
             {conversationsLoading ? (
-              <p className="text-xs text-slate-300">Loading conversations...</p>
+              <LoadingBlock label="Loading conversations..." className="p-3 text-xs" />
             ) : conversations.length === 0 ? (
-              <p className="text-xs text-slate-400">No conversations found.</p>
+              <EmptyState title="No conversations found." className="p-3 text-xs" />
             ) : (
               conversations.map((item) => {
                 const active = item.id === conversationId;

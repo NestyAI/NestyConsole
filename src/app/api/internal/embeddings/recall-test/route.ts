@@ -4,23 +4,25 @@ import { runGatewaySemanticRecallTest } from "@/lib/gateway/client";
 import { gatewayResultToResponse } from "@/lib/gateway/route-errors";
 import type { GatewaySemanticRecallTestRequest, GatewaySemanticRecallTestResponse } from "@/lib/gateway/types";
 import { ensureInternalAdminAccess } from "@/lib/internal-admin/access";
+import { isSecretLikeKey, redactSecrets } from "@/lib/security/redact";
 
 export const dynamic = "force-dynamic";
 
 const SAFE_BODY_KEYS = new Set(["text", "top_k", "scope", "include_archived"]);
-const SENSITIVE_KEY_PATTERN = /(key|token|secret|password|auth|credential|embedding|vector)/i;
+const VECTOR_LIKE_KEY_PATTERN = /(embedding|vector)/i;
 
 function sanitizeUnknown(value: unknown): unknown {
+  const redacted = redactSecrets(value);
   if (Array.isArray(value)) {
-    return value.map((item) => sanitizeUnknown(item));
+    return redacted;
   }
-  if (!value || typeof value !== "object") {
-    return value;
+  if (!redacted || typeof redacted !== "object") {
+    return redacted;
   }
 
   const output: Record<string, unknown> = {};
-  for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
-    if (SENSITIVE_KEY_PATTERN.test(key)) {
+  for (const [key, entry] of Object.entries(redacted as Record<string, unknown>)) {
+    if (isSecretLikeKey(key) || VECTOR_LIKE_KEY_PATTERN.test(key)) {
       output[key] = "[redacted]";
     } else {
       output[key] = sanitizeUnknown(entry);

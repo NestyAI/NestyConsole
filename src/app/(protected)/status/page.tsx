@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { RefreshCw } from "lucide-react";
 
+import { ErrorBanner } from "@/components/ui/error-banner";
+import { LoadingBlock } from "@/components/ui/loading-block";
 import { StatusCard } from "@/components/status-card";
 import type { GatewayHealthResponse, GatewayReadyResponse } from "@/lib/gateway/types";
 
@@ -93,11 +95,9 @@ export default function StatusPage() {
       </div>
 
       {error ? (
-        <div className="rounded-xl border border-rose-400/30 bg-rose-500/10 p-4 text-rose-100">
-          <p className="text-sm font-medium">{error.code || "gateway_error"}</p>
-          <p className="mt-1 text-sm">{error.message || "Unexpected gateway error."}</p>
+        <ErrorBanner code={error.code || "gateway_error"} message={error.message || "Unexpected gateway error."}>
           {credentialError ? (
-            <p className="mt-2 text-sm">
+            <p>
               Gateway API key is invalid or expired. If Gateway uses an ephemeral Console key, copy the new key from
               Gateway startup logs and update it at{" "}
               <Link href="/settings/gateway" className="underline underline-offset-2">
@@ -106,8 +106,10 @@ export default function StatusPage() {
               .
             </p>
           ) : null}
-        </div>
+        </ErrorBanner>
       ) : null}
+
+      {loading ? <LoadingBlock label="Loading gateway health and readiness..." /> : null}
 
       <div className="grid gap-4 md:grid-cols-2">
         <StatusCard

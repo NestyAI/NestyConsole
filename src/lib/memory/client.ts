@@ -10,6 +10,7 @@ import type {
   GatewayMessageMemoryPatchRequest,
   GatewaySemanticRecallTestResponse
 } from "@/lib/gateway/types";
+import { redactSecrets } from "@/lib/security/redact";
 
 export type MemoryConsoleError = {
   code: string;
@@ -30,8 +31,6 @@ export type MemoryConversationListView = {
   items: GatewayConversation[];
   total?: number;
 };
-
-const SENSITIVE_KEY_PATTERN = /(key|token|secret|password|auth|credential|embedding|vector)/i;
 
 function normalizeError(payload: unknown, fallback: string): MemoryConsoleError {
   const data = payload as { error?: { code?: unknown; message?: unknown } } | null;
@@ -127,27 +126,8 @@ function appendQuery(base: string, params: Record<string, string | number | bool
   return queryString ? `${base}?${queryString}` : base;
 }
 
-function sanitizeUnknown(value: unknown): unknown {
-  if (Array.isArray(value)) {
-    return value.map((item) => sanitizeUnknown(item));
-  }
-  if (!value || typeof value !== "object") {
-    return value;
-  }
-
-  const output: Record<string, unknown> = {};
-  for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
-    if (SENSITIVE_KEY_PATTERN.test(key)) {
-      output[key] = "[redacted]";
-    } else {
-      output[key] = sanitizeUnknown(entry);
-    }
-  }
-  return output;
-}
-
 export function redactSensitiveMemoryValue(value: unknown): unknown {
-  return sanitizeUnknown(value);
+  return redactSecrets(value);
 }
 
 export async function listConversations(params: {

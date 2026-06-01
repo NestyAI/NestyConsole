@@ -4,6 +4,10 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2, Plus, RefreshCw, RotateCcw, Save, Trash2 } from "lucide-react";
 
+import { ConfirmAction } from "@/components/ui/confirm-action";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ErrorBanner } from "@/components/ui/error-banner";
+import { LoadingBlock } from "@/components/ui/loading-block";
 import {
   getModelConfig,
   listModelConfigs,
@@ -15,6 +19,7 @@ import {
   type ModelConfigListItem
 } from "@/lib/model-configs/client";
 import type { GatewayProviderChainItem } from "@/lib/gateway/types";
+import { safeStringify } from "@/lib/security/redact";
 
 type GatewayCredentialsView = {
   internal_admin_enabled: boolean;
@@ -274,11 +279,7 @@ export default function ModelConfigsPage() {
     if (!detail?.effectiveConfig) {
       return null;
     }
-    try {
-      return JSON.stringify(redactSensitiveModelConfig(detail.effectiveConfig), null, 2);
-    } catch {
-      return null;
-    }
+    return safeStringify(redactSensitiveModelConfig(detail.effectiveConfig));
   }, [detail]);
 
   const dirty = useMemo(() => {
@@ -380,11 +381,6 @@ export default function ModelConfigsPage() {
     if (!detail) {
       return;
     }
-    const confirmed = window.confirm("Reset runtime override for this model alias?");
-    if (!confirmed) {
-      return;
-    }
-
     setResetting(true);
     setNotice(null);
     setDetailError(null);
@@ -428,16 +424,11 @@ export default function ModelConfigsPage() {
       ) : null}
 
       {credentialsError ? (
-        <div className="rounded-xl border border-rose-400/30 bg-rose-500/10 p-4 text-sm text-rose-100">
-          <p className="font-medium">{credentialsError.code}</p>
-          <p className="mt-1">{credentialsError.message}</p>
-        </div>
+        <ErrorBanner code={credentialsError.code} message={credentialsError.message} />
       ) : null}
 
       {modelConfigError ? (
-        <div className="rounded-xl border border-rose-400/30 bg-rose-500/10 p-4 text-sm text-rose-100">
-          <p className="font-medium">{modelConfigError.code}</p>
-          <p className="mt-1">{modelConfigError.message}</p>
+        <ErrorBanner code={modelConfigError.code} message={modelConfigError.message}>
           {tokenIssue ? (
             <p className="mt-2">
               Configure internal admin token in{" "}
@@ -456,7 +447,7 @@ export default function ModelConfigsPage() {
               .
             </p>
           ) : null}
-        </div>
+        </ErrorBanner>
       ) : null}
 
       {notice ? (
@@ -466,9 +457,9 @@ export default function ModelConfigsPage() {
       <div className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
         <aside className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-4">
           <h2 className="text-sm font-semibold text-white">Model Alias List</h2>
-          {listLoading ? <p className="text-sm text-slate-300">Loading model aliases...</p> : null}
+          {listLoading ? <LoadingBlock label="Loading model aliases..." className="p-3 text-xs" /> : null}
           {!listLoading && listItems.length === 0 ? (
-            <p className="text-sm text-slate-300">No model aliases returned.</p>
+            <EmptyState title="No model aliases returned." className="p-3 text-xs" />
           ) : null}
           <div className="max-h-[60vh] space-y-2 overflow-y-auto pr-1">
             {listItems.map((item) => {
@@ -498,14 +489,11 @@ export default function ModelConfigsPage() {
 
         <section className="space-y-4 rounded-xl border border-white/10 bg-white/5 p-4">
           {detailLoading ? (
-            <div className="flex items-center gap-2 text-sm text-slate-200">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Loading model config...
-            </div>
+            <LoadingBlock label="Loading model config..." className="p-3 text-xs" />
           ) : null}
 
           {!detailLoading && !detail ? (
-            <p className="text-sm text-slate-300">Select a model alias to inspect runtime configuration.</p>
+            <EmptyState title="Select a model alias to inspect runtime configuration." className="p-3 text-xs" />
           ) : null}
 
           {detail ? (
@@ -536,7 +524,7 @@ export default function ModelConfigsPage() {
                 {draftProviderChain.length === 0 ? (
                   <p className="text-xs text-slate-300">No provider chain items configured.</p>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-2 overflow-x-auto">
                     {draftProviderChain.map((item, index) => (
                       <article key={`${item.provider}-${item.model}-${index}`} className="rounded border border-white/10 bg-surface-950/50 p-2">
                         <div className="grid gap-2 md:grid-cols-2">
@@ -694,15 +682,17 @@ export default function ModelConfigsPage() {
                 >
                   Cancel changes
                 </button>
-                <button
-                  type="button"
-                  onClick={() => void handleResetOverride()}
+                <ConfirmAction
+                  confirmMessage="Reset runtime override for this model alias? This may immediately change live routing behavior."
+                  onConfirm={async () => {
+                    await handleResetOverride();
+                  }}
                   disabled={saving || resetting}
                   className="inline-flex items-center gap-2 rounded-lg border border-amber-300/40 bg-amber-400/15 px-3 py-2 text-sm text-amber-100 transition hover:bg-amber-400/25 disabled:opacity-60"
                 >
                   {resetting ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
                   Reset override
-                </button>
+                </ConfirmAction>
                 <button
                   type="button"
                   onClick={() => void loadDetail(detail.modelAlias)}

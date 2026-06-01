@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2, RefreshCw, TriangleAlert } from "lucide-react";
 
+import { EmptyState } from "@/components/ui/empty-state";
+import { ErrorBanner } from "@/components/ui/error-banner";
 import {
   getLatestProviderHealth,
   getProviderHealthSummary,
@@ -298,9 +300,7 @@ export default function DiagnosticsPage() {
       </article>
 
       {combinedError ? (
-        <div className="rounded-xl border border-rose-400/30 bg-rose-500/10 p-4 text-sm text-rose-100">
-          <p className="font-medium">{combinedError.code}</p>
-          <p className="mt-1">{combinedError.message}</p>
+        <ErrorBanner code={combinedError.code} message={combinedError.message}>
           {internalAdminIssue ? (
             <p className="mt-2">
               Configure internal admin token in{" "}
@@ -328,7 +328,7 @@ export default function DiagnosticsPage() {
               Diagnostics may be disabled on Gateway (`DIAGNOSTICS_ENABLED=false`).
             </p>
           ) : null}
-        </div>
+        </ErrorBanner>
       ) : null}
 
       <section className="space-y-3">
@@ -360,9 +360,7 @@ export default function DiagnosticsPage() {
       <section className="space-y-3">
         <h2 className="text-sm font-semibold text-white">Reliability Scores</h2>
         {reliability.length === 0 ? (
-          <p className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
-            No reliability records found yet.
-          </p>
+          <EmptyState title="No reliability records found yet." />
         ) : (
           <div className="overflow-x-auto rounded-xl border border-white/10 bg-white/5">
             <table className="min-w-full text-sm">
@@ -410,9 +408,10 @@ export default function DiagnosticsPage() {
       <section className="space-y-3">
         <h2 className="text-sm font-semibold text-white">Latest Provider Checks</h2>
         {latestChecks.length === 0 ? (
-          <p className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
-            No provider health check records found yet. Run a health check or use Gateway diagnostics scripts.
-          </p>
+          <EmptyState
+            title="No provider health check records found yet."
+            description="Run a health check or use Gateway diagnostics scripts."
+          />
         ) : (
           <div className="overflow-x-auto rounded-xl border border-white/10 bg-white/5">
             <table className="min-w-full text-sm">

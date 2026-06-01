@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
+import { ErrorBanner } from "@/components/ui/error-banner";
+import { LoadingBlock } from "@/components/ui/loading-block";
+import { StateCard } from "@/components/ui/state-card";
 
 type CredentialSource = "stored" | "env" | "missing";
 
@@ -173,8 +176,8 @@ export default function GatewaySettingsPage() {
         </p>
       </div>
 
-      <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
-        <p className="font-medium text-white">Effective configuration</p>
+      <StateCard title="Effective configuration">
+        <div className="text-sm text-slate-300">
         <p className="mt-2">Gateway URL: {view?.gateway_url || "Not configured"}</p>
         <p>Gateway URL source: {view?.gateway_url_source || "missing"}</p>
         <p>API key configured: {view?.api_key_configured ? "yes" : "no"} ({view?.api_key_source || "missing"})</p>
@@ -192,7 +195,8 @@ export default function GatewaySettingsPage() {
         <p className="mt-2 text-xs text-cyan-200">
           Diagnostics dashboard requires internal admin enabled + internal admin token configured.
         </p>
-      </div>
+        </div>
+      </StateCard>
 
       {invalidApiKeyHint ? (
         <div className="rounded-xl border border-amber-300/40 bg-amber-500/10 p-4 text-sm text-amber-100">
@@ -202,7 +206,7 @@ export default function GatewaySettingsPage() {
       ) : null}
 
       {error ? (
-        <div className="rounded-xl border border-rose-400/30 bg-rose-500/10 p-4 text-sm text-rose-100">{error}</div>
+        <ErrorBanner message={error} />
       ) : null}
       {success ? (
         <div className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-4 text-sm text-emerald-100">
@@ -304,7 +308,7 @@ export default function GatewaySettingsPage() {
         </article>
       ) : null}
 
-      {loading ? <p className="text-sm text-slate-400">Loading credentials...</p> : null}
+      {loading ? <LoadingBlock label="Loading credentials..." /> : null}
     </section>
   );
 }

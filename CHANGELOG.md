@@ -2,6 +2,20 @@
 
 All notable changes to Nesty Console will be documented in this file.
 
+## [0.6.1] - Unreleased
+
+### Changed
+
+- Improved Console-wide loading, error, and empty states.
+- Standardized protected route/API error presentation.
+- Improved destructive action confirmations and user-facing warnings.
+- Improved responsive layout consistency across main Console pages.
+
+### Security
+
+- Centralized secret redaction utilities and verified sensitive fields remain hidden in admin views.
+- Rechecked protected Console routes and server-side proxy boundaries.
+
 ## [0.6.0] - Unreleased
 
 ### Added

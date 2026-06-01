@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
 
+import { EmptyState } from "@/components/ui/empty-state";
+import { ErrorBanner } from "@/components/ui/error-banner";
+import { LoadingBlock } from "@/components/ui/loading-block";
 import type { GatewayModel, GatewayModelsResponse } from "@/lib/gateway/types";
 
 type ModelsState = {
@@ -83,12 +86,11 @@ export default function ModelsPage() {
       </div>
 
       {state.error ? (
-        <div className="rounded-xl border border-rose-400/30 bg-rose-500/10 p-4 text-sm text-rose-100">
-          <p>{state.error.message}</p>
+        <ErrorBanner code={state.error.code || "gateway_error"} message={state.error.message}>
           {state.error.code === "invalid_api_key" ||
           state.error.code === "credentials_not_configured" ||
           state.error.code === "missing_api_key" ? (
-            <p className="mt-2">
+            <p>
               Gateway API key is invalid or expired. Update credentials in{" "}
               <Link href="/settings/gateway" className="underline underline-offset-2">
                 Settings {"->"} Gateway Credentials
@@ -96,16 +98,14 @@ export default function ModelsPage() {
               .
             </p>
           ) : null}
-        </div>
+        </ErrorBanner>
       ) : null}
 
       <div className="grid gap-3">
-        {state.loading ? (
-          <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">Loading models...</div>
-        ) : null}
+        {state.loading ? <LoadingBlock label="Loading models..." /> : null}
 
         {!state.loading && state.items.length === 0 && !state.error ? (
-          <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">No models returned.</div>
+          <EmptyState title="No models returned." description="Gateway did not return active aliases yet." />
         ) : null}
 
         {state.items.map((model) => (

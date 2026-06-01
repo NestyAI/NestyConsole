@@ -2,7 +2,7 @@
 
 Nesty Console is a separate frontend/admin project for operating a running `NestyAI Gateway`.
 
-Current status: **v0.6.0 - Memory & Conversation Management**
+Current status: **v0.6.1 - Console UX Hardening & Runtime QA**
 
 Changelog: [CHANGELOG.md](CHANGELOG.md)
 
@@ -75,6 +75,8 @@ pnpm run dev
 - Console login uses signed HTTP-only cookie sessions (`sameSite=lax`, `secure` in production).
 - Do not commit real `.env.local` values.
 - `NESTY_CONSOLE_CREDENTIALS_SECRET` should be long and random.
+- All Gateway calls go through server-side Console routes.
+- Gateway credentials and internal admin tokens must never be exposed to browser JavaScript.
 
 ## Credential Priority
 
@@ -147,6 +149,35 @@ Then visit `/model-configs`.
   - `NESTY_INTERNAL_ADMIN_TOKEN=<your-token>` on Gateway and Console
   - Optional: `NESTY_CONSOLE_ENABLE_INTERNAL_ADMIN=true`
 
+## Runtime QA Checklist
+
+Required environment variables:
+
+- `NESTY_CONSOLE_ADMIN_USERNAME`
+- `NESTY_CONSOLE_ADMIN_PASSWORD`
+- `NESTY_CONSOLE_SESSION_SECRET`
+- `NESTY_CONSOLE_CREDENTIALS_SECRET`
+
+Core checks:
+
+- Login and logout flow works.
+- Gateway credential test works from `Settings -> Gateway Credentials`.
+- Chat streaming/non-stream responses work.
+- Conversation sidebar list/open/refresh works.
+- Diagnostics dashboard loads and warning states are readable.
+- Model Config admin loads and reset/update actions work.
+- Memory page search/detail/actions and message memory controls work.
+- Internal admin token warnings appear when missing/invalid.
+- Invalid/expired Gateway API key behavior is clear and actionable.
+- Protected API behavior returns 401 when unauthenticated.
+
+Security checks:
+
+- `/api/gateway/models` returns 401 before login.
+- `/api/internal/diagnostics/provider-health/summary` returns 401 before login.
+- No secret values are displayed in UI/debug/raw detail sections.
+- Semantic recall test output does not expose raw vectors/embeddings.
+
 ## Credentials Manager API
 
 - `GET /api/console/gateway-credentials`: safe metadata only
@@ -165,7 +196,7 @@ Then visit `/model-configs`.
 - `POST /api/auth/login`: create signed admin session cookie
 - `POST /api/auth/logout`: clear session cookie
 - `GET /api/auth/me`: current auth status
-## Implemented in v0.6.0
+## Implemented in v0.6.1
 
 - Console shell layout (sidebar + topbar)
 - Single-admin login page (`/login`)

@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 
-import { resolveEffectiveGatewayCredentials, updateGatewayCredentialsStatus } from "@/lib/console/credentials";
+import {
+  cleanOptionalText,
+  normalizeUrl,
+  resolveEffectiveGatewayCredentials,
+  updateGatewayCredentialsStatus
+} from "@/lib/console/credentials";
 import type { GatewayTestStatus } from "@/lib/console/types";
 import { gatewayFetch } from "@/lib/gateway/client";
 
@@ -23,6 +28,9 @@ type TestResponse = {
     models: ProbeSummary;
     internal_admin?: ProbeSummary;
   };
+  warning?: string;
+  storage_mode?: "sqlite" | "env_only";
+  storage_available?: boolean;
 };
 
 function summarizeProbe(result: Awaited<ReturnType<typeof gatewayFetch<unknown>>>): ProbeSummary {
@@ -69,29 +77,108 @@ function deriveFinalStatus(
   return "unknown_error";
 }
 
-export async function POST() {
+interface TestRequestBody {
+  gatewayUrl?: string;
+  gateway_url?: string;
+  gatewayApiKey?: string;
+  gateway_api_key?: string;
+  internalAdminToken?: string;
+  internal_admin_token?: string;
+  internalAdminEnabled?: boolean;
+  internal_admin_enabled?: boolean;
+}
+
+export async function POST(request: Request) {
   const effective = resolveEffectiveGatewayCredentials();
-  if (!effective.gatewayUrl) {
-    updateGatewayCredentialsStatus("credentials_not_configured", "Gateway URL is not configured.");
+
+  // Parse request body
+  let body: TestRequestBody = {};
+  try {
+    const text = await request.text();
+    if (text) {
+      body = JSON.parse(text) as TestRequestBody;
+    }
+  } catch {
+    // Ignore JSON parsing errors
+  }
+
+  // Extract variables with support for both snake_case and camelCase
+  const gatewayUrlInput = body.gatewayUrl !== undefined ? body.gatewayUrl : body.gateway_url;
+  const gatewayApiKeyInput = body.gatewayApiKey !== undefined ? body.gatewayApiKey : body.gateway_api_key;
+  const internalAdminTokenInput = body.internalAdminToken !== undefined ? body.internalAdminToken : body.internal_admin_token;
+  const internalAdminEnabledInput = body.internalAdminEnabled !== undefined ? body.internalAdminEnabled : body.internal_admin_enabled;
+
+  // Build test credentials
+  const testCredentials = { ...effective };
+
+  if (gatewayUrlInput !== undefined) {
+    testCredentials.gatewayUrl = normalizeUrl(gatewayUrlInput);
+    testCredentials.gatewayUrlSource = "stored";
+  }
+
+  if (gatewayApiKeyInput !== undefined) {
+    const cleanApiKey = cleanOptionalText(gatewayApiKeyInput);
+    if (cleanApiKey !== null) {
+      testCredentials.gatewayApiKey = cleanApiKey;
+      testCredentials.gatewayApiKeySource = "stored";
+    }
+  }
+
+  if (internalAdminTokenInput !== undefined) {
+    const cleanInternalToken = cleanOptionalText(internalAdminTokenInput);
+    if (cleanInternalToken !== null) {
+      testCredentials.internalAdminToken = cleanInternalToken;
+      testCredentials.internalAdminTokenSource = "stored";
+    }
+  }
+
+  if (internalAdminEnabledInput !== undefined) {
+    testCredentials.internalAdminEnabled = typeof internalAdminEnabledInput === "boolean"
+      ? internalAdminEnabledInput
+      : ["1", "true", "yes", "on"].includes(String(internalAdminEnabledInput).trim().toLowerCase());
+    testCredentials.internalAdminEnabledSource = "stored";
+  }
+
+  // Suffix warning check for target test URL
+  let warning: string | undefined = undefined;
+  if (testCredentials.gatewayUrl) {
+    const lower = testCredentials.gatewayUrl.toLowerCase();
+    if (lower.endsWith("/v1") || lower.endsWith("/v1/") || lower.endsWith("/api") || lower.endsWith("/api/")) {
+      warning = "Gateway URL includes a '/v1' or '/api' suffix. Set it to the base URL of the service (e.g. http://localhost:8000).";
+    }
+  }
+
+  if (!testCredentials.gatewayUrl) {
+    const status: GatewayTestStatus = "credentials_not_configured";
+    const msg = "Gateway URL is not configured.";
+
+    // In env_only mode, do not call updateGatewayCredentialsStatus or write to DB
+    if (effective.storageMode !== "env_only") {
+      updateGatewayCredentialsStatus(status, msg);
+    }
+
     return NextResponse.json(
       {
-        status: "credentials_not_configured",
+        status,
         ok: false,
-        message: "Gateway URL is not configured.",
+        message: msg,
         probes: {
           health: { ok: false, status: 400, error_code: "credentials_not_configured", error_message: "Missing URL." },
           ready: { ok: false, status: 400, error_code: "credentials_not_configured", error_message: "Missing URL." },
           models: { ok: false, status: 400, error_code: "credentials_not_configured", error_message: "Missing URL." }
-        }
+        },
+        warning,
+        storage_mode: effective.storageMode,
+        storage_available: effective.storageAvailable
       } as TestResponse,
       { status: 400 }
     );
   }
 
   const [healthResult, readyResult, modelsResult] = await Promise.all([
-    gatewayFetch("/health", {}, { credentials: effective }),
-    gatewayFetch("/ready", {}, { credentials: effective }),
-    gatewayFetch("/v1/models", {}, { credentials: effective })
+    gatewayFetch("/health", {}, { credentials: testCredentials }),
+    gatewayFetch("/ready", {}, { credentials: testCredentials }),
+    gatewayFetch("/v1/models", {}, { credentials: testCredentials })
   ]);
 
   const probes: TestResponse["probes"] = {
@@ -100,16 +187,17 @@ export async function POST() {
     models: summarizeProbe(modelsResult)
   };
 
-  if (effective.internalAdminEnabled && effective.internalAdminToken) {
+  // Only run internal admin probe if enabled AND token is configured/provided
+  if (testCredentials.internalAdminEnabled && testCredentials.internalAdminToken) {
     const internalResult = await gatewayFetch(
       "/internal/diagnostics/provider-health/summary?since_seconds=3600",
       {},
-      { credentials: effective, internalAdmin: true }
+      { credentials: testCredentials, internalAdmin: true }
     );
     probes.internal_admin = summarizeProbe(internalResult);
   }
 
-  const status = deriveFinalStatus(probes, effective);
+  const status = deriveFinalStatus(probes, testCredentials);
   const ok = status === "ok";
   const message =
     status === "ok"
@@ -124,13 +212,20 @@ export async function POST() {
               ? "Gateway is unreachable."
               : "Gateway test failed with an unknown error.";
 
-  updateGatewayCredentialsStatus(status, ok ? null : message);
+  // In env_only mode, do not call updateGatewayCredentialsStatus or write to DB
+  if (effective.storageMode !== "env_only") {
+    updateGatewayCredentialsStatus(status, ok ? null : message);
+  }
+
   return NextResponse.json(
     {
       status,
       ok,
       message,
-      probes
+      probes,
+      warning,
+      storage_mode: effective.storageMode,
+      storage_available: effective.storageAvailable
     } as TestResponse,
     { status: ok ? 200 : 400 }
   );

@@ -6,15 +6,16 @@
 
 Nesty Console is a separate frontend/admin project for operating a running `NestyAI Gateway`.
 
-Current status: **v0.6.4 - Chat Canvas Renderer**
+Current status: **v0.6.5 - Vercel Deployment Compatibility**
 
 Changelog: [CHANGELOG.md](CHANGELOG.md)
 
-v0.6.4 adds:
-* Chat responses now render in a safe canvas-like view.
-* Markdown/code/tables are displayed with Neural Noir styling.
-* Raw view is available for debugging.
-* Rendered content is sanitized and does not expose secrets.
+v0.6.5 adds:
+* Serverless hosting and read-only filesystem support (Vercel Compatibility).
+* Environment-only fallback mode (`env_only`) that bypasses SQLite database writes.
+* Connection testing of unsaved form parameters on-the-fly.
+* Optional requirements for `NESTY_CONSOLE_CREDENTIALS_SECRET` and `NESTY_INTERNAL_ADMIN_TOKEN` during testing and basic chat.
+* Suffix warnings for Gateway URLs ending in `/v1` or `/api`.
 
 ## Relationship to NestyAI Gateway
 
@@ -73,6 +74,24 @@ copy .env.local.example .env.local
 
 ```bash
 pnpm run dev
+```
+
+## Deploying to Vercel
+
+When deploying to Vercel or other serverless hosting environments, the SQLite database is not available for writes. Nesty Console automatically detects the Vercel runtime and switches to **environment-only mode** (`env_only`).
+
+In this mode, saving credentials via the Settings UI is disabled. Instead, you must specify all necessary credentials as environment variables in your Vercel Project settings:
+
+- `NESTY_GATEWAY_URL`: The base URL of your NestyAI Gateway.
+- `NESTY_API_KEY`: The API Key to authorize client requests against the Gateway.
+- `NESTY_CONSOLE_ENABLE_INTERNAL_ADMIN`: Set to `true` to enable internal diagnostics, memory recall, and model config management.
+- `NESTY_INTERNAL_ADMIN_TOKEN`: The token required for internal admin proxy routes (optional).
+- `NESTY_CONSOLE_ADMIN_PASSWORD`: Password for Console login.
+- `NESTY_CONSOLE_SESSION_SECRET`: Session signing secret.
+
+To manually force environment-only mode locally or in other docker/serverless environments, set:
+```env
+NESTY_CONSOLE_DISABLE_CREDENTIAL_STORAGE=true
 ```
 
 ## Security Notes

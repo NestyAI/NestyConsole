@@ -2,6 +2,7 @@ import "server-only";
 
 import { getConsoleDb } from "@/lib/console/db";
 import { decryptSecret, encryptSecret, isCredentialsSecretConfigured } from "@/lib/console/crypto";
+import { getCredentialStorageMode } from "@/lib/console/storage-mode";
 import type {
   EffectiveGatewayCredentials,
   GatewayCredentialsRecord,
@@ -9,6 +10,33 @@ import type {
   GatewayCredentialsView,
   GatewayTestStatus
 } from "@/lib/console/types";
+
+let isStorageAvailableCache: boolean | null = null;
+let storageWarningCache: string | null = null;
+
+export function checkStorageAvailable(): { available: boolean; warning?: string } {
+  const mode = getCredentialStorageMode();
+  if (mode === "env_only") {
+    return { available: false, warning: "Credential storage is disabled (env-only mode)." };
+  }
+
+  if (isStorageAvailableCache !== null) {
+    return { available: isStorageAvailableCache, warning: storageWarningCache || undefined };
+  }
+
+  try {
+    getConsoleDb();
+    isStorageAvailableCache = true;
+    storageWarningCache = null;
+    return { available: true };
+  } catch (err) {
+    isStorageAvailableCache = false;
+    const msg = err instanceof Error ? err.message : String(err);
+    storageWarningCache = `Database unavailable: ${msg}`;
+    console.warn(`[Storage Warning] Database initialization failed. Falling back to env-only credentials mode. Reason: ${msg}`);
+    return { available: false, warning: storageWarningCache };
+  }
+}
 
 function toBool(value: string | undefined, defaultValue = false): boolean {
   if (!value) {
@@ -21,7 +49,7 @@ function nowIso(): string {
   return new Date().toISOString();
 }
 
-function normalizeUrl(raw: string | null | undefined): string | null {
+export function normalizeUrl(raw: string | null | undefined): string | null {
   const value = String(raw || "").trim();
   if (!value) {
     return null;
@@ -37,7 +65,7 @@ function normalizeUrl(raw: string | null | undefined): string | null {
   }
 }
 
-function cleanOptionalText(raw: string | null | undefined): string | null {
+export function cleanOptionalText(raw: string | null | undefined): string | null {
   const value = String(raw || "").trim();
   return value || null;
 }
@@ -54,42 +82,56 @@ export class CredentialsManagerError extends Error {
 }
 
 export function getStoredGatewayCredentials(): GatewayCredentialsRecord | null {
-  const db = getConsoleDb();
-  const row = db
-    .prepare(
-      `SELECT gateway_url,
-              encrypted_gateway_api_key,
-              encrypted_internal_admin_token,
-              internal_admin_enabled,
-              last_verified_at,
-              last_status,
-              last_error,
-              updated_at
-       FROM gateway_credentials
-       WHERE id = 1`
-    )
-    .get() as Record<string, unknown> | undefined;
-
-  if (!row) {
+  const { available } = checkStorageAvailable();
+  if (!available) {
     return null;
   }
 
-  return {
-    gateway_url: row.gateway_url ? String(row.gateway_url) : null,
-    encrypted_gateway_api_key: row.encrypted_gateway_api_key ? String(row.encrypted_gateway_api_key) : null,
-    encrypted_internal_admin_token: row.encrypted_internal_admin_token
-      ? String(row.encrypted_internal_admin_token)
-      : null,
-    internal_admin_enabled: Boolean(row.internal_admin_enabled),
-    last_verified_at: row.last_verified_at ? String(row.last_verified_at) : null,
-    last_status: row.last_status ? String(row.last_status) : null,
-    last_error: row.last_error ? String(row.last_error) : null,
-    updated_at: row.updated_at ? String(row.updated_at) : null
-  };
+  try {
+    const db = getConsoleDb();
+    const row = db
+      .prepare(
+        `SELECT gateway_url,
+                encrypted_gateway_api_key,
+                encrypted_internal_admin_token,
+                internal_admin_enabled,
+                last_verified_at,
+                last_status,
+                last_error,
+                updated_at
+         FROM gateway_credentials
+         WHERE id = 1`
+      )
+      .get() as Record<string, unknown> | undefined;
+
+    if (!row) {
+      return null;
+    }
+
+    return {
+      gateway_url: row.gateway_url ? String(row.gateway_url) : null,
+      encrypted_gateway_api_key: row.encrypted_gateway_api_key ? String(row.encrypted_gateway_api_key) : null,
+      encrypted_internal_admin_token: row.encrypted_internal_admin_token
+        ? String(row.encrypted_internal_admin_token)
+        : null,
+      internal_admin_enabled: Boolean(row.internal_admin_enabled),
+      last_verified_at: row.last_verified_at ? String(row.last_verified_at) : null,
+      last_status: row.last_status ? String(row.last_status) : null,
+      last_error: row.last_error ? String(row.last_error) : null,
+      updated_at: row.updated_at ? String(row.updated_at) : null
+    };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn(`[Storage Warning] Failed to read stored credentials: ${msg}`);
+    return null;
+  }
 }
 
 export function resolveEffectiveGatewayCredentials(): EffectiveGatewayCredentials {
-  const stored = getStoredGatewayCredentials();
+  const { available, warning } = checkStorageAvailable();
+  const storageMode = getCredentialStorageMode();
+  const stored = available ? getStoredGatewayCredentials() : null;
+
   const envGatewayUrl = normalizeUrl(process.env.NESTY_GATEWAY_URL);
   const envApiKey = cleanOptionalText(process.env.NESTY_API_KEY);
   const envInternalToken = cleanOptionalText(process.env.NESTY_INTERNAL_ADMIN_TOKEN);
@@ -127,6 +169,16 @@ export function resolveEffectiveGatewayCredentials(): EffectiveGatewayCredential
   const internalAdminEnabled = stored ? Boolean(stored.internal_admin_enabled) : envInternalEnabled;
   const internalAdminEnabledSource = stored ? "stored" : "env";
 
+  // Suffix warning check (Constraint 6)
+  let storageWarning = warning;
+  if (gatewayUrl) {
+    const lower = gatewayUrl.toLowerCase();
+    if (lower.endsWith("/v1") || lower.endsWith("/v1/") || lower.endsWith("/api") || lower.endsWith("/api/")) {
+      const urlWarning = "Gateway URL includes a '/v1' or '/api' suffix. Set it to the base URL of the service (e.g. http://localhost:8000).";
+      storageWarning = storageWarning ? `${storageWarning} | ${urlWarning}` : urlWarning;
+    }
+  }
+
   return {
     gatewayUrl,
     gatewayApiKey,
@@ -136,6 +188,9 @@ export function resolveEffectiveGatewayCredentials(): EffectiveGatewayCredential
     gatewayApiKeySource,
     internalAdminTokenSource,
     internalAdminEnabledSource,
+    storageMode,
+    storageAvailable: available,
+    storageWarning,
     metadata: {
       hasStoredConfig: Boolean(stored),
       decryptError,
@@ -161,11 +216,23 @@ export function getGatewayCredentialsView(): GatewayCredentialsView {
     last_verified_at: effective.metadata.lastVerifiedAt,
     last_status: effective.metadata.lastStatus,
     last_error: effective.metadata.lastError,
-    updated_at: effective.metadata.updatedAt
+    updated_at: effective.metadata.updatedAt,
+    storage_mode: effective.storageMode,
+    storage_available: effective.storageAvailable,
+    storage_warning: effective.storageWarning
   };
 }
 
 export function saveGatewayCredentials(input: GatewayCredentialsUpdateInput): GatewayCredentialsView {
+  const { available, warning } = checkStorageAvailable();
+  if (!available) {
+    throw new CredentialsManagerError(
+      "credential_storage_unavailable",
+      warning || "Credential storage is unavailable in this deployment. Configure Gateway credentials through environment variables.",
+      409
+    );
+  }
+
   const existing = getStoredGatewayCredentials();
   const now = nowIso();
 
@@ -209,50 +276,69 @@ export function saveGatewayCredentials(input: GatewayCredentialsUpdateInput): Ga
         ? existing.internal_admin_enabled
         : toBool(process.env.NESTY_CONSOLE_ENABLE_INTERNAL_ADMIN, false);
 
-  const db = getConsoleDb();
-  db.prepare(
-    `INSERT INTO gateway_credentials
-       (id, gateway_url, encrypted_gateway_api_key, encrypted_internal_admin_token, internal_admin_enabled, updated_at)
-     VALUES
-       (1, ?, ?, ?, ?, ?)
-     ON CONFLICT(id) DO UPDATE SET
-       gateway_url = excluded.gateway_url,
-       encrypted_gateway_api_key = excluded.encrypted_gateway_api_key,
-       encrypted_internal_admin_token = excluded.encrypted_internal_admin_token,
-       internal_admin_enabled = excluded.internal_admin_enabled,
-       updated_at = excluded.updated_at`
-  ).run(gatewayUrl, encryptedGatewayApiKey, encryptedInternalAdminToken, internalAdminEnabled ? 1 : 0, now);
+  try {
+    const db = getConsoleDb();
+    db.prepare(
+      `INSERT INTO gateway_credentials
+         (id, gateway_url, encrypted_gateway_api_key, encrypted_internal_admin_token, internal_admin_enabled, updated_at)
+       VALUES
+         (1, ?, ?, ?, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET
+         gateway_url = excluded.gateway_url,
+         encrypted_gateway_api_key = excluded.encrypted_gateway_api_key,
+         encrypted_internal_admin_token = excluded.encrypted_internal_admin_token,
+         internal_admin_enabled = excluded.internal_admin_enabled,
+         updated_at = excluded.updated_at`
+    ).run(gatewayUrl, encryptedGatewayApiKey, encryptedInternalAdminToken, internalAdminEnabled ? 1 : 0, now);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new CredentialsManagerError(
+      "credential_storage_write_failed",
+      `Failed to write to database: ${msg}`,
+      500
+    );
+  }
 
   return getGatewayCredentialsView();
 }
 
 export function updateGatewayCredentialsStatus(status: GatewayTestStatus, errorMessage: string | null): void {
-  const db = getConsoleDb();
-  const existing = getStoredGatewayCredentials();
-  const now = nowIso();
+  const { available } = checkStorageAvailable();
+  if (!available) {
+    return;
+  }
 
-  db.prepare(
-    `INSERT INTO gateway_credentials
-       (id, gateway_url, encrypted_gateway_api_key, encrypted_internal_admin_token, internal_admin_enabled, last_verified_at, last_status, last_error, updated_at)
-     VALUES
-       (1, ?, ?, ?, ?, ?, ?, ?, ?)
-     ON CONFLICT(id) DO UPDATE SET
-       gateway_url = excluded.gateway_url,
-       encrypted_gateway_api_key = excluded.encrypted_gateway_api_key,
-       encrypted_internal_admin_token = excluded.encrypted_internal_admin_token,
-       internal_admin_enabled = excluded.internal_admin_enabled,
-       last_verified_at = excluded.last_verified_at,
-       last_status = excluded.last_status,
-       last_error = excluded.last_error,
-       updated_at = excluded.updated_at`
-  ).run(
-    existing?.gateway_url || null,
-    existing?.encrypted_gateway_api_key || null,
-    existing?.encrypted_internal_admin_token || null,
-    existing?.internal_admin_enabled ? 1 : 0,
-    now,
-    status,
-    errorMessage,
-    now
-  );
+  try {
+    const db = getConsoleDb();
+    const existing = getStoredGatewayCredentials();
+    const now = nowIso();
+
+    db.prepare(
+      `INSERT INTO gateway_credentials
+         (id, gateway_url, encrypted_gateway_api_key, encrypted_internal_admin_token, internal_admin_enabled, last_verified_at, last_status, last_error, updated_at)
+       VALUES
+         (1, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET
+         gateway_url = excluded.gateway_url,
+         encrypted_gateway_api_key = excluded.encrypted_gateway_api_key,
+         encrypted_internal_admin_token = excluded.encrypted_internal_admin_token,
+         internal_admin_enabled = excluded.internal_admin_enabled,
+         last_verified_at = excluded.last_verified_at,
+         last_status = excluded.last_status,
+         last_error = excluded.last_error,
+         updated_at = excluded.updated_at`
+    ).run(
+      existing?.gateway_url || null,
+      existing?.encrypted_gateway_api_key || null,
+      existing?.encrypted_internal_admin_token || null,
+      existing?.internal_admin_enabled ? 1 : 0,
+      now,
+      status,
+      errorMessage,
+      now
+    );
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn(`[Storage Warning] Failed to update test status in SQLite: ${msg}`);
+  }
 }

@@ -4,6 +4,8 @@ import { mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
+import { getCredentialStorageMode } from "@/lib/console/storage-mode";
+
 const DEFAULT_DB_PATH = join(process.cwd(), "data", "nesty-console.db");
 
 let dbSingleton: DatabaseSync | null = null;
@@ -30,6 +32,9 @@ function initSchema(db: DatabaseSync) {
 }
 
 export function getConsoleDb(): DatabaseSync {
+  if (getCredentialStorageMode() === "env_only") {
+    throw new Error("Database Sync is disabled in env-only mode.");
+  }
   if (dbSingleton) {
     return dbSingleton;
   }

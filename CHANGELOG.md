@@ -2,7 +2,24 @@
 
 All notable changes to Nesty Console will be documented in this file.
 
-## [0.6.4] - Unreleased
+## [0.6.5] - 2026-06-01
+
+### Added
+
+* Added environment-only credential storage fallback mode (`env_only`) for serverless environments (e.g. Vercel).
+* Added automatic detection of Vercel runtime to disable SQLite storage.
+* Added explicit `NESTY_CONSOLE_DISABLE_CREDENTIAL_STORAGE` feature flag.
+* Added warning metadata and UI indicators showing active Storage Mode and availability details.
+* Added support for testing unsaved Gateway credentials on-the-fly without database persistence.
+* Added support for both snake_case and camelCase fields in connection testing API request bodies.
+
+### Changed
+
+* Disabled credential editing and saving in environment-only mode (returns HTTP 409 Conflict rather than throwing filesystem errors).
+* Made the master encryption secret (`NESTY_CONSOLE_CREDENTIALS_SECRET`) optional in env-only mode so basic chat doesn't crash.
+* Made `NESTY_INTERNAL_ADMIN_TOKEN` optional to enable chat testing without requiring internal admin configurations.
+
+## [0.6.4] - 2026-06-01
 
 ### Added
 

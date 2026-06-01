@@ -20,6 +20,9 @@ export type EffectiveGatewayCredentials = {
   gatewayApiKeySource: CredentialSource;
   internalAdminTokenSource: CredentialSource;
   internalAdminEnabledSource: "stored" | "env";
+  storageMode: "sqlite" | "env_only";
+  storageAvailable: boolean;
+  storageWarning?: string;
   metadata: {
     hasStoredConfig: boolean;
     decryptError: boolean;
@@ -43,6 +46,9 @@ export type GatewayCredentialsView = {
   last_status: string | null;
   last_error: string | null;
   updated_at: string | null;
+  storage_mode: "sqlite" | "env_only";
+  storage_available: boolean;
+  storage_warning?: string;
 };
 
 export type GatewayCredentialsUpdateInput = {

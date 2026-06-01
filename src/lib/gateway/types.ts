@@ -53,6 +53,14 @@ export type GatewayErrorCode =
   | "invalid_api_key"
   | "gateway_unreachable"
   | "internal_admin_invalid"
+  | "diagnostics_disabled"
+  | "model_config_not_found"
+  | "invalid_model_config"
+  | "conversation_not_found"
+  | "message_not_found"
+  | "invalid_memory_control_request"
+  | "semantic_recall_unavailable"
+  | "not_found"
   | "unknown_error"
   | "gateway_request_failed";
 
@@ -76,12 +84,29 @@ export type ChatRequest = {
   max_tokens?: number;
 };
 
+export type ChatCompletionMetadata = {
+  model?: string;
+  model_alias?: string;
+  provider?: string;
+  conversation_id?: string;
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    total_tokens?: number;
+  };
+  orchestration?: Record<string, unknown>;
+};
+
 export type ChatCompletionResponse = {
   id?: string;
   object?: string;
   created?: number;
   model?: string;
+  model_alias?: string;
   provider?: string;
+  conversation_id?: string;
+  metadata?: Record<string, unknown>;
+  orchestration?: Record<string, unknown>;
   choices?: Array<{
     index?: number;
     message?: {
@@ -113,7 +138,16 @@ export type ChatStreamEvent = {
   object?: string;
   created?: number;
   model?: string;
+  model_alias?: string;
   provider?: string;
+  conversation_id?: string;
+  metadata?: Record<string, unknown>;
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    total_tokens?: number;
+  };
+  orchestration?: Record<string, unknown>;
   choices?: Array<{
     index?: number;
     delta?: {
@@ -125,5 +159,261 @@ export type ChatStreamEvent = {
   error?: {
     code?: string;
     message?: string;
+  };
+};
+
+export type GatewayConversation = {
+  id?: string;
+  conversation_id?: string;
+  title?: string;
+  name?: string;
+  created_at?: string;
+  updated_at?: string;
+  last_message_at?: string;
+  archived_at?: string | null;
+  archived?: boolean;
+  message_count?: number;
+  summary?: string;
+  summary_exists?: boolean;
+  summary_updated_at?: string;
+  summary_message_count?: number;
+  config_source?: string;
+  metadata?: Record<string, unknown> | null;
+  [key: string]: unknown;
+};
+
+export type GatewayConversationListResponse = {
+  object?: string;
+  data?: GatewayConversation[];
+  conversations?: GatewayConversation[];
+  items?: GatewayConversation[];
+  total?: number;
+  limit?: number;
+  offset?: number;
+  [key: string]: unknown;
+};
+
+export type GatewayConversationDetailResponse = GatewayConversation & {
+  conversation?: GatewayConversation;
+};
+
+export type GatewayConversationSearchResponse = {
+  object?: string;
+  data?: GatewayConversation[];
+  conversations?: GatewayConversation[];
+  items?: GatewayConversation[];
+  total?: number;
+  limit?: number;
+  offset?: number;
+  [key: string]: unknown;
+};
+
+export type GatewayConversationMessage = {
+  id?: string;
+  message_id?: string;
+  conversation_id?: string;
+  role?: string;
+  content?: string;
+  model?: string;
+  provider?: string;
+  created_at?: string;
+  memory_pinned?: boolean;
+  memory_excluded?: boolean;
+  memory_tags?: string[];
+  memory_updated_at?: string;
+  score?: number;
+  preview?: string;
+  metadata?: Record<string, unknown> | null;
+  [key: string]: unknown;
+};
+
+export type GatewayConversationMessagesResponse = {
+  object?: string;
+  data?: GatewayConversationMessage[];
+  messages?: GatewayConversationMessage[];
+  items?: GatewayConversationMessage[];
+  limit?: number;
+  offset?: number;
+  total?: number;
+  [key: string]: unknown;
+};
+
+export type GatewayConversationExportResponse = {
+  conversation?: GatewayConversation;
+  messages?: GatewayConversationMessage[];
+  [key: string]: unknown;
+};
+
+export type GatewayConversationMemoryControlsResponse = {
+  object?: string;
+  data?: Array<Record<string, unknown>>;
+  items?: Array<Record<string, unknown>>;
+  summary?: Record<string, unknown>;
+  counts?: Record<string, unknown>;
+  [key: string]: unknown;
+};
+
+export type GatewayMessageMemoryPatchRequest = {
+  memory_pinned?: boolean;
+  memory_excluded?: boolean;
+  memory_tags?: string[];
+};
+
+export type GatewaySemanticRecallTestRequest = {
+  text: string;
+  top_k?: number;
+  scope?: string;
+  include_archived?: boolean;
+};
+
+export type GatewaySemanticRecallTestResponse = {
+  object?: string;
+  data?: Array<Record<string, unknown>>;
+  matches?: Array<Record<string, unknown>>;
+  items?: Array<Record<string, unknown>>;
+  summary?: Record<string, unknown>;
+  [key: string]: unknown;
+};
+
+export type ProviderHealthCheck = {
+  id?: string;
+  provider?: string;
+  model?: string;
+  model_alias?: string;
+  role?: string;
+  status?: string;
+  latency_ms?: number;
+  created_at?: string;
+  checked_at?: string;
+  error_code?: string;
+  output_preview?: string;
+  reliability?: number;
+  score?: number;
+  confidence?: string;
+  sample_count?: number;
+  avg_latency_ms?: number;
+  stale?: boolean;
+  [key: string]: unknown;
+};
+
+export type ProviderReliabilityRecord = {
+  provider?: string;
+  model?: string;
+  model_alias?: string;
+  role?: string;
+  reliability_score?: number | null;
+  score?: number | null;
+  confidence?: string;
+  sample_count?: number;
+  avg_latency_ms?: number;
+  stale?: boolean;
+  [key: string]: unknown;
+};
+
+export type ProviderHealthSummary = {
+  total_checks?: number;
+  ok?: number;
+  failed?: number;
+  unavailable?: number;
+  timeout?: number;
+  skipped?: number;
+  stale?: number;
+  healthy?: number;
+  unhealthy?: number;
+  last_check_at?: string;
+  [key: string]: unknown;
+};
+
+export type ProviderHealthLatestResponse = {
+  object?: string;
+  data?: ProviderHealthCheck[];
+  summary?: ProviderHealthSummary;
+  [key: string]: unknown;
+};
+
+export type ProviderHealthListResponse = {
+  object?: string;
+  data?: ProviderHealthCheck[];
+  pagination?: {
+    limit?: number;
+    offset?: number;
+    count?: number;
+    has_more?: boolean;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+};
+
+export type DiagnosticErrorEnvelope = {
+  error: {
+    code?: string;
+    message?: string;
+    type?: string;
+    details?: Record<string, unknown>;
+  };
+};
+
+export type GatewayProviderChainItem = {
+  provider?: string;
+  model?: string;
+  base_url?: string;
+  timeout_seconds?: number;
+  max_tokens?: number;
+  temperature?: number;
+  enabled?: boolean;
+  label?: string;
+  name?: string;
+  [key: string]: unknown;
+};
+
+export type GatewayOrchestrationRoleConfig = {
+  provider_chain?: GatewayProviderChainItem[];
+  [key: string]: unknown;
+};
+
+export type GatewayModelConfig = {
+  model_alias?: string;
+  model_id?: string;
+  id?: string;
+  display_name?: string;
+  behavior_profile?: string;
+  provider_chain?: GatewayProviderChainItem[];
+  orchestration_roles?: Record<string, GatewayOrchestrationRoleConfig>;
+  config_source?: string;
+  default_config?: Record<string, unknown> | null;
+  override_config?: Record<string, unknown> | null;
+  effective_config?: Record<string, unknown> | null;
+  created_at?: string;
+  updated_at?: string;
+  active?: boolean;
+  notes?: string;
+  [key: string]: unknown;
+};
+
+export type GatewayModelConfigListResponse = {
+  object?: string;
+  data?: GatewayModelConfig[];
+  model_configs?: GatewayModelConfig[];
+  items?: GatewayModelConfig[];
+  [key: string]: unknown;
+};
+
+export type GatewayModelConfigDetailResponse = GatewayModelConfig & {
+  default_config?: Record<string, unknown> | null;
+  override_config?: Record<string, unknown> | null;
+  effective_config?: Record<string, unknown> | null;
+};
+
+export type GatewayModelConfigPatchRequest = {
+  override: Record<string, unknown>;
+  changed_by_label?: string;
+};
+
+export type GatewayModelConfigErrorEnvelope = {
+  error: {
+    code?: string;
+    message?: string;
+    type?: string;
+    details?: Record<string, unknown>;
   };
 };

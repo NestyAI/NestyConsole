@@ -2,7 +2,7 @@
 
 Nesty Console is a separate frontend/admin project for operating a running `NestyAI Gateway`.
 
-Current status: **v0.3.0 - NestyChat Web MVP**
+Current status: **v0.6.0 - Memory & Conversation Management**
 
 Changelog: [CHANGELOG.md](CHANGELOG.md)
 
@@ -12,6 +12,14 @@ Changelog: [CHANGELOG.md](CHANGELOG.md)
 - `NestyConsole` is a Next.js admin UI that calls the gateway through server-side API routes.
 - Internal/admin gateway tokens stay on the server side of `NestyConsole`.
 - Chat UI (`/chat`) also calls Gateway through server-side Console routes.
+- `/chat` supports `conversation_id` handling returned by Gateway.
+- `/chat` can list and reopen Gateway conversations via server-side Console routes.
+- Console can view Gateway provider diagnostics via server-side internal proxy routes.
+- Console can view effective runtime model config and safely edit provider chain overrides via server-side internal proxy routes.
+- Console can search, inspect, export, summarize, clear, and manage Gateway conversations via server-side proxy routes.
+- Memory controls are handled through protected server-side routes.
+- Semantic recall testing uses internal admin routes and requires Internal Admin Token.
+- Gateway credentials remain server-side only.
 
 ## Tech Stack
 
@@ -57,7 +65,11 @@ pnpm run dev
 - Never expose `NESTY_CONSOLE_ADMIN_PASSWORD` or `NESTY_CONSOLE_SESSION_SECRET` to browser/client components.
 - Browser pages should call same-origin routes (`/api/gateway/*`) only.
 - Chat page uses `/api/chat/completions`, which forwards to Gateway server-side.
+- Chat UI preferences are saved locally in browser storage (non-secret fields only).
+- Conversation list/detail/messages are loaded through server-side Console routes only.
+- Internal diagnostics requests are routed through Console server-side API routes only.
 - Internal gateway calls must run in Next.js server routes or server actions only.
+- Internal Admin Token remains server-side only.
 - Gateway credentials are stored server-side in `data/nesty-console.db`.
 - Gateway API key and internal admin token are encrypted at rest with AES-256-GCM.
 - Console login uses signed HTTP-only cookie sessions (`sameSite=lax`, `secure` in production).
@@ -89,6 +101,52 @@ Recommended flow for Pterodactyl/container-panel deployments:
 - You can also override/update it in `Settings -> Gateway Credentials`.
 - Token value is never returned to browser JavaScript.
 
+## Diagnostics Usage
+
+Enable Gateway internal admin:
+
+```env
+INTERNAL_ADMIN_ENABLED=true
+NESTY_INTERNAL_ADMIN_TOKEN=<your-token>
+```
+
+In Console, configure the same token via env fallback or `Settings -> Gateway Credentials`.
+If needed, enable:
+
+```env
+NESTY_CONSOLE_ENABLE_INTERNAL_ADMIN=true
+```
+
+Then visit `/diagnostics`.
+
+## Model Config Admin Usage
+
+Gateway must have:
+
+```env
+INTERNAL_ADMIN_ENABLED=true
+NESTY_INTERNAL_ADMIN_TOKEN=<your-token>
+```
+
+Console must have the same token configured through environment fallback or `Settings -> Gateway Credentials`.
+If needed, enable:
+
+```env
+NESTY_CONSOLE_ENABLE_INTERNAL_ADMIN=true
+```
+
+Then visit `/model-configs`.
+
+## Memory & Conversation Management Usage
+
+- Configure Gateway URL and API key in environment fallback or `Settings -> Gateway Credentials`.
+- Visit `/memory` to search conversations, inspect messages, export snapshots, summarize, clear, and reset summary.
+- Message memory controls (`memory_pinned`, `memory_excluded`, `memory_tags`) are sent through protected server-side routes only.
+- Semantic recall testing uses internal admin proxy route and requires:
+  - `INTERNAL_ADMIN_ENABLED=true` on Gateway
+  - `NESTY_INTERNAL_ADMIN_TOKEN=<your-token>` on Gateway and Console
+  - Optional: `NESTY_CONSOLE_ENABLE_INTERNAL_ADMIN=true`
+
 ## Credentials Manager API
 
 - `GET /api/console/gateway-credentials`: safe metadata only
@@ -100,13 +158,14 @@ Recommended flow for Pterodactyl/container-panel deployments:
 - `POST /api/chat/completions`: forwards chat requests to `NestyAI /v1/chat/completions`.
 - Supports non-stream and SSE streaming responses.
 - Maps missing/invalid Gateway credentials to safe Console-friendly error responses.
+- Preserves useful response metadata when available (for compact chat details display).
 
 ## Admin Auth API
 
 - `POST /api/auth/login`: create signed admin session cookie
 - `POST /api/auth/logout`: clear session cookie
 - `GET /api/auth/me`: current auth status
-## Implemented in v0.3.0
+## Implemented in v0.6.0
 
 - Console shell layout (sidebar + topbar)
 - Single-admin login page (`/login`)
@@ -114,6 +173,14 @@ Recommended flow for Pterodactyl/container-panel deployments:
 - Logout controls in topbar and sidebar
 - Protected chat page (`/chat`) with model selector and core chat options
 - Server-side chat proxy route (`POST /api/chat/completions`) with streaming support
+- Conversation-aware chat flow with automatic `conversation_id` tracking
+- Chat controls: New Chat, Clear Messages, Copy Message, Copy Transcript, Retry Last
+- Local persistence for non-secret chat UI preferences
+- Lightweight conversation sidebar with list/open/refresh/search basics
+- Conversation actions: rename, archive, delete (best-effort based on Gateway support)
+- Diagnostics dashboard MVP (`/diagnostics`) for provider health and reliability visibility
+- Runtime Model Config Admin (`/model-configs`) for safe provider chain override editing
+- Memory & Conversation Management (`/memory`) for conversation search/export/summarize/clear and message memory controls
 - Dashboard landing page
 - Gateway status page (`/status`)
 - Models page (`/models`)
@@ -124,6 +191,27 @@ Recommended flow for Pterodactyl/container-panel deployments:
   - `GET /api/gateway/health`
   - `GET /api/gateway/ready`
   - `GET /api/gateway/models`
+  - `GET /api/gateway/conversations`
+  - `GET /api/gateway/conversations/{conversation_id}`
+  - `GET /api/gateway/conversations/{conversation_id}/messages`
+  - `GET /api/gateway/conversations/search`
+  - `GET /api/gateway/conversations/{conversation_id}/export`
+  - `POST /api/gateway/conversations/{conversation_id}/summarize`
+  - `POST /api/gateway/conversations/{conversation_id}/clear`
+  - `POST /api/gateway/conversations/{conversation_id}/reset-summary`
+  - `PATCH /api/gateway/conversations/{conversation_id}/messages/{message_id}/memory`
+  - `GET /api/gateway/conversations/memory-controls`
+  - `PATCH /api/gateway/conversations/{conversation_id}`
+  - `DELETE /api/gateway/conversations/{conversation_id}`
+  - `GET /api/internal/diagnostics/provider-health/summary`
+  - `GET /api/internal/diagnostics/provider-health/latest`
+  - `GET /api/internal/diagnostics/provider-health`
+  - `POST /api/internal/diagnostics/provider-health/check`
+  - `GET /api/internal/model-configs`
+  - `GET /api/internal/model-configs/{model_alias}`
+  - `PATCH /api/internal/model-configs/{model_alias}`
+  - `POST /api/internal/model-configs/{model_alias}/reset`
+  - `POST /api/internal/embeddings/recall-test`
 
 ## Secret Generation Helper
 
@@ -143,3 +231,5 @@ surfaces publicly without strict network controls.
 - v0.4.0 Diagnostics/Admin tooling
 - v0.5.0 Runtime Model Config Admin
 - v0.6.0 Conversations/Memory operations
+- v0.7.0 Analytics and operational insights (planned)
+- Full provider marketplace and enterprise configuration workflows are planned for a later version if needed.

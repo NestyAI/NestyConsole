@@ -189,6 +189,9 @@ export default function GatewaySettingsPage() {
         <p className="mt-2 text-xs text-slate-400">Last verified: {view?.last_verified_at || "Never tested"}</p>
         <p className="text-xs text-slate-400">Last status: {view?.last_status || "-"}</p>
         {view?.last_error ? <p className="text-xs text-rose-200">Last error: {view.last_error}</p> : null}
+        <p className="mt-2 text-xs text-cyan-200">
+          Diagnostics dashboard requires internal admin enabled + internal admin token configured.
+        </p>
       </div>
 
       {invalidApiKeyHint ? (

@@ -4,8 +4,18 @@ import { ArrowRight } from "lucide-react";
 const cards = [
   {
     href: "/chat",
-    title: "NestyChat Web MVP",
-    description: "Protected chat UI with server-side proxy requests to NestyAI."
+    title: "NestyChat Web",
+    description: "Protected chat UI with server-side proxy requests and conversation continuity."
+  },
+  {
+    href: "/memory",
+    title: "Memory",
+    description: "Conversation search, summaries, export, and per-message memory controls."
+  },
+  {
+    href: "/diagnostics",
+    title: "Diagnostics",
+    description: "Provider health, reliability scoring, and latest internal diagnostics checks."
   },
   {
     href: "/status",
@@ -16,6 +26,11 @@ const cards = [
     href: "/models",
     title: "Models",
     description: "Inspect active model aliases from NestyAI."
+  },
+  {
+    href: "/model-configs",
+    title: "Model Configs",
+    description: "View effective runtime config and edit safe provider chain overrides."
   },
   {
     href: "/settings",
@@ -30,7 +45,7 @@ const cards = [
   {
     href: "#",
     title: "Future",
-    description: "Diagnostics, model admin, and memory tools in upcoming versions."
+    description: "Memory tools and broader provider marketplace workflows in upcoming versions."
   }
 ];
 

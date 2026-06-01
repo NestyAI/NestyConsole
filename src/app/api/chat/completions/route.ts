@@ -10,6 +10,7 @@ type ConsoleErrorCode =
   | "credentials_not_configured"
   | "invalid_gateway_api_key"
   | "gateway_unreachable"
+  | "gateway_error"
   | "unknown_error"
   | "invalid_request_body";
 
@@ -66,7 +67,11 @@ function normalizeChatRequest(raw: unknown): ChatRequest | null {
 
   if (typeof input.stream === "boolean") payload.stream = input.stream;
   if (typeof input.search === "string") payload.search = input.search as ChatRequest["search"];
-  if (typeof input.tools === "string" || Array.isArray(input.tools)) payload.tools = input.tools as ChatRequest["tools"];
+  if (typeof input.tools === "string") {
+    payload.tools = input.tools as ChatRequest["tools"];
+  } else if (Array.isArray(input.tools)) {
+    payload.tools = input.tools.filter((item): item is string => typeof item === "string");
+  }
   if (typeof input.store === "boolean") payload.store = input.store;
   if (typeof input.semantic_recall === "string") payload.semantic_recall = input.semantic_recall as ChatRequest["semantic_recall"];
   if (typeof input.conversation_id === "string") payload.conversation_id = input.conversation_id.trim();
@@ -87,6 +92,7 @@ async function safeJson(response: Response): Promise<unknown> {
 function mapGatewayError(status: number, payload: unknown) {
   const envelope = payload as { error?: { code?: string; message?: string } } | null;
   const code = String(envelope?.error?.code || "").toLowerCase();
+  const message = String(envelope?.error?.message || "").trim();
 
   if (code === "invalid_api_key" || code === "missing_api_key" || status === 401 || status === 403) {
     return consoleError(
@@ -100,7 +106,11 @@ function mapGatewayError(status: number, payload: unknown) {
     return consoleError("credentials_not_configured", "Gateway credentials are not configured.", 400);
   }
 
-  return consoleError("unknown_error", "Gateway chat request failed.", status >= 400 ? status : 500);
+  if (status >= 400) {
+    return consoleError("gateway_error", message || "Gateway chat request failed.", status);
+  }
+
+  return consoleError("unknown_error", message || "Gateway chat request failed.", 500);
 }
 
 export async function POST(request: Request) {

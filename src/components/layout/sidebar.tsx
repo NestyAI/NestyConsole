@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { KeyRound, LayoutDashboard, MessageSquare, Settings, ShieldCheck, Waypoints } from "lucide-react";
+import { Activity, HardDrive, KeyRound, LayoutDashboard, MessageSquare, Settings, ShieldCheck, Waypoints } from "lucide-react";
 
 import { LogoutButton } from "@/components/auth/logout-button";
 import { cn } from "@/lib/utils";
@@ -10,8 +10,11 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/chat", label: "Chat", icon: MessageSquare },
+  { href: "/memory", label: "Memory", icon: HardDrive },
+  { href: "/diagnostics", label: "Diagnostics", icon: Activity },
   { href: "/status", label: "Status", icon: ShieldCheck },
   { href: "/models", label: "Models", icon: Waypoints },
+  { href: "/model-configs", label: "Model Configs", icon: Waypoints },
   { href: "/settings/gateway", label: "Gateway Creds", icon: KeyRound },
   { href: "/settings", label: "Settings", icon: Settings }
 ];

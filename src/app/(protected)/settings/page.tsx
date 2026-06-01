@@ -68,6 +68,60 @@ export default async function SettingsPage() {
           Open Gateway Credentials
         </Link>
       </article>
+
+      <article className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-4">
+        <h2 className="text-sm font-semibold text-emerald-100">Diagnostics Dashboard</h2>
+        <p className="mt-1 text-sm text-emerald-50/90">
+          Provider health and reliability require internal admin token access. Configure token first, then open diagnostics.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Link
+            href="/diagnostics"
+            className="inline-flex rounded-lg border border-emerald-300/40 bg-emerald-400/15 px-3 py-2 text-sm text-emerald-100 transition hover:bg-emerald-400/25"
+          >
+            Open Diagnostics
+          </Link>
+          <Link href="/settings/gateway" className="inline-flex rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-white transition hover:bg-white/10">
+            Configure Gateway Credentials
+          </Link>
+        </div>
+      </article>
+
+      <article className="rounded-xl border border-violet-400/30 bg-violet-500/10 p-4">
+        <h2 className="text-sm font-semibold text-violet-100">Runtime Model Config Admin</h2>
+        <p className="mt-1 text-sm text-violet-50/90">
+          Runtime provider chain overrides require internal admin token access.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Link
+            href="/model-configs"
+            className="inline-flex rounded-lg border border-violet-300/40 bg-violet-400/15 px-3 py-2 text-sm text-violet-100 transition hover:bg-violet-400/25"
+          >
+            Open Model Configs
+          </Link>
+          <Link href="/settings/gateway" className="inline-flex rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-white transition hover:bg-white/10">
+            Configure Internal Admin Token
+          </Link>
+        </div>
+      </article>
+
+      <article className="rounded-xl border border-fuchsia-400/30 bg-fuchsia-500/10 p-4">
+        <h2 className="text-sm font-semibold text-fuchsia-100">Memory & Conversation Management</h2>
+        <p className="mt-1 text-sm text-fuchsia-50/90">
+          Search/export/summarize conversations and manage message memory controls through protected server routes.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Link
+            href="/memory"
+            className="inline-flex rounded-lg border border-fuchsia-300/40 bg-fuchsia-400/15 px-3 py-2 text-sm text-fuchsia-100 transition hover:bg-fuchsia-400/25"
+          >
+            Open Memory
+          </Link>
+          <Link href="/settings/gateway" className="inline-flex rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-white transition hover:bg-white/10">
+            Configure Gateway Credentials
+          </Link>
+        </div>
+      </article>
     </section>
   );
 }

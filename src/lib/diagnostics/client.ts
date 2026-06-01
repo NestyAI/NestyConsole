@@ -50,6 +50,23 @@ export type RunProviderHealthCheckInput = {
   dry_run?: boolean;
 };
 
+export type ClearProviderHealthInput = {
+  provider?: string;
+  model_alias?: string;
+  status?: string;
+  older_than_seconds?: number;
+};
+
+export type ClearProviderHealthView = {
+  deleted: number;
+  filters: {
+    provider: string | null;
+    model_alias: string | null;
+    status: string | null;
+    older_than_seconds: number | null;
+  };
+};
+
 function normalizeError(payload: unknown, fallback: string): DiagnosticsConsoleError {
   const data = payload as { error?: { code?: unknown; message?: unknown } } | null;
   return {
@@ -215,4 +232,46 @@ export async function runProviderHealthCheck(
     },
     body: JSON.stringify(input)
   });
+}
+
+export async function clearProviderHealth(
+  input: ClearProviderHealthInput = {}
+): Promise<DiagnosticsRequestResult<ClearProviderHealthView>> {
+  const query = new URLSearchParams();
+  if (input.provider?.trim()) query.set("provider", input.provider.trim());
+  if (input.model_alias?.trim()) query.set("model_alias", input.model_alias.trim());
+  if (input.status?.trim()) query.set("status", input.status.trim());
+  if (typeof input.older_than_seconds === "number" && Number.isFinite(input.older_than_seconds)) {
+    query.set("older_than_seconds", String(Math.max(1, Math.floor(input.older_than_seconds))));
+  }
+  const url = query.toString()
+    ? `/api/internal/diagnostics/provider-health?${query.toString()}`
+    : "/api/internal/diagnostics/provider-health";
+
+  const result = await requestJson<{
+    deleted?: unknown;
+    filters?: Record<string, unknown>;
+  }>(url, { method: "DELETE" });
+
+  if (!result.ok) {
+    return result;
+  }
+
+  const deleted = typeof result.data.deleted === "number" ? result.data.deleted : 0;
+  const rawFilters = (result.data.filters && typeof result.data.filters === "object")
+    ? result.data.filters as Record<string, unknown>
+    : {};
+  return {
+    ok: true,
+    data: {
+      deleted,
+      filters: {
+        provider: typeof rawFilters.provider === "string" ? rawFilters.provider : null,
+        model_alias: typeof rawFilters.model_alias === "string" ? rawFilters.model_alias : null,
+        status: typeof rawFilters.status === "string" ? rawFilters.status : null,
+        older_than_seconds:
+          typeof rawFilters.older_than_seconds === "number" ? rawFilters.older_than_seconds : null
+      }
+    }
+  };
 }

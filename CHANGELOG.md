@@ -2,6 +2,24 @@
 
 All notable changes to Nesty Console will be documented in this file.
 
+## [0.6.7] - Unreleased
+
+### Added
+
+* Added Gateway output safety metadata display in chat response details.
+* Added provider fallback metadata display for attempted providers and fallback reasons.
+* Added diagnostics history cleanup action for Gateway provider health records.
+* Added UI support for the `ollama_cloud` provider in Model Configs and Diagnostics views.
+
+### Changed
+
+* Improved Diagnostics display for effective config source/revision metadata and provider error categories.
+* Improved chat response details to distinguish orchestration metadata, output safety metadata, and provider fallback metadata.
+
+### Security
+
+* Runtime metadata display remains sanitized and does not expose provider secrets, raw provider responses, internal tool markup, hidden prompts, or stack traces.
+
 ## [0.6.6] - Unreleased
 
 ### Changed

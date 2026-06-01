@@ -12,6 +12,7 @@ import { Panel } from "@/components/ui/panel";
 import { StatCard } from "@/components/ui/stat-card";
 import { TokenTag } from "@/components/ui/token-tag";
 import {
+  clearProviderHealth,
   getLatestProviderHealth,
   getProviderHealthSummary,
   runProviderHealthCheck,
@@ -100,6 +101,56 @@ function readHealthSummary(summary: ProviderHealthSummary) {
   return { ok, failed, stale, total, lastCheckAt };
 }
 
+function providerLabel(value: unknown): string {
+  const provider = String(value || "").trim().toLowerCase();
+  if (!provider) return "unknown";
+  if (provider === "nvidia_nim") return "nvidia";
+  return provider;
+}
+
+function providerBadgeVariant(provider: string): "success" | "live" | "ai" | "warning" | "inactive" {
+  if (provider === "groq") return "live";
+  if (provider === "openrouter") return "ai";
+  if (provider === "nvidia") return "warning";
+  if (provider === "ollama_cloud") return "success";
+  return "inactive";
+}
+
+function readConfigSource(row: ProviderHealthCheck): string {
+  if (typeof (row as Record<string, unknown>).config_source === "string") {
+    return String((row as Record<string, unknown>).config_source).toLowerCase();
+  }
+  const metadata = (row as Record<string, unknown>).metadata;
+  if (metadata && typeof metadata === "object" && typeof (metadata as Record<string, unknown>).config_source === "string") {
+    return String((metadata as Record<string, unknown>).config_source).toLowerCase();
+  }
+  return "unknown";
+}
+
+function readConfigRevision(row: ProviderHealthCheck): string | null {
+  if (typeof (row as Record<string, unknown>).config_revision === "string") {
+    return String((row as Record<string, unknown>).config_revision);
+  }
+  const metadata = (row as Record<string, unknown>).metadata;
+  if (metadata && typeof metadata === "object" && typeof (metadata as Record<string, unknown>).config_revision === "string") {
+    return String((metadata as Record<string, unknown>).config_revision);
+  }
+  return null;
+}
+
+function configSourceVariant(value: string): "success" | "warning" | "ai" | "inactive" {
+  if (value === "override") return "success";
+  if (value === "default") return "ai";
+  if (value === "effective") return "warning";
+  return "inactive";
+}
+
+function errorCodeVariant(code: string): "error" | "warning" | "inactive" {
+  if (["provider_auth_failed", "provider_model_unavailable", "provider_failed"].includes(code)) return "error";
+  if (["rate_limited", "provider_timeout", "provider_unavailable"].includes(code)) return "warning";
+  return "inactive";
+}
+
 export default function DiagnosticsPage() {
   const [summary, setSummary] = useState<ProviderHealthSummary>({});
   const [reliability, setReliability] = useState<ProviderReliabilityRecord[]>([]);
@@ -108,6 +159,11 @@ export default function DiagnosticsPage() {
   const [latestError, setLatestError] = useState<DiagnosticsConsoleError | null>(null);
   const [loading, setLoading] = useState(true);
   const [runningCheck, setRunningCheck] = useState(false);
+  const [clearingHistory, setClearingHistory] = useState(false);
+  const [clearProvider, setClearProvider] = useState("");
+  const [clearModelAlias, setClearModelAlias] = useState("");
+  const [clearStatus, setClearStatus] = useState("");
+  const [clearOlderThanSeconds, setClearOlderThanSeconds] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
   const [credentialsView, setCredentialsView] = useState<GatewayCredentialsView | null>(null);
   const [credentialsError, setCredentialsError] = useState<DiagnosticsConsoleError | null>(null);
@@ -196,6 +252,33 @@ export default function DiagnosticsPage() {
     await loadDiagnostics();
   };
 
+  const clearDiagnosticsHistory = async () => {
+    const confirmed = window.confirm(
+      "Clear provider health diagnostics history now? This only removes diagnostics history records."
+    );
+    if (!confirmed) {
+      return;
+    }
+    setClearingHistory(true);
+    setSummaryError(null);
+    setLatestError(null);
+    const result = await clearProviderHealth({
+      provider: clearProvider.trim() || undefined,
+      model_alias: clearModelAlias.trim() || undefined,
+      status: clearStatus.trim() || undefined,
+      older_than_seconds: clearOlderThanSeconds.trim()
+        ? Number.parseInt(clearOlderThanSeconds.trim(), 10)
+        : undefined
+    });
+    setClearingHistory(false);
+    if (!result.ok) {
+      setSummaryError(result.error);
+      return;
+    }
+    setNotice(`Deleted ${result.data.deleted} provider health records.`);
+    await loadDiagnostics();
+  };
+
   const adminConfigured = Boolean(
     credentialsView?.internal_admin_enabled && credentialsView?.internal_admin_token_configured
   );
@@ -246,6 +329,52 @@ export default function DiagnosticsPage() {
           </button>
         </div>
       </div>
+
+      <Panel accent="amber">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="font-display text-sm uppercase tracking-[0.07em] text-neural-text-primary">Clear Diagnostics History</h2>
+            <p className="text-xs text-neural-text-secondary">
+              Deletes provider health diagnostics history only. It does not delete conversations, model configs, API keys, or usage logs.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => void clearDiagnosticsHistory()}
+            disabled={clearingHistory || !adminConfigured}
+            className="inline-flex items-center gap-2 rounded-lg border border-neural-red/35 bg-neural-red/12 px-3 py-2 font-display text-xs uppercase tracking-[0.06em] text-rose-100 transition hover:bg-neural-red/24 disabled:opacity-60"
+          >
+            {clearingHistory ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            Clear history
+          </button>
+        </div>
+        <div className="mt-3 grid gap-2 md:grid-cols-4">
+          <input
+            value={clearProvider}
+            onChange={(event) => setClearProvider(event.target.value)}
+            placeholder="provider (optional)"
+            className="w-full rounded border border-neural-text-muted/30 bg-neural-input px-2 py-1.5 font-mono text-xs text-neural-text-primary focus:border-neural-cyan/50 focus:outline-none"
+          />
+          <input
+            value={clearModelAlias}
+            onChange={(event) => setClearModelAlias(event.target.value)}
+            placeholder="model_alias (optional)"
+            className="w-full rounded border border-neural-text-muted/30 bg-neural-input px-2 py-1.5 font-mono text-xs text-neural-text-primary focus:border-neural-cyan/50 focus:outline-none"
+          />
+          <input
+            value={clearStatus}
+            onChange={(event) => setClearStatus(event.target.value)}
+            placeholder="status (optional)"
+            className="w-full rounded border border-neural-text-muted/30 bg-neural-input px-2 py-1.5 font-mono text-xs text-neural-text-primary focus:border-neural-cyan/50 focus:outline-none"
+          />
+          <input
+            value={clearOlderThanSeconds}
+            onChange={(event) => setClearOlderThanSeconds(event.target.value)}
+            placeholder="older_than_seconds"
+            className="w-full rounded border border-neural-text-muted/30 bg-neural-input px-2 py-1.5 font-mono text-xs text-neural-text-primary focus:border-neural-cyan/50 focus:outline-none"
+          />
+        </div>
+      </Panel>
 
       {notice ? (
         <div className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-4 text-sm text-emerald-100">{notice}</div>
@@ -388,45 +517,64 @@ export default function DiagnosticsPage() {
                   <th className="px-3 py-2">Provider</th>
                   <th className="px-3 py-2">Model</th>
                   <th className="px-3 py-2">Alias</th>
+                  <th className="px-3 py-2">Role</th>
                   <th className="px-3 py-2">Status</th>
                   <th className="px-3 py-2">Latency</th>
                   <th className="px-3 py-2">Checked at</th>
                   <th className="px-3 py-2">Error code</th>
+                  <th className="px-3 py-2">Config source</th>
+                  <th className="px-3 py-2">Config revision</th>
                   <th className="px-3 py-2">Output preview</th>
                 </tr>
               </thead>
               <tbody>
-                {latestChecks.map((row, index) => (
-                  <tr
-                    key={`${String(row.provider || "provider")}-${String(row.model_alias || row.model || "model")}-${index}`}
-                    className="border-t border-neural-text-muted/20 text-neural-text-primary hover:bg-neural-overlay/25"
-                  >
-                    <td className="px-3 py-2 font-mono">{String(row.provider || "-")}</td>
-                    <td className="px-3 py-2 font-mono">{String(row.model || "-")}</td>
-                    <td className="px-3 py-2 font-mono">{String(row.model_alias || "-")}</td>
-                    <td className="px-3 py-2">
-                      <Badge
-                        variant={
-                          String(row.status || "unknown").toLowerCase() === "ok"
-                            ? "success"
-                            : ["failed", "timeout", "unavailable"].includes(String(row.status || "").toLowerCase())
-                              ? "error"
-                              : String(row.status || "").toLowerCase() === "skipped"
-                                ? "warning"
-                                : "inactive"
-                        }
-                      >
-                        {String(row.status || "unknown")}
-                      </Badge>
-                    </td>
-                    <td className="px-3 py-2 font-mono">
-                      {toNumber(row.latency_ms) === null ? "-" : `${Math.round(toNumber(row.latency_ms) || 0)} ms`}
-                    </td>
-                    <td className="px-3 py-2 font-mono">{formatTimestamp(row.checked_at || row.created_at)}</td>
-                    <td className="px-3 py-2 font-mono">{String(row.error_code || "-")}</td>
-                    <td className="px-3 py-2 text-neural-text-secondary">{truncate(row.output_preview, 80)}</td>
-                  </tr>
-                ))}
+                {latestChecks.map((row, index) => {
+                  const provider = providerLabel(row.provider);
+                  const status = String(row.status || "unknown").toLowerCase();
+                  const configSource = readConfigSource(row);
+                  const configRevision = readConfigRevision(row);
+                  const errorCode = String(row.error_code || "").trim().toLowerCase();
+                  return (
+                    <tr
+                      key={`${String(row.provider || "provider")}-${String(row.model_alias || row.model || "model")}-${index}`}
+                      className="border-t border-neural-text-muted/20 text-neural-text-primary hover:bg-neural-overlay/25"
+                    >
+                      <td className="px-3 py-2 font-mono">
+                        <Badge variant={providerBadgeVariant(provider)}>{provider}</Badge>
+                      </td>
+                      <td className="px-3 py-2 font-mono">{String(row.model || "-")}</td>
+                      <td className="px-3 py-2 font-mono">{String(row.model_alias || "-")}</td>
+                      <td className="px-3 py-2 font-mono">{String(row.role || "-")}</td>
+                      <td className="px-3 py-2">
+                        <Badge
+                          variant={
+                            status === "ok"
+                              ? "success"
+                              : ["failed", "timeout", "unavailable"].includes(status)
+                                ? "error"
+                                : status === "skipped"
+                                  ? "warning"
+                                  : "inactive"
+                          }
+                        >
+                          {String(row.status || "unknown")}
+                        </Badge>
+                      </td>
+                      <td className="px-3 py-2 font-mono">
+                        {toNumber(row.latency_ms) === null ? "-" : `${Math.round(toNumber(row.latency_ms) || 0)} ms`}
+                      </td>
+                      <td className="px-3 py-2 font-mono">{formatTimestamp(row.checked_at || row.created_at)}</td>
+                      <td className="px-3 py-2">
+                        {errorCode ? <Badge variant={errorCodeVariant(errorCode)}>{errorCode}</Badge> : "-"}
+                      </td>
+                      <td className="px-3 py-2">
+                        <Badge variant={configSourceVariant(configSource)}>{configSource}</Badge>
+                      </td>
+                      <td className="px-3 py-2">{configRevision ? <TokenTag>{configRevision}</TokenTag> : "-"}</td>
+                      <td className="px-3 py-2 text-neural-text-secondary">{truncate(row.output_preview, 80)}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </DataTable>

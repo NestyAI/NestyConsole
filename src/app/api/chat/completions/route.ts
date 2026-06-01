@@ -103,6 +103,39 @@ function mapGatewayError(status: number, payload: unknown) {
     gateway_code: envelope?.error?.code || null
   };
 
+  if (code === "gateway_upstream_failed") {
+    return consoleError(
+      "gateway_upstream_failed",
+      "Gateway is reachable, but the selected provider/model chain failed. Check Diagnostics or Model Configs.",
+      502,
+      details
+    );
+  }
+
+  if (code === "rate_limited" || code === "provider_unavailable" || code === "provider_timeout") {
+    return consoleError(
+      "gateway_provider_unavailable",
+      "Gateway is reachable, but the selected provider is unavailable or rate-limited.",
+      503,
+      details
+    );
+  }
+
+  if (
+    code === "provider_auth_failed" ||
+    code === "provider_model_unavailable" ||
+    code === "provider_failed" ||
+    code === "model_unavailable" ||
+    code === "openrouter_model_unavailable"
+  ) {
+    return consoleError(
+      "gateway_upstream_failed",
+      "Gateway is reachable, but the selected provider/model chain failed. Check Diagnostics or Model Configs.",
+      502,
+      details
+    );
+  }
+
   if (code === "invalid_api_key" || code === "missing_api_key" || status === 401 || status === 403) {
     return consoleError(
       "invalid_gateway_api_key",
@@ -144,19 +177,6 @@ function mapGatewayError(status: number, payload: unknown) {
       "gateway_provider_unavailable",
       "Gateway is reachable, but the selected provider is unavailable or rate-limited.",
       503,
-      details
-    );
-  }
-
-  if (
-    code === "provider_unavailable" ||
-    code === "model_unavailable" ||
-    code === "openrouter_model_unavailable"
-  ) {
-    return consoleError(
-      "gateway_upstream_failed",
-      "Gateway is reachable, but the selected provider/model chain failed. Check Diagnostics or Model Configs.",
-      502,
       details
     );
   }

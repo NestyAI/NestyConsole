@@ -34,6 +34,14 @@ type GatewayCredentialsView = {
 
 const DEFAULT_ALIASES = ["nesty-flash-1.0", "nesty-combined-1.0", "nesty-pro-1.0"] as const;
 const SECRET_LIKE_PATTERN = /(key|token|secret|password|auth|credential)/i;
+const OLLAMA_CLOUD_MODEL_EXAMPLES = [
+  "gemma3:12b",
+  "nemotron-3-nano:30b",
+  "gpt-oss:20b",
+  "gpt-oss:120b",
+  "minimax-m3",
+  "kimi-k2.6"
+] as const;
 
 type EditableChainItem = {
   provider: string;
@@ -137,6 +145,30 @@ function providerChainSummary(chain: GatewayProviderChainItem[]): string {
     return "No provider chain";
   }
   return chain.map((item) => `${String(item.provider || "-")}:${String(item.model || "-")}`).join(" -> ");
+}
+
+function normalizeProvider(value: unknown): string {
+  const provider = String(value || "").trim().toLowerCase();
+  if (!provider) return "unknown";
+  if (provider === "nvidia_nim") return "nvidia";
+  return provider;
+}
+
+function providerDisplayName(value: string): string {
+  if (value === "ollama_cloud") return "Ollama Cloud";
+  if (value === "openrouter") return "OpenRouter";
+  if (value === "nvidia") return "NVIDIA NIM";
+  if (value === "groq") return "Groq";
+  if (value === "unknown") return "Unknown";
+  return value;
+}
+
+function providerBadgeVariant(provider: string): "success" | "live" | "ai" | "warning" | "inactive" {
+  if (provider === "groq") return "live";
+  if (provider === "openrouter") return "ai";
+  if (provider === "nvidia") return "warning";
+  if (provider === "ollama_cloud") return "success";
+  return "inactive";
 }
 
 export default function ModelConfigsPage() {
@@ -533,6 +565,16 @@ export default function ModelConfigsPage() {
                   <div className="neural-scroll space-y-2 overflow-x-auto">
                     {draftProviderChain.map((item, index) => (
                       <article key={`${item.provider}-${item.model}-${index}`} className="rounded border border-neural-text-muted/25 bg-neural-elevated/70 p-2">
+                        <div className="mb-2 flex flex-wrap items-center gap-1.5">
+                          <Badge variant={providerBadgeVariant(normalizeProvider(item.provider))}>
+                            {providerDisplayName(normalizeProvider(item.provider))}
+                          </Badge>
+                          {normalizeProvider(item.provider) === "ollama_cloud" ? (
+                            <span className="text-[11px] text-neural-text-secondary">
+                              Examples: {OLLAMA_CLOUD_MODEL_EXAMPLES.join(", ")}
+                            </span>
+                          ) : null}
+                        </div>
                         <div className="grid gap-2 md:grid-cols-2">
                           <label className="space-y-1 text-xs text-neural-text-secondary">
                             <span>provider</span>
@@ -541,6 +583,7 @@ export default function ModelConfigsPage() {
                               onChange={(event) =>
                                 updateChainItem(index, (prev) => ({ ...prev, provider: event.target.value }))
                               }
+                              placeholder="groq | openrouter | nvidia | ollama_cloud"
                               className="w-full rounded border border-neural-text-muted/30 bg-neural-input px-2 py-1 font-mono text-xs text-neural-text-primary focus:border-neural-cyan/50 focus:outline-none"
                             />
                           </label>
@@ -628,6 +671,9 @@ export default function ModelConfigsPage() {
                     ))}
                   </div>
                 )}
+                <p className="text-[11px] text-neural-text-muted">
+                  `ollama_cloud` is supported here for runtime routing display and override payloads. `OLLAMA_API_KEY` is configured on Gateway only, not in Console.
+                </p>
               </div>
 
               <div className="grid gap-2 md:grid-cols-2">

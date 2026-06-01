@@ -6,13 +6,15 @@
 
 Nesty Console is a separate frontend/admin project for operating a running `NestyAI Gateway`.
 
-Current status: **v0.6.6 - Responsive Chat Layout Polish**
+Current status: **v0.6.7 - Gateway Runtime Metadata & Diagnostics Polish**
 
 Changelog: [CHANGELOG.md](CHANGELOG.md)
 
-v0.6.6 adds:
-* Chat layout now scales better across laptop, desktop, and wide displays.
-* The assistant response canvas gets more room while side panels remain usable.
+v0.6.7 adds:
+* Console supports Gateway v1.0.5 output safety metadata.
+* Console supports Gateway v1.1.0 provider fallback metadata and Ollama Cloud provider naming.
+* Diagnostics history can be cleared through a protected internal admin route.
+* Secrets remain server-side only.
 
 v0.6.5 adds:
 * Serverless hosting and read-only filesystem support (Vercel Compatibility).
@@ -30,7 +32,9 @@ v0.6.5 adds:
 - `/chat` supports `conversation_id` handling returned by Gateway.
 - `/chat` can list and reopen Gateway conversations via server-side Console routes.
 - Console can view Gateway provider diagnostics via server-side internal proxy routes.
+- Diagnostics history cleanup runs through `DELETE /api/internal/diagnostics/provider-health` (protected internal admin proxy).
 - Console can view effective runtime model config and safely edit provider chain overrides via server-side internal proxy routes.
+- Console supports provider naming for `ollama_cloud`; Gateway-side `OLLAMA_API_KEY` is required on Gateway only (not in Console).
 - Console can search, inspect, export, summarize, clear, and manage Gateway conversations via server-side proxy routes.
 - Memory controls are handled through protected server-side routes.
 - Semantic recall testing uses internal admin routes and requires Internal Admin Token.

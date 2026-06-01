@@ -9,6 +9,10 @@ type ConsoleProxyErrorCode =
   | "internal_admin_not_configured"
   | "internal_admin_invalid"
   | "diagnostics_disabled"
+  | "provider_model_unavailable"
+  | "provider_unavailable"
+  | "provider_timeout"
+  | "rate_limited"
   | "model_config_not_found"
   | "invalid_model_config"
   | "conversation_not_found"
@@ -39,6 +43,18 @@ function normalizeGatewayErrorCode(code: string): ConsoleProxyErrorCode {
   }
   if (lowered === "diagnostics_disabled") {
     return "diagnostics_disabled";
+  }
+  if (lowered === "provider_model_unavailable" || lowered === "model_unavailable" || lowered === "openrouter_model_unavailable") {
+    return "provider_model_unavailable";
+  }
+  if (lowered === "provider_unavailable" || lowered === "gateway_provider_unavailable") {
+    return "provider_unavailable";
+  }
+  if (lowered === "provider_timeout") {
+    return "provider_timeout";
+  }
+  if (lowered === "rate_limited") {
+    return "rate_limited";
   }
   if (lowered === "model_config_not_found") {
     return "model_config_not_found";
@@ -96,6 +112,14 @@ function fallbackMessage(code: ConsoleProxyErrorCode): string {
       return "Internal admin token is invalid.";
     case "diagnostics_disabled":
       return "Diagnostics are disabled on Gateway.";
+    case "provider_model_unavailable":
+      return "Selected model is unavailable on the provider. Check runtime model chain or provider status.";
+    case "provider_unavailable":
+      return "Selected provider is unavailable or temporarily down.";
+    case "provider_timeout":
+      return "Provider timed out before Gateway received a response.";
+    case "rate_limited":
+      return "Provider rate limit reached. Retry later or use another provider chain.";
     case "model_config_not_found":
       return "Model config was not found.";
     case "invalid_model_config":

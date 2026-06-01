@@ -1,3 +1,5 @@
+import { NextResponse } from "next/server";
+
 import { gatewayFetch } from "@/lib/gateway/client";
 import { gatewayResultToResponse } from "@/lib/gateway/route-errors";
 import type { ProviderHealthListResponse } from "@/lib/gateway/types";
@@ -55,4 +57,53 @@ export async function GET(request: Request) {
     { credentials: access.credentials, internalAdmin: true }
   );
   return gatewayResultToResponse(result);
+}
+
+export async function DELETE(request: Request) {
+  const access = ensureInternalDiagnosticsAccess();
+  if (!access.ok) {
+    return access.response;
+  }
+
+  const url = new URL(request.url);
+  const provider = url.searchParams.get("provider")?.trim() || undefined;
+  const modelAlias = url.searchParams.get("model_alias")?.trim() || undefined;
+  const status = url.searchParams.get("status")?.trim() || undefined;
+  const olderThanSeconds = parseOptionalInt(url.searchParams.get("older_than_seconds"), 1, 365 * 24 * 60 * 60);
+
+  const query = new URLSearchParams();
+  if (provider) query.set("provider", provider);
+  if (modelAlias) query.set("model_alias", modelAlias);
+  if (status) query.set("status", status);
+  if (olderThanSeconds !== undefined) query.set("older_than_seconds", String(olderThanSeconds));
+
+  const path = query.toString()
+    ? `/internal/diagnostics/provider-health?${query.toString()}`
+    : "/internal/diagnostics/provider-health";
+
+  const result = await gatewayFetch<Record<string, unknown>>(
+    path,
+    { method: "DELETE" },
+    { credentials: access.credentials, internalAdmin: true }
+  );
+
+  if (!result.ok) {
+    return gatewayResultToResponse(result);
+  }
+
+  const deletedRaw = (result.data || {}).deleted;
+  const deleted = typeof deletedRaw === "number" && Number.isFinite(deletedRaw) ? deletedRaw : 0;
+  return NextResponse.json(
+    {
+      ok: true,
+      deleted,
+      filters: {
+        provider: provider || null,
+        model_alias: modelAlias || null,
+        status: status || null,
+        older_than_seconds: olderThanSeconds ?? null
+      }
+    },
+    { status: 200 }
+  );
 }

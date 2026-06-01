@@ -11,6 +11,8 @@ import { LoadingBlock } from "@/components/ui/loading-block";
 import { Panel } from "@/components/ui/panel";
 import { TokenTag } from "@/components/ui/token-tag";
 import { ProOrchestrationDetails } from "@/components/chat/pro-orchestration-details";
+import { OutputSafetyDetails } from "@/components/chat/output-safety-details";
+import { ProviderFallbackDetails } from "@/components/chat/provider-fallback-details";
 import { ChatCanvasRenderer } from "@/components/chat/chat-canvas-renderer";
 import {
   archiveOrDeleteConversation,
@@ -27,6 +29,10 @@ import type {
   ChatMessage,
   ChatRequest,
   ChatStreamEvent,
+  GatewayOutputSafetyMetadata,
+  GatewayProviderAttempt,
+  GatewayProviderError,
+  GatewayRuntimeFallbackMetadata,
   GatewayConversationMessage
 } from "@/lib/gateway/types";
 
@@ -115,6 +121,13 @@ type TolerantPayload = {
   conversation?: { id?: unknown };
   usage?: unknown;
   orchestration?: unknown;
+  output_safety?: unknown;
+  attempted_providers?: unknown;
+  provider_errors?: unknown;
+  selected_provider?: unknown;
+  selected_model?: unknown;
+  fallback_used?: unknown;
+  fallback_reason?: unknown;
   metadata?: unknown;
   mode?: unknown;
   used?: unknown;
@@ -138,6 +151,73 @@ function extractMetadata(payload: unknown): Partial<ChatCompletionMetadata> {
         total_tokens: typeof rawUsage.total_tokens === "number" ? rawUsage.total_tokens : undefined
       }
     : undefined;
+
+  const rawOutputSafety = (data.output_safety || metadataObj?.output_safety) as Record<string, unknown> | null | undefined;
+  const outputSafety: GatewayOutputSafetyMetadata | undefined =
+    rawOutputSafety && typeof rawOutputSafety === "object"
+      ? {
+          internal_tool_markup_detected:
+            typeof rawOutputSafety.internal_tool_markup_detected === "boolean"
+              ? rawOutputSafety.internal_tool_markup_detected
+              : undefined,
+          internal_tool_markup_removed:
+            typeof rawOutputSafety.internal_tool_markup_removed === "boolean"
+              ? rawOutputSafety.internal_tool_markup_removed
+              : undefined
+        }
+      : undefined;
+
+  const toProviderAttempt = (item: unknown): GatewayProviderAttempt | null => {
+    if (typeof item === "string") {
+      const provider = item.trim();
+      return provider ? { provider } : null;
+    }
+    if (!item || typeof item !== "object") return null;
+    const row = item as Record<string, unknown>;
+    return {
+      provider: typeof row.provider === "string" ? row.provider : undefined,
+      model: typeof row.model === "string" ? row.model : undefined,
+      status: typeof row.status === "string" ? row.status : undefined,
+      error_code: typeof row.error_code === "string" ? row.error_code : undefined,
+      upstream_status:
+        typeof row.upstream_status === "number" || typeof row.upstream_status === "string"
+          ? row.upstream_status
+          : null,
+      latency_ms: typeof row.latency_ms === "number" ? row.latency_ms : null
+    };
+  };
+
+  const toProviderError = (item: unknown): GatewayProviderError | null => {
+    if (!item || typeof item !== "object") return null;
+    const row = item as Record<string, unknown>;
+    return {
+      provider: typeof row.provider === "string" ? row.provider : undefined,
+      model: typeof row.model === "string" ? row.model : undefined,
+      error_code: typeof row.error_code === "string" ? row.error_code : undefined,
+      upstream_status:
+        typeof row.upstream_status === "number" || typeof row.upstream_status === "string"
+          ? row.upstream_status
+          : null
+    };
+  };
+
+  const rawAttempts = data.attempted_providers ?? metadataObj?.attempted_providers;
+  const attemptedProviders = Array.isArray(rawAttempts)
+    ? rawAttempts.map(toProviderAttempt).filter((item): item is GatewayProviderAttempt => Boolean(item))
+    : undefined;
+
+  const rawProviderErrors = data.provider_errors ?? metadataObj?.provider_errors;
+  const providerErrors = Array.isArray(rawProviderErrors)
+    ? rawProviderErrors.map(toProviderError).filter((item): item is GatewayProviderError => Boolean(item))
+    : undefined;
+
+  const selectedProvider = String(data.selected_provider || metadataObj?.selected_provider || "").trim() || undefined;
+  const selectedModel = String(data.selected_model || metadataObj?.selected_model || "").trim() || undefined;
+  const fallbackUsedRaw = data.fallback_used ?? metadataObj?.fallback_used;
+  const fallbackUsed = typeof fallbackUsedRaw === "boolean" ? fallbackUsedRaw : undefined;
+  const fallbackReasonRaw = data.fallback_reason ?? metadataObj?.fallback_reason;
+  const fallbackReason =
+    typeof fallbackReasonRaw === "string" ? fallbackReasonRaw.trim() || null : fallbackReasonRaw === null ? null : undefined;
 
   // Tolerant orchestration lookup
   const hasOrchFields = (obj: unknown): boolean => {
@@ -204,7 +284,14 @@ function extractMetadata(payload: unknown): Partial<ChatCompletionMetadata> {
     provider,
     conversation_id: conversationId,
     usage,
-    orchestration: cleanOrch
+    orchestration: cleanOrch,
+    output_safety: outputSafety,
+    attempted_providers: attemptedProviders,
+    provider_errors: providerErrors,
+    selected_provider: selectedProvider,
+    selected_model: selectedModel,
+    fallback_used: fallbackUsed,
+    fallback_reason: fallbackReason
   };
 }
 
@@ -273,6 +360,17 @@ function mergeMetadata(
     base.orchestration as Record<string, unknown> | null,
     next.orchestration as Record<string, unknown> | null
   );
+  const outputSafety = cleanMerge(
+    base.output_safety as Record<string, unknown> | null,
+    next.output_safety as Record<string, unknown> | null
+  );
+
+  const attempted_providers = next.attempted_providers !== undefined ? next.attempted_providers : base.attempted_providers;
+  const provider_errors = next.provider_errors !== undefined ? next.provider_errors : base.provider_errors;
+  const selected_provider = next.selected_provider !== undefined ? next.selected_provider : base.selected_provider;
+  const selected_model = next.selected_model !== undefined ? next.selected_model : base.selected_model;
+  const fallback_used = next.fallback_used !== undefined ? next.fallback_used : base.fallback_used;
+  const fallback_reason = next.fallback_reason !== undefined ? next.fallback_reason : base.fallback_reason;
 
   return {
     model,
@@ -280,7 +378,14 @@ function mergeMetadata(
     provider,
     conversation_id,
     usage: usage as ChatCompletionMetadata["usage"],
-    orchestration: orchestration as ChatCompletionMetadata["orchestration"]
+    orchestration: orchestration as ChatCompletionMetadata["orchestration"],
+    output_safety: outputSafety as ChatCompletionMetadata["output_safety"],
+    attempted_providers,
+    provider_errors,
+    selected_provider,
+    selected_model,
+    fallback_used,
+    fallback_reason
   };
 }
 
@@ -1390,6 +1495,23 @@ export default function ChatPage() {
                       No Pro orchestration metadata returned. Gateway may be older than v1.0.4 or this response used a basic fallback path.
                     </p>
                   ) : null}
+                  <div className="col-span-full font-sans">
+                    <OutputSafetyDetails metadata={responseMetadata.output_safety} />
+                  </div>
+                  <div className="col-span-full font-sans">
+                    <ProviderFallbackDetails
+                      metadata={
+                        {
+                          attempted_providers: responseMetadata.attempted_providers,
+                          provider_errors: responseMetadata.provider_errors,
+                          selected_provider: responseMetadata.selected_provider,
+                          selected_model: responseMetadata.selected_model,
+                          fallback_used: responseMetadata.fallback_used,
+                          fallback_reason: responseMetadata.fallback_reason
+                        } satisfies GatewayRuntimeFallbackMetadata
+                      }
+                    />
+                  </div>
                 </div>
               </details>
             );

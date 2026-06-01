@@ -104,6 +104,36 @@ export type GatewayOrchestrationMetadata = {
   role_latency_ms?: Record<string, number>;
 };
 
+export type GatewayOutputSafetyMetadata = {
+  internal_tool_markup_detected?: boolean;
+  internal_tool_markup_removed?: boolean;
+};
+
+export type GatewayProviderAttempt = {
+  provider?: string;
+  model?: string;
+  status?: string;
+  error_code?: string;
+  upstream_status?: number | string | null;
+  latency_ms?: number | null;
+};
+
+export type GatewayProviderError = {
+  provider?: string;
+  model?: string;
+  error_code?: string;
+  upstream_status?: number | string | null;
+};
+
+export type GatewayRuntimeFallbackMetadata = {
+  attempted_providers?: GatewayProviderAttempt[];
+  provider_errors?: GatewayProviderError[];
+  selected_provider?: string | null;
+  selected_model?: string | null;
+  fallback_used?: boolean;
+  fallback_reason?: string | null;
+};
+
 export type ChatCompletionMetadata = {
   model?: string;
   model_alias?: string;
@@ -115,6 +145,13 @@ export type ChatCompletionMetadata = {
     total_tokens?: number;
   };
   orchestration?: GatewayOrchestrationMetadata;
+  output_safety?: GatewayOutputSafetyMetadata;
+  attempted_providers?: GatewayProviderAttempt[];
+  provider_errors?: GatewayProviderError[];
+  selected_provider?: string | null;
+  selected_model?: string | null;
+  fallback_used?: boolean;
+  fallback_reason?: string | null;
 };
 
 export type GatewayChatMetadata = ChatCompletionMetadata;

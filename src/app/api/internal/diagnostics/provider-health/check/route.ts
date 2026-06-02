@@ -54,7 +54,7 @@ function normalizeBody(input: unknown): ProviderHealthCheckRequest {
 }
 
 export async function POST(request: Request) {
-  const access = ensureInternalDiagnosticsAccess();
+  const access = await ensureInternalDiagnosticsAccess();
   if (!access.ok) {
     return access.response;
   }

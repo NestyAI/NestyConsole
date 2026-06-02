@@ -19,7 +19,7 @@ function parseOptionalInt(value: string | null, min: number, max: number): numbe
 }
 
 export async function GET(request: Request) {
-  const access = ensureInternalDiagnosticsAccess();
+  const access = await ensureInternalDiagnosticsAccess();
   if (!access.ok) {
     return access.response;
   }
@@ -60,7 +60,7 @@ export async function GET(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const access = ensureInternalDiagnosticsAccess();
+  const access = await ensureInternalDiagnosticsAccess();
   if (!access.ok) {
     return access.response;
   }

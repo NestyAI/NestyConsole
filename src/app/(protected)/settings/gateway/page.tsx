@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
 import { ErrorBanner } from "@/components/ui/error-banner";
 import { LoadingBlock } from "@/components/ui/loading-block";
 import { StateCard } from "@/components/ui/state-card";
@@ -10,6 +10,7 @@ import { StateCard } from "@/components/ui/state-card";
 type CredentialSource = "stored" | "env" | "missing";
 
 type GatewayCredentialsView = {
+  source: CredentialSource;
   gateway_url: string | null;
   gateway_url_source: CredentialSource;
   api_key_configured: boolean;
@@ -22,7 +23,7 @@ type GatewayCredentialsView = {
   last_status: string | null;
   last_error: string | null;
   updated_at: string | null;
-  storage_mode: "sqlite" | "env_only";
+  storage_mode: "sqlite" | "redis_kv" | "env_only";
   storage_available: boolean;
   storage_warning?: string;
 };
@@ -49,7 +50,7 @@ type TestResponse = {
     internal_admin?: { ok: boolean; status: number; error_code?: string };
   };
   warning?: string;
-  storage_mode?: "sqlite" | "env_only";
+  storage_mode?: "sqlite" | "redis_kv" | "env_only";
   storage_available?: boolean;
 };
 
@@ -57,6 +58,7 @@ export default function GatewaySettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [clearing, setClearing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [testResult, setTestResult] = useState<TestResponse | null>(null);
@@ -182,10 +184,53 @@ export default function GatewaySettingsPage() {
     }
   };
 
+  const handleClearStoredCredentials = async () => {
+    if (!window.confirm("Clear stored Gateway credentials? Environment variables will not be changed.")) {
+      return;
+    }
+    setClearing(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const response = await fetch("/api/console/gateway-credentials", {
+        method: "DELETE"
+      });
+      const payload = (await response.json()) as CredentialsResponse & {
+        error?: { code?: string; message?: string };
+      };
+      if (!response.ok || !payload.ok) {
+        setError(payload.error?.message || "Failed to clear stored gateway credentials.");
+        return;
+      }
+      setView(payload.data);
+      setGatewayUrl(payload.data.gateway_url || "");
+      setGatewayApiKey("");
+      setInternalAdminToken("");
+      setInternalAdminEnabled(payload.data.internal_admin_enabled);
+      setSuccess("Stored Gateway credentials cleared. Environment fallback values were not changed.");
+    } catch {
+      setError("Failed to clear stored gateway credentials.");
+    } finally {
+      setClearing(false);
+    }
+  };
+
   const invalidApiKeyHint = useMemo(
     () => view?.last_status === "invalid_api_key" || testResult?.status === "invalid_api_key",
     [testResult?.status, view?.last_status]
   );
+  const saveDisabled = saving || loading || !view?.storage_available || view.storage_mode === "env_only";
+  const hasStoredCredentials =
+    view?.gateway_url_source === "stored" ||
+    view?.api_key_source === "stored" ||
+    view?.internal_admin_token_source === "stored" ||
+    view?.internal_admin_enabled_source === "stored";
+  const storageLabel =
+    view?.storage_mode === "redis_kv"
+      ? "Redis KV / Upstash"
+      : view?.storage_mode === "env_only"
+        ? "Env-only"
+        : "SQLite";
 
   return (
     <section className="space-y-6 animate-fade-in-up">
@@ -196,9 +241,26 @@ export default function GatewaySettingsPage() {
         </p>
       </div>
 
+      {view?.storage_mode === "redis_kv" && view.storage_available ? (
+        <div className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-4 text-sm text-emerald-100 space-y-2">
+          <p className="font-semibold">Persistent credential storage is active through Redis KV.</p>
+          <p>Gateway credentials saved here can be updated on Vercel without redeploying.</p>
+        </div>
+      ) : null}
+
+      {view?.storage_mode === "redis_kv" && !view.storage_available ? (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100 space-y-2">
+          <p className="font-semibold">Redis KV storage unavailable</p>
+          <p>
+            Redis KV storage is selected but UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN, or
+            NESTY_CONSOLE_CREDENTIALS_SECRET is missing.
+          </p>
+        </div>
+      ) : null}
+
       {view?.storage_mode === "env_only" ? (
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100 space-y-2">
-          <p className="font-semibold flex items-center gap-2">⚠️ Environment-Only Mode Active</p>
+          <p className="font-semibold flex items-center gap-2">Environment-Only Mode Active</p>
           <p>
             Nesty Console is running in environment-only mode (credential storage is disabled or unavailable in this serverless runtime).
             Saving credentials to the local database is disabled. The application relies on environment variables set in your hosting platform (e.g. Vercel).
@@ -209,6 +271,7 @@ export default function GatewaySettingsPage() {
       <StateCard title="Effective configuration">
         <div className="text-sm text-neural-text-secondary space-y-1">
           <p className="pt-1">Gateway URL: {view?.gateway_url || "Not configured"}</p>
+          <p>Credential source: {view?.source || "missing"}</p>
           <p>Gateway URL source: {view?.gateway_url_source || "missing"}</p>
           <p>API key configured: {view?.api_key_configured ? "yes" : "no"} ({view?.api_key_source || "missing"})</p>
           <p>
@@ -220,7 +283,7 @@ export default function GatewaySettingsPage() {
             {view?.internal_admin_enabled_source || "env"})
           </p>
           <div className="border-t border-white/5 my-2 pt-2 space-y-1">
-            <p>Storage mode: <span className="font-mono text-xs uppercase px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-cyan-200">{view?.storage_mode || "sqlite"}</span></p>
+            <p>Storage mode: <span className="font-mono text-xs uppercase px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-cyan-200">{storageLabel}</span></p>
             <p>Storage available: {view?.storage_available ? "yes" : "no"}</p>
             {view?.storage_warning ? (
               <p className="text-xs text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded mt-1">
@@ -276,9 +339,8 @@ export default function GatewaySettingsPage() {
             type="password"
             value={gatewayApiKey}
             onChange={(event) => setGatewayApiKey(event.target.value)}
-            placeholder={view?.storage_mode === "env_only" ? "Not editable via UI in env-only mode" : "Leave blank to keep existing value"}
-            disabled={view?.storage_mode === "env_only"}
-            className="w-full rounded-lg border border-neural-text-muted/30 bg-neural-input px-3 py-2 font-mono text-sm text-neural-text-primary outline-none ring-neural-cyan/50 focus:ring disabled:opacity-50 disabled:cursor-not-allowed"
+            placeholder={view?.storage_mode === "env_only" ? "Used for Test connection only in env-only mode" : "Leave blank to keep existing value"}
+            className="w-full rounded-lg border border-neural-text-muted/30 bg-neural-input px-3 py-2 font-mono text-sm text-neural-text-primary outline-none ring-neural-cyan/50 focus:ring"
           />
         </div>
 
@@ -291,9 +353,8 @@ export default function GatewaySettingsPage() {
             type="password"
             value={internalAdminToken}
             onChange={(event) => setInternalAdminToken(event.target.value)}
-            placeholder={view?.storage_mode === "env_only" ? "Not editable via UI in env-only mode" : "Leave blank to keep existing value"}
-            disabled={view?.storage_mode === "env_only"}
-            className="w-full rounded-lg border border-neural-text-muted/30 bg-neural-input px-3 py-2 font-mono text-sm text-neural-text-primary outline-none ring-neural-cyan/50 focus:ring disabled:opacity-50 disabled:cursor-not-allowed"
+            placeholder={view?.storage_mode === "env_only" ? "Used for Test connection only in env-only mode" : "Leave blank to keep existing value"}
+            className="w-full rounded-lg border border-neural-text-muted/30 bg-neural-input px-3 py-2 font-mono text-sm text-neural-text-primary outline-none ring-neural-cyan/50 focus:ring"
           />
         </div>
 
@@ -302,8 +363,7 @@ export default function GatewaySettingsPage() {
             type="checkbox"
             checked={internalAdminEnabled}
             onChange={(event) => setInternalAdminEnabled(event.target.checked)}
-            disabled={view?.storage_mode === "env_only"}
-            className="h-4 w-4 rounded border-white/20 bg-surface-900/70 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="h-4 w-4 rounded border-white/20 bg-surface-900/70"
           />
           Enable internal admin access for server-side internal endpoint calls
         </label>
@@ -311,7 +371,7 @@ export default function GatewaySettingsPage() {
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="submit"
-            disabled={saving || loading || view?.storage_mode === "env_only"}
+            disabled={saveDisabled}
             className="inline-flex items-center gap-2 rounded-lg border border-neural-cyan/40 bg-neural-cyan/15 px-3 py-2 font-display text-xs uppercase tracking-[0.07em] text-neural-cyan transition hover:bg-neural-cyan/25 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
@@ -326,6 +386,17 @@ export default function GatewaySettingsPage() {
             {testing ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             Test connection
           </button>
+          {view?.storage_available && hasStoredCredentials ? (
+            <button
+              type="button"
+              onClick={() => void handleClearStoredCredentials()}
+              disabled={clearing || loading}
+              className="inline-flex items-center gap-2 rounded-lg border border-neural-red/35 bg-neural-red/12 px-3 py-2 font-display text-xs uppercase tracking-[0.07em] text-rose-100 transition hover:bg-neural-red/22 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {clearing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              Clear stored credentials
+            </button>
+          ) : null}
           <Link href="/settings" className="text-sm text-neural-text-secondary underline underline-offset-2">
             Back to settings
           </Link>
@@ -338,7 +409,7 @@ export default function GatewaySettingsPage() {
           <p className="mt-1">{testResult.message}</p>
           {testResult.warning ? (
             <p className="text-xs text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1.5 rounded mt-2">
-              ⚠️ Warning: {testResult.warning}
+              Warning: {testResult.warning}
             </p>
           ) : null}
           <div className="mt-3 space-y-1 font-mono text-xs text-neural-text-secondary">

@@ -6,7 +6,7 @@ import { ensureInternalAdminAccess } from "@/lib/internal-admin/access";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const access = ensureInternalAdminAccess();
+  const access = await ensureInternalAdminAccess();
   if (!access.ok) {
     return access.response;
   }

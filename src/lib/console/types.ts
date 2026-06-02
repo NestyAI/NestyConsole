@@ -1,4 +1,5 @@
 export type CredentialSource = "stored" | "env" | "missing";
+export type CredentialStorageMode = "sqlite" | "redis_kv" | "env_only";
 
 export type GatewayCredentialsRecord = {
   gateway_url: string | null;
@@ -20,7 +21,7 @@ export type EffectiveGatewayCredentials = {
   gatewayApiKeySource: CredentialSource;
   internalAdminTokenSource: CredentialSource;
   internalAdminEnabledSource: "stored" | "env";
-  storageMode: "sqlite" | "env_only";
+  storageMode: CredentialStorageMode;
   storageAvailable: boolean;
   storageWarning?: string;
   metadata: {
@@ -34,6 +35,7 @@ export type EffectiveGatewayCredentials = {
 };
 
 export type GatewayCredentialsView = {
+  source: CredentialSource;
   gateway_url: string | null;
   gateway_url_source: CredentialSource;
   api_key_configured: boolean;
@@ -46,7 +48,7 @@ export type GatewayCredentialsView = {
   last_status: string | null;
   last_error: string | null;
   updated_at: string | null;
-  storage_mode: "sqlite" | "env_only";
+  storage_mode: CredentialStorageMode;
   storage_available: boolean;
   storage_warning?: string;
 };

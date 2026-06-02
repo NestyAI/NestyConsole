@@ -111,7 +111,7 @@ export async function gatewayFetch<T>(
   init: RequestInit = {},
   options?: { internalAdmin?: boolean; credentials?: EffectiveGatewayCredentials }
 ): Promise<GatewayResult<T>> {
-  const effective = options?.credentials || resolveEffectiveGatewayCredentials();
+  const effective = options?.credentials || (await resolveEffectiveGatewayCredentials());
   const baseUrl = effective.gatewayUrl;
 
   if (!baseUrl) {

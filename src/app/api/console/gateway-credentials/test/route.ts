@@ -6,7 +6,7 @@ import {
   resolveEffectiveGatewayCredentials,
   updateGatewayCredentialsStatus
 } from "@/lib/console/credentials";
-import type { GatewayTestStatus } from "@/lib/console/types";
+import type { EffectiveGatewayCredentials, GatewayTestStatus } from "@/lib/console/types";
 import { gatewayFetch } from "@/lib/gateway/client";
 
 export const dynamic = "force-dynamic";
@@ -29,7 +29,7 @@ type TestResponse = {
     internal_admin?: ProbeSummary;
   };
   warning?: string;
-  storage_mode?: "sqlite" | "env_only";
+  storage_mode?: "sqlite" | "redis_kv" | "env_only";
   storage_available?: boolean;
 };
 
@@ -47,7 +47,7 @@ function summarizeProbe(result: Awaited<ReturnType<typeof gatewayFetch<unknown>>
 
 function deriveFinalStatus(
   probes: TestResponse["probes"],
-  credentialsState: ReturnType<typeof resolveEffectiveGatewayCredentials>
+  credentialsState: EffectiveGatewayCredentials
 ): GatewayTestStatus {
   const allErrors = [
     probes.health.error_code,
@@ -89,7 +89,7 @@ interface TestRequestBody {
 }
 
 export async function POST(request: Request) {
-  const effective = resolveEffectiveGatewayCredentials();
+  const effective = await resolveEffectiveGatewayCredentials();
 
   // Parse request body
   let body: TestRequestBody = {};
@@ -112,8 +112,11 @@ export async function POST(request: Request) {
   const testCredentials = { ...effective };
 
   if (gatewayUrlInput !== undefined) {
-    testCredentials.gatewayUrl = normalizeUrl(gatewayUrlInput);
-    testCredentials.gatewayUrlSource = "stored";
+    const cleanGatewayUrl = cleanOptionalText(gatewayUrlInput);
+    if (cleanGatewayUrl !== null) {
+      testCredentials.gatewayUrl = normalizeUrl(cleanGatewayUrl);
+      testCredentials.gatewayUrlSource = "stored";
+    }
   }
 
   if (gatewayApiKeyInput !== undefined) {
@@ -154,7 +157,7 @@ export async function POST(request: Request) {
 
     // In env_only mode, do not call updateGatewayCredentialsStatus or write to DB
     if (effective.storageMode !== "env_only") {
-      updateGatewayCredentialsStatus(status, msg);
+      await updateGatewayCredentialsStatus(status, msg);
     }
 
     return NextResponse.json(
@@ -214,7 +217,7 @@ export async function POST(request: Request) {
 
   // In env_only mode, do not call updateGatewayCredentialsStatus or write to DB
   if (effective.storageMode !== "env_only") {
-    updateGatewayCredentialsStatus(status, ok ? null : message);
+    await updateGatewayCredentialsStatus(status, ok ? null : message);
   }
 
   return NextResponse.json(

@@ -2,6 +2,22 @@
 
 All notable changes to Nesty Console will be documented in this file.
 
+## [0.6.8] - Unreleased
+
+### Added
+
+* Added Redis KV/Upstash credential storage backend for Vercel/serverless deployments.
+* Added persistent Gateway credential switching on Vercel without redeploying.
+
+### Changed
+
+* Credential storage mode can now be auto, sqlite, redis_kv, or env_only.
+* Settings Gateway now displays Redis KV storage status.
+
+### Security
+
+* Gateway credentials are encrypted before being stored in Redis KV and are never returned to the browser.
+
 ## [0.6.7] - Unreleased
 
 ### Added

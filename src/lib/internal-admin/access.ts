@@ -14,8 +14,8 @@ type InternalAdminAccessResult =
       response: NextResponse;
     };
 
-export function ensureInternalAdminAccess(): InternalAdminAccessResult {
-  const effective = resolveEffectiveGatewayCredentials();
+export async function ensureInternalAdminAccess(): Promise<InternalAdminAccessResult> {
+  const effective = await resolveEffectiveGatewayCredentials();
 
   if (!effective.gatewayUrl) {
     return {

@@ -80,7 +80,7 @@ function normalizeBody(input: unknown): GatewaySemanticRecallTestRequest | null 
 }
 
 export async function POST(request: Request) {
-  const access = ensureInternalAdminAccess();
+  const access = await ensureInternalAdminAccess();
   if (!access.ok) {
     return access.response;
   }

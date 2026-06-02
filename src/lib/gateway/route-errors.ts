@@ -5,6 +5,7 @@ import type { GatewayResult } from "@/lib/gateway/types";
 type ConsoleProxyErrorCode =
   | "unauthorized"
   | "credentials_not_configured"
+  | "credential_storage_unavailable"
   | "invalid_gateway_api_key"
   | "internal_admin_not_configured"
   | "internal_admin_invalid"
@@ -31,6 +32,9 @@ function normalizeGatewayErrorCode(code: string): ConsoleProxyErrorCode {
   const lowered = code.trim().toLowerCase();
   if (lowered === "credentials_not_configured") {
     return "credentials_not_configured";
+  }
+  if (lowered === "credential_storage_unavailable" || lowered === "credential_storage_write_failed") {
+    return "credential_storage_unavailable";
   }
   if (lowered === "unauthorized") {
     return "unauthorized";
@@ -102,6 +106,8 @@ function fallbackMessage(code: ConsoleProxyErrorCode): string {
   switch (code) {
     case "credentials_not_configured":
       return "Gateway credentials are not configured. Add them in Settings -> Gateway Credentials.";
+    case "credential_storage_unavailable":
+      return "Credential storage is unavailable. Check Settings -> Gateway Credentials storage mode.";
     case "unauthorized":
       return "Authentication required.";
     case "invalid_gateway_api_key":

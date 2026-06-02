@@ -32,8 +32,8 @@ function initSchema(db: DatabaseSync) {
 }
 
 export function getConsoleDb(): DatabaseSync {
-  if (getCredentialStorageMode() === "env_only") {
-    throw new Error("Database Sync is disabled in env-only mode.");
+  if (getCredentialStorageMode() !== "sqlite") {
+    throw new Error("Database Sync is disabled when credential storage mode is not sqlite.");
   }
   if (dbSingleton) {
     return dbSingleton;

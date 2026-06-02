@@ -14,7 +14,7 @@ type RouteContext = {
 };
 
 export async function POST(_request: Request, context: RouteContext) {
-  const access = ensureInternalAdminAccess();
+  const access = await ensureInternalAdminAccess();
   if (!access.ok) {
     return access.response;
   }

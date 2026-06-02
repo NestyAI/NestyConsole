@@ -222,7 +222,7 @@ function normalizePatchBody(input: unknown): GatewayModelConfigPatchRequest | nu
 }
 
 export async function GET(_request: Request, context: RouteContext) {
-  const access = ensureInternalAdminAccess();
+  const access = await ensureInternalAdminAccess();
   if (!access.ok) {
     return access.response;
   }
@@ -251,7 +251,7 @@ export async function GET(_request: Request, context: RouteContext) {
 }
 
 export async function PATCH(request: Request, context: RouteContext) {
-  const access = ensureInternalAdminAccess();
+  const access = await ensureInternalAdminAccess();
   if (!access.ok) {
     return access.response;
   }

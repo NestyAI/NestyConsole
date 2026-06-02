@@ -6,15 +6,15 @@
 
 Nesty Console is a separate frontend/admin project for operating a running `NestyAI Gateway`.
 
-Current status: **v0.6.7 - Gateway Runtime Metadata & Diagnostics Polish**
+Current status: **v0.6.8 - Vercel KV Credential Storage**
 
 Changelog: [CHANGELOG.md](CHANGELOG.md)
 
-v0.6.7 adds:
-* Console supports Gateway v1.0.5 output safety metadata.
-* Console supports Gateway v1.1.0 provider fallback metadata and Ollama Cloud provider naming.
-* Diagnostics history can be cleared through a protected internal admin route.
-* Secrets remain server-side only.
+v0.6.8 adds:
+* Redis KV/Upstash credential storage for Vercel/serverless deployments.
+* Gateway API keys can be updated from `/settings/gateway` without redeploying when Redis KV is configured.
+* Existing SQLite local/VPS storage and env-only fallback behavior remain supported.
+* Secrets remain encrypted server-side only.
 
 v0.6.5 adds:
 * Serverless hosting and read-only filesystem support (Vercel Compatibility).
@@ -86,9 +86,32 @@ pnpm run dev
 
 ## Deploying to Vercel
 
-When deploying to Vercel or other serverless hosting environments, the SQLite database is not available for writes. Nesty Console automatically detects the Vercel runtime and switches to **environment-only mode** (`env_only`).
+When deploying to Vercel or other serverless hosting environments, the SQLite database is not available for reliable persistent writes. Nesty Console can use Redis KV/Upstash for encrypted credential persistence, or fall back to **environment-only mode** (`env_only`) when no persistent storage is configured.
 
-In this mode, saving credentials via the Settings UI is disabled. Instead, you must specify all necessary credentials as environment variables in your Vercel Project settings:
+## Vercel persistent credential storage with Upstash Redis
+
+SQLite is intended for local/VPS persistent Node deployments. Redis KV/Upstash is recommended for Vercel/serverless because it lets Console persist the small encrypted Gateway credential record outside the deployment filesystem. Env-only remains a fallback when no persistent storage is configured.
+
+Credentials are encrypted with `NESTY_CONSOLE_CREDENTIALS_SECRET` before storage. Browser clients never receive plaintext Gateway API keys or Internal Admin Tokens. When Redis KV is configured, Gateway keys can be updated from `/settings/gateway` without redeploying.
+
+Setup:
+
+1. In Vercel Project, open Storage or Marketplace.
+2. Add the Upstash Redis integration.
+3. Ensure these env vars exist: `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`.
+4. Set `NESTY_CONSOLE_CREDENTIAL_STORAGE=auto`.
+5. Set `NESTY_CONSOLE_CREDENTIALS_SECRET=<strong secret>`.
+6. Redeploy.
+7. Open `/settings/gateway` and save Gateway credentials from the UI.
+
+Storage mode selection:
+
+* `NESTY_CONSOLE_CREDENTIAL_STORAGE=auto` selects `redis_kv` when Upstash env vars exist.
+* `auto` selects `env_only` on Vercel without Upstash.
+* `auto` selects `sqlite` locally when no Upstash env exists.
+* `redis_kv` stores encrypted credentials only.
+
+In env-only mode, saving credentials via the Settings UI is disabled. Instead, specify all necessary credentials as environment variables in your Vercel Project settings:
 
 - `NESTY_GATEWAY_URL`: The base URL of your NestyAI Gateway.
 - `NESTY_API_KEY`: The API Key to authorize client requests against the Gateway.
@@ -96,6 +119,10 @@ In this mode, saving credentials via the Settings UI is disabled. Instead, you m
 - `NESTY_INTERNAL_ADMIN_TOKEN`: The token required for internal admin proxy routes (optional).
 - `NESTY_CONSOLE_ADMIN_PASSWORD`: Password for Console login.
 - `NESTY_CONSOLE_SESSION_SECRET`: Session signing secret.
+- `NESTY_CONSOLE_CREDENTIAL_STORAGE`: Set to `auto`, `sqlite`, `redis_kv`, or `env_only`.
+- `NESTY_CONSOLE_STORAGE_PREFIX`: Optional Redis key prefix, default `nesty-console`.
+- `UPSTASH_REDIS_REST_URL`: Upstash Redis REST URL for Redis KV mode.
+- `UPSTASH_REDIS_REST_TOKEN`: Upstash Redis REST token for Redis KV mode.
 
 To manually force environment-only mode locally or in other docker/serverless environments, set:
 ```env

@@ -201,7 +201,7 @@ export async function POST(request: Request) {
     return consoleError("invalid_request_body", "Chat request must include model and at least one valid message.", 400);
   }
 
-  const effective = resolveEffectiveGatewayCredentials();
+  const effective = await resolveEffectiveGatewayCredentials();
   if (!effective.gatewayUrl || !effective.gatewayApiKey) {
     return consoleError(
       "credentials_not_configured",

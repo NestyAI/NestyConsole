@@ -6,9 +6,14 @@
 
 Nesty Console is a separate frontend/admin project for operating a running `NestyAI Gateway`.
 
-Current status: **v0.6.8 - Vercel KV Credential Storage**
+Current status: **v0.7.0 - API Key Management UI**
 
 Changelog: [CHANGELOG.md](CHANGELOG.md)
+
+v0.7.0 adds:
+* Secured API Key Management UI (`/api-keys`) to list, create, inspect, update, and revoke Gateway API keys.
+* Proxied server-side routes ensuring credentials and tokens never leak to client JavaScript.
+* One-time success modal to securely view and copy the raw API key without storage or logging.
 
 v0.6.8 adds:
 * Redis KV/Upstash credential storage for Vercel/serverless deployments.
@@ -38,6 +43,7 @@ v0.6.5 adds:
 - Console can search, inspect, export, summarize, clear, and manage Gateway conversations via server-side proxy routes.
 - Memory controls are handled through protected server-side routes.
 - Semantic recall testing uses internal admin routes and requires Internal Admin Token.
+- Console can securely manage (create, list, inspect, update, revoke) Gateway API keys through `/api-keys` via internal proxy routes.
 - Gateway credentials remain server-side only.
 
 ## Design System
@@ -134,7 +140,10 @@ NESTY_CONSOLE_DISABLE_CREDENTIAL_STORAGE=true
 - Never expose `NESTY_INTERNAL_ADMIN_TOKEN` to browser/client components.
 - Never expose `NESTY_API_KEY` to browser/client components.
 - Never expose `NESTY_CONSOLE_ADMIN_PASSWORD` or `NESTY_CONSOLE_SESSION_SECRET` to browser/client components.
-- Browser pages should call same-origin routes (`/api/gateway/*`) only.
+- Raw API keys generated during creation must exist only in temporary component state. Do not store raw keys in localStorage, sessionStorage, IndexedDB, cookies, URL params, or logs.
+- Detail, list, edit, or revoke views must never expose raw keys or key hashes.
+- Console must never log raw keys, request payloads, secrets, or internal Gateway admin headers.
+- Browser pages should call same-origin routes (`/api/gateway/*` and `/api/internal/*`) only.
 - Chat page uses `/api/chat/completions`, which forwards to Gateway server-side.
 - Chat UI preferences are saved locally in browser storage (non-secret fields only).
 - Conversation list/detail/messages are loaded through server-side Console routes only.
@@ -238,6 +247,8 @@ Core checks:
 - Diagnostics dashboard loads and warning states are readable.
 - Model Config admin loads and reset/update actions work.
 - Memory page search/detail/actions and message memory controls work.
+- API Key Management `/api-keys` loads, key creation, metadata update, and revocation work.
+- One-time raw API key display works (requires explicit copy click, does not store raw key).
 - Internal admin token warnings appear when missing/invalid.
 - Invalid/expired Gateway API key behavior is clear and actionable.
 - Protected API behavior returns 401 when unauthenticated.
@@ -246,6 +257,7 @@ Security checks:
 
 - `/api/gateway/models` returns 401 before login.
 - `/api/internal/diagnostics/provider-health/summary` returns 401 before login.
+- `/api/internal/api-keys` returns 401 before login.
 - No secret values are displayed in UI/debug/raw detail sections.
 - Semantic recall test output does not expose raw vectors/embeddings.
 
@@ -267,6 +279,16 @@ Security checks:
 - `POST /api/auth/login`: create signed admin session cookie
 - `POST /api/auth/logout`: clear session cookie
 - `GET /api/auth/me`: current auth status
+## Implemented in v0.7.0
+
+- API Key Management page (`/api-keys`) with creation, listing, details, updating, and revocation views.
+- Server-side API key proxy routes:
+  - `GET /api/internal/api-keys`
+  - `POST /api/internal/api-keys`
+  - `GET /api/internal/api-keys/{api_key_id}`
+  - `PATCH /api/internal/api-keys/{api_key_id}`
+  - `POST /api/internal/api-keys/{api_key_id}/revoke`
+
 ## Implemented in v0.6.2
 
 - Console shell layout (sidebar + topbar)
@@ -334,5 +356,5 @@ surfaces publicly without strict network controls.
 - v0.5.0 Runtime Model Config Admin
 - v0.6.0 Conversations/Memory operations
 - v0.6.2 Neural Noir UI refresh
-- v0.7.0 Analytics and operational insights (planned)
+- v0.7.0 API Key Management UI
 - Full provider marketplace and enterprise configuration workflows are planned for a later version if needed.

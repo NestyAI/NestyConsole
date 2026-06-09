@@ -40,6 +40,11 @@ const cards = [
     description: "View effective runtime config and edit safe provider chain overrides."
   },
   {
+    href: "/api-keys",
+    title: "API Keys",
+    description: "Create and revoke Gateway API keys."
+  },
+  {
     href: "/settings",
     title: "Settings",
     description: "Verify local environment configuration safely."
@@ -122,7 +127,7 @@ export default function HomePage() {
               </div>
 
               <TerminalBlock className="mt-4 border-white/10 text-[11px] text-neural-text-code">
-{`> session: active
+                {`> session: active
 > gateway: ready
 > memory: indexed
 > diagnostics: nominal`}
@@ -156,7 +161,7 @@ export default function HomePage() {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Control Surface" value="8" hint="Primary operator modules" accent="cyan" />
+        <StatCard label="Control Surface" value="9" hint="Primary operator modules" accent="cyan" />
         <StatCard label="Security Model" value="Server-side" hint="No browser key exposure" accent="green" />
         <StatCard label="Mode" value="Single Admin" hint="Self-host operations" accent="amber" />
         <StatCard label="Theme" value="Neural Dark" hint="High-density dark console" accent="violet" />

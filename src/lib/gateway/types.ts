@@ -476,3 +476,61 @@ export type GatewayModelConfigErrorEnvelope = {
     details?: Record<string, unknown>;
   };
 };
+
+export type GatewayApiKeyPublicInfo = {
+  id: string;
+  name: string;
+  environment?: string;
+  key_prefix?: string;
+  models?: string[];
+  daily_limit?: number | null;
+  monthly_limit?: number | null;
+  is_revoked?: boolean;
+  revoked_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  last_used_at?: string | null;
+  usage_today?: number | null;
+  usage_month?: number | null;
+};
+
+export type GatewayApiKeyListResponse = {
+  items: GatewayApiKeyPublicInfo[];
+  limit: number;
+  offset: number;
+  has_more: boolean;
+};
+
+export type GatewayApiKeyCreateRequest = {
+  name: string;
+  environment?: string;
+  daily_limit?: number | null;
+  monthly_limit?: number | null;
+  models?: string[];
+  key_prefix?: string;
+};
+
+export type GatewayApiKeyCreateResponse = {
+  api_key: GatewayApiKeyPublicInfo;
+  raw_key: string;
+};
+
+export type GatewayApiKeyUpdateRequest = {
+  name?: string;
+  environment?: string;
+  daily_limit?: number | null;
+  monthly_limit?: number | null;
+  models?: string[];
+};
+
+export type GatewayApiKeyRevokeRequest = {
+  reason?: string;
+};
+
+export type GatewayApiKeyRevokeResponse = {
+  id: string;
+  is_revoked: boolean;
+  revoked_at?: string | null;
+  reason?: string | null;
+};
+

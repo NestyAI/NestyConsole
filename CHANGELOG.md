@@ -2,6 +2,25 @@
 
 All notable changes to Nesty Console will be documented in this file.
 
+## [0.7.0] - Unreleased
+
+### Added
+
+* Added API Key Management UI (`/api-keys`) to manage environment-specific Gateway API keys.
+* Added server-side proxy endpoints (`/api/internal/api-keys`) to handle listing, creation, detail retrieval, updating, and revocation.
+* Implemented client-side api-key API wrapper.
+* Added navigation support in Sidebar, Dashboard cards, and Settings Admin Surfaces.
+
+### Changed
+
+* Updated Console-wide styling to cleanly integrate API Keys within the Neural Noir theme.
+
+### Security
+
+* Raw API keys are returned exactly once upon creation, and exist only in temporary React component state. They are never stored in localStorage, sessionStorage, IndexedDB, cookies, logs, or databases.
+* Copying raw API keys requires explicit user action (no auto-copy).
+* Detail, update, list, and revoke proxy endpoints never return or expose raw keys or key hashes.
+
 ## [0.6.8] - Unreleased
 
 ### Added

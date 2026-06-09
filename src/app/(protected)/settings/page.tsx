@@ -164,6 +164,16 @@ export default async function SettingsPage() {
             </Link>
 
             <Link
+              href="/api-keys"
+              className="rounded-2xl border border-neural-green/35 bg-neural-green/12 p-4 transition hover:bg-neural-green/20"
+            >
+              <p className="font-display text-[11px] uppercase tracking-[0.12em] text-neural-green">API Keys</p>
+              <p className="mt-2 text-sm leading-relaxed text-neural-text-secondary">
+                Create, revoke, and manage environment-specific Gateway API keys.
+              </p>
+            </Link>
+
+            <Link
               href="/diagnostics"
               className="rounded-2xl border border-neural-amber/35 bg-neural-amber/12 p-4 transition hover:bg-neural-amber/20"
             >
@@ -185,7 +195,7 @@ export default async function SettingsPage() {
 
             <Link
               href="/memory"
-              className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition hover:border-white/20 hover:bg-white/[0.06]"
+              className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition hover:border-white/20 hover:bg-white/[0.06] sm:col-span-2"
             >
               <p className="font-display text-[11px] uppercase tracking-[0.12em] text-neural-text-primary">Memory</p>
               <p className="mt-2 text-sm leading-relaxed text-neural-text-secondary">

@@ -12,12 +12,12 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/chat", label: "Chat", icon: MessageSquare },
-  { href: "/memory", label: "Memory", icon: HardDrive },
+  { href: "/api-keys", label: "API Keys", icon: KeyRound },
   { href: "/diagnostics", label: "Diagnostics", icon: Activity },
+  { href: "/model-configs", label: "Model Configs", icon: Waypoints },
+  { href: "/memory", label: "Memory", icon: HardDrive },
   { href: "/status", label: "Status", icon: ShieldCheck },
   { href: "/models", label: "Models", icon: Waypoints },
-  { href: "/model-configs", label: "Model Configs", icon: Waypoints },
-  { href: "/settings/gateway", label: "Gateway Creds", icon: KeyRound },
   { href: "/settings", label: "Settings", icon: Settings }
 ];
 

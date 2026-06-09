@@ -25,6 +25,8 @@ type ConsoleProxyErrorCode =
   | "gateway_provider_unavailable"
   | "gateway_route_not_found"
   | "gateway_error"
+  | "api_key_not_found"
+  | "invalid_api_key_request"
   | "not_found"
   | "unknown_error";
 
@@ -99,6 +101,16 @@ function normalizeGatewayErrorCode(code: string): ConsoleProxyErrorCode {
   if (lowered === "gateway_request_failed") {
     return "gateway_error";
   }
+  if (lowered === "api_key_not_found") {
+    return "api_key_not_found";
+  }
+  if (
+    lowered === "invalid_api_key_request" ||
+    lowered === "api_key_create_failed" ||
+    lowered === "api_key_revoke_failed"
+  ) {
+    return "invalid_api_key_request";
+  }
   return "unknown_error";
 }
 
@@ -150,6 +162,10 @@ function fallbackMessage(code: ConsoleProxyErrorCode): string {
       return "Requested resource was not found.";
     case "gateway_error":
       return "Gateway request failed.";
+    case "api_key_not_found":
+      return "The requested API key was not found.";
+    case "invalid_api_key_request":
+      return "The API key request was invalid.";
     default:
       return "Unknown gateway error.";
   }

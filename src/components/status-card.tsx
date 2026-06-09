@@ -11,14 +11,14 @@ type StatusCardProps = {
 
 export function StatusCard({ label, value, healthy = false, details }: StatusCardProps) {
   return (
-    <Panel accent={healthy ? "green" : "amber"}>
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <h3 className="font-display text-[11px] uppercase tracking-[0.08em] text-neural-text-secondary">{label}</h3>
+    <Panel accent={healthy ? "green" : "amber"} className="min-h-[152px]">
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <h3 className="font-display text-[11px] uppercase tracking-[0.12em] text-neural-text-secondary">{label}</h3>
         <Badge variant={healthy ? "success" : "warning"}>{healthy ? "healthy" : "issue"}</Badge>
       </div>
-      <p className="font-mono text-xl text-neural-text-primary">{value}</p>
+      <p className="text-2xl font-semibold tracking-[-0.04em] text-neural-text-primary">{value}</p>
       {details ? (
-        <div className="mt-2">
+        <div className="mt-3">
           <TokenTag>{details}</TokenTag>
         </div>
       ) : null}

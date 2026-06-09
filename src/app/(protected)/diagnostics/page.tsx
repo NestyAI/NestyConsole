@@ -296,23 +296,27 @@ export default function DiagnosticsPage() {
 
   return (
     <section className="space-y-6 animate-fade-in-up">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="font-display text-2xl uppercase tracking-[0.08em] text-neural-text-primary">Diagnostics</h1>
-            <Badge variant="warning" withDot>
-              quota-aware
-            </Badge>
+      <Panel accent="amber" className="p-6 sm:p-7 lg:p-8">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="max-w-2xl">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-3xl font-semibold tracking-[-0.05em] text-neural-text-primary sm:text-4xl">
+                Diagnostics
+              </h1>
+              <Badge variant="warning" withDot>
+                quota-aware
+              </Badge>
+            </div>
+            <p className="mt-3 text-sm leading-relaxed text-neural-text-secondary">
+              Gateway provider health, reliability, and latest diagnostic checks. This page is intentionally quota-aware and
+              keeps the high-risk operations in one place.
+            </p>
           </div>
-          <p className="text-sm text-neural-text-secondary">
-            Gateway provider health, reliability, and latest diagnostic checks.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => void refresh()}
-            className="inline-flex items-center gap-2 rounded-lg border border-neural-cyan/35 bg-neural-cyan/12 px-3 py-2 font-display text-xs uppercase tracking-[0.06em] text-neural-cyan transition hover:bg-neural-cyan/22"
+              className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3 font-display text-[11px] uppercase tracking-[0.12em] text-neural-text-primary transition hover:border-neural-cyan/40 hover:bg-white/[0.08] hover:text-neural-cyan disabled:opacity-60"
             disabled={loading}
           >
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
@@ -321,20 +325,21 @@ export default function DiagnosticsPage() {
           <button
             type="button"
             onClick={() => void runHealthCheckNow()}
-            className="inline-flex items-center gap-2 rounded-lg border border-neural-amber/35 bg-neural-amber/14 px-3 py-2 font-display text-xs uppercase tracking-[0.06em] text-neural-amber transition hover:bg-neural-amber/24 disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-2xl border border-neural-amber/35 bg-neural-amber/14 px-4 py-3 font-display text-[11px] uppercase tracking-[0.12em] text-neural-amber transition hover:bg-neural-amber/24 disabled:opacity-60"
             disabled={runningCheck}
           >
             {runningCheck ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             Run health check
           </button>
         </div>
-      </div>
+        </div>
+      </Panel>
 
-      <Panel accent="amber">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+      <Panel accent="amber" className="p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h2 className="font-display text-sm uppercase tracking-[0.07em] text-neural-text-primary">Clear Diagnostics History</h2>
-            <p className="text-xs text-neural-text-secondary">
+            <h2 className="font-display text-[11px] uppercase tracking-[0.12em] text-neural-text-primary">Clear Diagnostics History</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-neural-text-secondary">
               Deletes provider health diagnostics history only. It does not delete conversations, model configs, API keys, or usage logs.
             </p>
           </div>
@@ -342,50 +347,54 @@ export default function DiagnosticsPage() {
             type="button"
             onClick={() => void clearDiagnosticsHistory()}
             disabled={clearingHistory || !adminConfigured}
-            className="inline-flex items-center gap-2 rounded-lg border border-neural-red/35 bg-neural-red/12 px-3 py-2 font-display text-xs uppercase tracking-[0.06em] text-rose-100 transition hover:bg-neural-red/24 disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-2xl border border-neural-red/35 bg-neural-red/12 px-4 py-3 font-display text-[11px] uppercase tracking-[0.12em] text-rose-100 transition hover:bg-neural-red/24 disabled:opacity-60"
           >
             {clearingHistory ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             Clear history
           </button>
         </div>
-        <div className="mt-3 grid gap-2 md:grid-cols-4">
+        <div className="mt-5 grid gap-3 md:grid-cols-4">
           <input
             value={clearProvider}
             onChange={(event) => setClearProvider(event.target.value)}
             placeholder="provider (optional)"
-            className="w-full rounded border border-neural-text-muted/30 bg-neural-input px-2 py-1.5 font-mono text-xs text-neural-text-primary focus:border-neural-cyan/50 focus:outline-none"
+            className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-xs text-neural-text-primary focus:border-neural-cyan/50 focus:outline-none"
           />
           <input
             value={clearModelAlias}
             onChange={(event) => setClearModelAlias(event.target.value)}
             placeholder="model_alias (optional)"
-            className="w-full rounded border border-neural-text-muted/30 bg-neural-input px-2 py-1.5 font-mono text-xs text-neural-text-primary focus:border-neural-cyan/50 focus:outline-none"
+            className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-xs text-neural-text-primary focus:border-neural-cyan/50 focus:outline-none"
           />
           <input
             value={clearStatus}
             onChange={(event) => setClearStatus(event.target.value)}
             placeholder="status (optional)"
-            className="w-full rounded border border-neural-text-muted/30 bg-neural-input px-2 py-1.5 font-mono text-xs text-neural-text-primary focus:border-neural-cyan/50 focus:outline-none"
+            className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-xs text-neural-text-primary focus:border-neural-cyan/50 focus:outline-none"
           />
           <input
             value={clearOlderThanSeconds}
             onChange={(event) => setClearOlderThanSeconds(event.target.value)}
             placeholder="older_than_seconds"
-            className="w-full rounded border border-neural-text-muted/30 bg-neural-input px-2 py-1.5 font-mono text-xs text-neural-text-primary focus:border-neural-cyan/50 focus:outline-none"
+            className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-xs text-neural-text-primary focus:border-neural-cyan/50 focus:outline-none"
           />
         </div>
       </Panel>
 
       {notice ? (
-        <div className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-4 text-sm text-emerald-100">{notice}</div>
+        <div className="rounded-2xl border border-emerald-400/30 bg-emerald-500/10 p-4 text-sm leading-relaxed text-emerald-100">
+          {notice}
+        </div>
       ) : null}
 
-      <Panel accent="cyan">
+      <Panel accent="cyan" className="p-6">
         <div className="flex items-center gap-2">
           <TriangleAlert className="h-4 w-4 text-neural-cyan" />
-          <h2 className="font-display text-sm uppercase tracking-[0.07em] text-neural-text-primary">Admin Configuration Status</h2>
+          <h2 className="font-display text-[11px] uppercase tracking-[0.12em] text-neural-text-primary">
+            Admin Configuration Status
+          </h2>
         </div>
-        <div className="mt-3 grid gap-2 text-sm text-neural-text-secondary">
+        <div className="mt-4 grid gap-2 text-sm text-neural-text-secondary">
           <p>Internal admin enabled: {credentialsView?.internal_admin_enabled ? "yes" : "no"}</p>
           <p>Internal admin token configured: {credentialsView?.internal_admin_token_configured ? "yes" : "no"}</p>
           {credentialsView ? (
@@ -444,7 +453,9 @@ export default function DiagnosticsPage() {
       ) : null}
 
       <section className="space-y-3">
-        <h2 className="font-display text-sm uppercase tracking-[0.07em] text-neural-text-primary">Provider Health Summary</h2>
+        <h2 className="font-display text-[11px] uppercase tracking-[0.12em] text-neural-text-primary">
+          Provider Health Summary
+        </h2>
         <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-5">
           <StatCard label="Total checks" value={summaryStats.total} accent="cyan" />
           <StatCard label="Healthy / OK" value={summaryStats.ok} accent="green" />
@@ -455,7 +466,9 @@ export default function DiagnosticsPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="font-display text-sm uppercase tracking-[0.07em] text-neural-text-primary">Reliability Scores</h2>
+        <h2 className="font-display text-[11px] uppercase tracking-[0.12em] text-neural-text-primary">
+          Reliability Scores
+        </h2>
         {reliability.length === 0 ? (
           <EmptyState title="No reliability records found yet." />
         ) : (

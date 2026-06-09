@@ -35,13 +35,13 @@ const config: Config = {
         }
       },
       fontFamily: {
-        display: ["var(--font-chakra-petch)", "sans-serif"],
-        sans: ["var(--font-dm-sans)", "sans-serif"],
-        mono: ["var(--font-jetbrains-mono)", "ui-monospace", "SFMono-Regular", "monospace"]
+        display: ["var(--font-geist-sans)", "sans-serif"],
+        sans: ["var(--font-geist-sans)", "sans-serif"],
+        mono: ["var(--font-geist-mono)", "ui-monospace", "SFMono-Regular", "monospace"]
       },
       boxShadow: {
-        "neural-panel": "0 0 0 1px rgba(107, 118, 150, 0.18), 0 12px 38px rgba(3, 8, 20, 0.66)",
-        "neural-glow": "0 0 24px rgba(0, 232, 255, 0.24)"
+        "neural-panel": "0 0 0 1px rgba(148, 163, 184, 0.12), 0 18px 48px rgba(2, 8, 20, 0.42)",
+        "neural-glow": "0 0 0 1px rgba(75, 225, 255, 0.14), 0 0 28px rgba(75, 225, 255, 0.18)"
       },
       keyframes: {
         "fade-in-up": {

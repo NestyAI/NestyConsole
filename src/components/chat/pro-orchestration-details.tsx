@@ -86,12 +86,12 @@ export function ProOrchestrationDetails({ metadata }: ProOrchestrationDetailsPro
   };
 
   return (
-    <div className="mt-4 rounded-xl border border-neural-text-muted/20 bg-neural-overlay/25 p-4 space-y-4 animate-fade-in-up">
+    <div className="mt-4 space-y-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4 animate-fade-in-up">
       {/* Header section */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neural-text-muted/15 pb-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3">
         <div className="flex items-center gap-2">
           <Brain className="h-4 w-4 text-neural-cyan" />
-          <h3 className="font-display text-xs uppercase tracking-[0.08em] text-neural-text-primary">
+          <h3 className="font-display text-[11px] uppercase tracking-[0.12em] text-neural-text-primary">
             Nesty Pro Orchestration
           </h3>
         </div>
@@ -101,31 +101,31 @@ export function ProOrchestrationDetails({ metadata }: ProOrchestrationDetailsPro
       </div>
 
       {/* Grid params */}
-      <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 text-xs sm:grid-cols-3 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-xs sm:grid-cols-3 md:grid-cols-4">
         <div>
-          <p className="text-[10px] uppercase tracking-[0.05em] text-neural-text-muted">Requested Mode</p>
+          <p className="text-[10px] uppercase tracking-[0.08em] text-neural-text-muted">Requested Mode</p>
           <p className="mt-0.5 font-mono text-neural-text-secondary">{String(requested)}</p>
         </div>
         <div>
-          <p className="text-[10px] uppercase tracking-[0.05em] text-neural-text-muted">Orchestrator Used</p>
+          <p className="text-[10px] uppercase tracking-[0.08em] text-neural-text-muted">Orchestrator Used</p>
           <p className="mt-0.5 font-semibold text-neural-text-secondary">{used ? "Yes" : "No"}</p>
         </div>
         <div>
-          <p className="text-[10px] uppercase tracking-[0.05em] text-neural-text-muted">Complexity Score</p>
+          <p className="text-[10px] uppercase tracking-[0.08em] text-neural-text-muted">Complexity Score</p>
           <p className="mt-0.5 font-mono text-neural-text-secondary">
             {complexity_score !== undefined && complexity_score !== null ? complexity_score : "N/A"}
           </p>
         </div>
         <div>
-          <p className="text-[10px] uppercase tracking-[0.05em] text-neural-text-muted">Total Latency</p>
+          <p className="text-[10px] uppercase tracking-[0.08em] text-neural-text-muted">Total Latency</p>
           <p className="mt-0.5 font-mono text-neural-text-secondary">{formatLatency(total_latency_ms)}</p>
         </div>
         <div>
-          <p className="text-[10px] uppercase tracking-[0.05em] text-neural-text-muted">Internal Model Calls</p>
+          <p className="text-[10px] uppercase tracking-[0.08em] text-neural-text-muted">Internal Model Calls</p>
           <p className="mt-0.5 font-mono text-neural-text-secondary">{internal_calls || 0}</p>
         </div>
         <div className="col-span-2 sm:col-span-1">
-          <p className="text-[10px] uppercase tracking-[0.05em] text-neural-text-muted">Decision Reason</p>
+          <p className="text-[10px] uppercase tracking-[0.08em] text-neural-text-muted">Decision Reason</p>
           <p className="mt-0.5 text-neural-text-secondary">{humanizeReason(decision_reason)}</p>
         </div>
       </div>
@@ -133,7 +133,9 @@ export function ProOrchestrationDetails({ metadata }: ProOrchestrationDetailsPro
       {/* Role Flow Steps */}
       {used && (
         <div className="space-y-2">
-          <h4 className="text-[10px] uppercase tracking-[0.05em] text-neural-text-muted">Execution Flow & Latency</h4>
+          <h4 className="text-[10px] uppercase tracking-[0.08em] text-neural-text-muted">
+            Execution Flow & Latency
+          </h4>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
             {ALL_STANDARD_ROLES.map((role) => {
               const status = getRoleStatus(role);
@@ -163,7 +165,7 @@ export function ProOrchestrationDetails({ metadata }: ProOrchestrationDetailsPro
               return (
                 <div
                   key={role}
-                  className={`flex items-center justify-between rounded-lg border p-2.5 ${statusBorderColor} ${statusBgColor}`}
+                  className={`flex items-center justify-between rounded-2xl border p-3 ${statusBorderColor} ${statusBgColor}`}
                 >
                   <div className="flex items-center gap-2">
                     <StatusIcon className={`h-4 w-4 ${statusTextColor}`} />
@@ -195,11 +197,11 @@ export function ProOrchestrationDetails({ metadata }: ProOrchestrationDetailsPro
 
       {/* Fallback alerts */}
       {fallback_used && (
-        <div className="rounded-lg border border-neural-red/30 bg-neural-red/10 p-3 text-xs text-rose-100 flex items-start gap-2">
+        <div className="flex items-start gap-2 rounded-2xl border border-neural-red/30 bg-neural-red/10 p-4 text-xs text-rose-100">
           <AlertCircle className="h-4 w-4 text-neural-red mt-0.5 shrink-0" />
           <div>
             <p className="font-semibold uppercase tracking-[0.04em] text-neural-red">Fallback Path Active</p>
-            <p className="mt-0.5 text-neural-text-secondary">
+            <p className="mt-0.5 text-neural-text-secondary leading-relaxed">
               Orchestrator fell back to single-provider model chain due to:{" "}
               <TokenTag className="border-neural-red/20 bg-neural-red/12 text-rose-100 ml-1">
                 {fallback_reason || "orchestration_error"}
@@ -210,11 +212,11 @@ export function ProOrchestrationDetails({ metadata }: ProOrchestrationDetailsPro
       )}
 
       {streaming_fallback && (
-        <div className="rounded-lg border border-neural-amber/30 bg-neural-amber/8 p-3 text-xs text-neural-amber flex items-start gap-2">
+        <div className="flex items-start gap-2 rounded-2xl border border-neural-amber/30 bg-neural-amber/8 p-4 text-xs text-neural-amber">
           <AlertCircle className="h-4 w-4 text-neural-amber mt-0.5 shrink-0" />
           <div>
             <p className="font-semibold uppercase tracking-[0.04em] text-neural-amber">Streaming Fallback Active</p>
-            <p className="mt-0.5 text-neural-text-secondary">
+            <p className="mt-0.5 leading-relaxed text-neural-text-secondary">
               Streaming completions do not support multi-model orchestration synthesis. Gateway fell back to single-provider routing path.
             </p>
           </div>

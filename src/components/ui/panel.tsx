@@ -20,8 +20,8 @@ export function Panel({ children, className, accent }: PanelProps) {
   return (
     <article
       className={cn(
-        "neural-panel relative overflow-hidden rounded-xl p-4 text-neural-text-primary animate-fade-in-up",
-        accent ? "before:absolute before:left-0 before:right-0 before:top-0 before:h-[2px]" : "",
+        "neural-panel relative overflow-hidden rounded-2xl p-4 text-neural-text-primary animate-fade-in-up",
+        accent ? "before:absolute before:left-0 before:right-0 before:top-0 before:h-[2px] before:content-['']" : "",
         accent ? ACCENT_CLASS[accent] : "",
         className
       )}

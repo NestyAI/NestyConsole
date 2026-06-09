@@ -15,8 +15,8 @@ export function ChatCanvasRenderer({ content, mode = "rendered" }: ChatCanvasRen
   // If content is empty or only whitespace, show a subtle streaming/empty indicator
   if (!content || !content.trim()) {
     return (
-      <div className="flex items-center gap-1.5 py-2 text-xs text-neural-text-muted select-none">
-        <span className="h-1.5 w-1.5 animate-status-pulse rounded-full bg-neural-cyan" />
+      <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-neural-text-muted select-none">
+        <span className="h-2 w-2 animate-status-pulse rounded-full bg-neural-cyan" />
         <span>Awaiting data stream...</span>
       </div>
     );
@@ -25,7 +25,7 @@ export function ChatCanvasRenderer({ content, mode = "rendered" }: ChatCanvasRen
   // 1. Raw display mode
   if (mode === "raw") {
     return (
-      <TerminalBlock className="w-full bg-neural-void/80 border border-neural-text-muted/15 max-h-[500px]">
+      <TerminalBlock className="max-h-[500px] w-full border-white/10 bg-neural-void/80">
         {content}
       </TerminalBlock>
     );
@@ -33,7 +33,7 @@ export function ChatCanvasRenderer({ content, mode = "rendered" }: ChatCanvasRen
 
   // 2. Rendered Markdown display mode
   return (
-    <div className="prose prose-invert max-w-none text-sm select-text">
+    <div className="prose prose-invert max-w-none select-text text-sm prose-p:leading-relaxed prose-p:text-neural-text-primary prose-headings:tracking-[-0.03em] prose-headings:text-neural-text-primary prose-strong:text-neural-text-primary prose-code:rounded-md prose-code:border prose-code:border-white/10 prose-code:bg-white/[0.04] prose-code:px-1.5 prose-code:py-0.5 prose-code:font-mono prose-code:text-neural-cyan">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
@@ -49,7 +49,7 @@ export function ChatCanvasRenderer({ content, mode = "rendered" }: ChatCanvasRen
             }
             return (
               <code
-                className="bg-neural-overlay/40 border border-neural-text-muted/10 px-1.5 py-0.5 rounded text-[11px] font-mono text-neural-cyan"
+                className="rounded-md border border-white/10 bg-white/[0.04] px-1.5 py-0.5 font-mono text-[11px] text-neural-cyan"
                 {...props}
               >
                 {children}
@@ -60,7 +60,7 @@ export function ChatCanvasRenderer({ content, mode = "rendered" }: ChatCanvasRen
           // Heading overrides using Chakra Petch styling
           h1({ children }) {
             return (
-              <h1 className="mt-6 mb-3 font-display text-base font-bold uppercase tracking-[0.06em] text-neural-text-primary border-b border-neural-text-muted/10 pb-1.5 last:mb-0">
+              <h1 className="mt-6 mb-3 border-b border-white/10 pb-1.5 font-display text-base font-bold uppercase tracking-[0.06em] text-neural-text-primary last:mb-0">
                 {children}
               </h1>
             );
@@ -114,7 +114,7 @@ export function ChatCanvasRenderer({ content, mode = "rendered" }: ChatCanvasRen
           // Blockquote overrides
           blockquote({ children }) {
             return (
-              <blockquote className="my-4 border-l-2 border-neural-amber/50 bg-neural-overlay/10 px-4 py-2 font-sans text-xs italic text-neural-text-secondary last:mb-0">
+              <blockquote className="my-4 rounded-2xl border border-neural-amber/20 bg-neural-amber/10 px-4 py-3 font-sans text-xs italic text-neural-text-secondary last:mb-0">
                 {children}
               </blockquote>
             );
@@ -123,8 +123,8 @@ export function ChatCanvasRenderer({ content, mode = "rendered" }: ChatCanvasRen
           // Responsive safe tables overrides (Constraint 5)
           table({ children }) {
             return (
-              <div className="my-4 w-full overflow-x-auto rounded-lg border border-neural-text-muted/15 bg-neural-overlay/5 neural-scroll">
-                <table className="min-w-full divide-y divide-neural-text-muted/15 text-left text-xs">
+              <div className="my-4 w-full overflow-x-auto rounded-2xl border border-white/10 bg-white/[0.03] neural-scroll">
+                <table className="min-w-full divide-y divide-white/10 text-left text-xs">
                   {children}
                 </table>
               </div>
@@ -132,17 +132,17 @@ export function ChatCanvasRenderer({ content, mode = "rendered" }: ChatCanvasRen
           },
           thead({ children }) {
             return (
-              <thead className="bg-neural-overlay/30 text-neural-text-primary font-display font-medium uppercase tracking-wider">
+              <thead className="bg-white/[0.03] font-display font-medium uppercase tracking-wider text-neural-text-primary">
                 {children}
               </thead>
             );
           },
           th({ children }) {
-            return <th className="px-4 py-2.5 text-[10px] font-semibold border-b border-neural-text-muted/15">{children}</th>;
+            return <th className="border-b border-white/10 px-4 py-2.5 text-[10px] font-semibold">{children}</th>;
           },
           td({ children }) {
             return (
-              <td className="px-4 py-2 border-b border-neural-text-muted/10 text-neural-text-secondary whitespace-normal break-words leading-normal">
+              <td className="border-b border-white/10 px-4 py-2 whitespace-normal break-words leading-normal text-neural-text-secondary">
                 {children}
               </td>
             );

@@ -81,25 +81,31 @@ export default function StatusPage() {
 
   return (
     <section className="space-y-6 animate-fade-in-up">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="font-display text-2xl uppercase tracking-[0.08em] text-neural-text-primary">Gateway Status</h1>
-            <Badge variant={healthy ? "success" : "warning"} withDot>
-              {healthy ? "operational" : "attention"}
-            </Badge>
+      <Panel accent={healthy ? "green" : "amber"} className="p-6 sm:p-7 lg:p-8">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="max-w-2xl">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-3xl font-semibold tracking-[-0.05em] text-neural-text-primary sm:text-4xl">
+                Gateway Status
+              </h1>
+              <Badge variant={healthy ? "success" : "warning"} withDot>
+                {healthy ? "operational" : "attention"}
+              </Badge>
+            </div>
+            <p className="mt-3 text-sm leading-relaxed text-neural-text-secondary">
+              Live gateway health and readiness overview. This view checks the service path and the readiness path together.
+            </p>
           </div>
-          <p className="text-sm text-neural-text-secondary">Live gateway health and readiness overview.</p>
+          <button
+            type="button"
+            onClick={() => void refresh(true)}
+            className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3 font-display text-[11px] uppercase tracking-[0.12em] text-neural-text-primary transition hover:border-neural-cyan/40 hover:bg-white/[0.08] hover:text-neural-cyan"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            Refresh
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={() => void refresh(true)}
-          className="inline-flex items-center gap-2 rounded-lg border border-neural-cyan/35 bg-neural-cyan/12 px-3 py-2 font-display text-xs uppercase tracking-[0.06em] text-neural-cyan transition hover:bg-neural-cyan/22"
-        >
-          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-          Refresh
-        </button>
-      </div>
+      </Panel>
 
       {error ? (
         <ErrorBanner code={error.code || "gateway_error"} message={error.message || "Unexpected gateway error."}>
@@ -133,11 +139,13 @@ export default function StatusPage() {
         />
       </div>
 
-      <Panel accent={healthy ? "green" : "amber"}>
-        <p className="font-display text-xs uppercase tracking-[0.08em] text-neural-text-secondary">
+      <Panel accent={healthy ? "green" : "amber"} className="p-6">
+        <p className="font-display text-[11px] uppercase tracking-[0.12em] text-neural-text-secondary">
           Overall Signal
         </p>
-        <p className="mt-1 text-sm text-neural-text-primary">{healthy ? "Healthy" : "Check gateway state"}</p>
+        <p className="mt-2 text-sm leading-relaxed text-neural-text-primary">
+          {healthy ? "Healthy" : "Check gateway state"}
+        </p>
       </Panel>
     </section>
   );

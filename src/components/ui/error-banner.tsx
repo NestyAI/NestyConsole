@@ -9,9 +9,9 @@ type ErrorBannerProps = {
 
 export function ErrorBanner({ code, message, children, className = "" }: ErrorBannerProps) {
   return (
-    <div className={`rounded-xl border border-neural-red/35 bg-neural-red/10 p-4 text-sm text-rose-100 ${className}`}>
-      {code ? <p className="font-mono text-[11px] uppercase tracking-[0.05em]">{code}</p> : null}
-      <p className={code ? "mt-1" : ""}>{message}</p>
+    <div className={`rounded-2xl border border-neural-red/35 bg-neural-red/10 p-4 text-sm text-rose-100 ${className}`}>
+      {code ? <p className="font-mono text-[11px] uppercase tracking-[0.08em]">{code}</p> : null}
+      <p className={code ? "mt-1 leading-relaxed" : "leading-relaxed"}>{message}</p>
       {children ? <div className="mt-2">{children}</div> : null}
     </div>
   );

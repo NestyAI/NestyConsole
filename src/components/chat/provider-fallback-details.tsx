@@ -75,16 +75,16 @@ export function ProviderFallbackDetails({ metadata }: ProviderFallbackDetailsPro
   const fallbackReason = String(metadata?.fallback_reason || "").trim();
 
   return (
-    <div className="rounded-lg border border-neural-cyan/30 bg-neural-cyan/10 p-3">
+    <div className="rounded-2xl border border-neural-cyan/30 bg-neural-cyan/10 p-4">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Route className="h-4 w-4 text-neural-cyan" />
-          <p className="font-display text-xs uppercase tracking-[0.08em] text-neural-cyan">Provider Fallback</p>
+          <p className="font-display text-[11px] uppercase tracking-[0.12em] text-neural-cyan">Provider Fallback</p>
         </div>
         <Badge variant={fallbackUsed ? "warning" : "inactive"}>{fallbackUsed ? "used" : "not used"}</Badge>
       </div>
 
-      <div className="mt-2 grid gap-1 text-xs text-neural-text-secondary">
+      <div className="mt-3 grid gap-1 text-xs leading-relaxed text-neural-text-secondary">
         <p>Selected provider: {selectedProvider !== "unknown" ? selectedProvider : "-"}</p>
         <p title={selectedModel || undefined}>Selected model: {selectedModel ? compactModel(selectedModel) : "-"}</p>
         <p>Fallback used: {fallbackUsed ? "yes" : "no"}</p>
@@ -93,7 +93,7 @@ export function ProviderFallbackDetails({ metadata }: ProviderFallbackDetailsPro
 
       {attempts.length > 0 ? (
         <div className="mt-3 space-y-1">
-          <p className="text-[11px] uppercase tracking-[0.06em] text-neural-text-muted">Attempted provider chain</p>
+          <p className="text-[11px] uppercase tracking-[0.08em] text-neural-text-muted">Attempted provider chain</p>
           <div className="flex flex-wrap gap-1.5">
             {attempts.map((item, index) => {
               const provider = normalizeProviderName(item.provider);
@@ -103,7 +103,7 @@ export function ProviderFallbackDetails({ metadata }: ProviderFallbackDetailsPro
                   <Badge variant={providerBadgeVariant(provider)}>{provider}</Badge>
                   {model ? (
                     <span
-                      className="max-w-[240px] truncate rounded border border-neural-text-muted/30 bg-neural-overlay/35 px-2 py-1 font-mono text-[11px] text-neural-text-secondary"
+                      className="max-w-[240px] truncate rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 font-mono text-[11px] text-neural-text-secondary"
                       title={model}
                     >
                       {compactModel(model)}
@@ -118,7 +118,7 @@ export function ProviderFallbackDetails({ metadata }: ProviderFallbackDetailsPro
 
       {errors.length > 0 ? (
         <div className="mt-3 space-y-1">
-          <p className="text-[11px] uppercase tracking-[0.06em] text-neural-text-muted">Provider errors</p>
+          <p className="text-[11px] uppercase tracking-[0.08em] text-neural-text-muted">Provider errors</p>
           <div className="space-y-1.5">
             {errors.map((item, index) => {
               const provider = normalizeProviderName(item.provider);
@@ -128,13 +128,13 @@ export function ProviderFallbackDetails({ metadata }: ProviderFallbackDetailsPro
               return (
                 <div
                   key={`${provider}:${model}:${errorCode}:${index}`}
-                  className="rounded border border-neural-text-muted/20 bg-neural-overlay/35 p-2 text-xs"
+                  className="rounded-2xl border border-white/10 bg-white/[0.03] p-3 text-xs"
                 >
                   <div className="flex flex-wrap items-center gap-1.5">
                     <Badge variant={providerBadgeVariant(provider)}>{provider}</Badge>
                     {model ? (
                       <span
-                        className="max-w-[240px] truncate rounded border border-neural-text-muted/30 bg-neural-overlay/35 px-2 py-1 font-mono text-[11px] text-neural-text-secondary"
+                        className="max-w-[240px] truncate rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 font-mono text-[11px] text-neural-text-secondary"
                         title={model}
                       >
                         {compactModel(model)}

@@ -11,7 +11,7 @@ export function TerminalBlock({ children, className }: TerminalBlockProps) {
   return (
     <pre
       className={cn(
-        "neural-terminal neural-scroll max-h-80 overflow-auto rounded-lg p-3 font-mono text-[11px] leading-relaxed",
+        "neural-terminal neural-scroll max-h-80 overflow-auto rounded-2xl p-4 font-mono text-[11px] leading-relaxed",
         className
       )}
     >

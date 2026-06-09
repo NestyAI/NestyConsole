@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2, Trash2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { ErrorBanner } from "@/components/ui/error-banner";
 import { LoadingBlock } from "@/components/ui/loading-block";
+import { Panel } from "@/components/ui/panel";
 import { StateCard } from "@/components/ui/state-card";
 
 type CredentialSource = "stored" | "env" | "missing";
@@ -234,22 +236,33 @@ export default function GatewaySettingsPage() {
 
   return (
     <section className="space-y-6 animate-fade-in-up">
-      <div>
-        <h1 className="font-display text-2xl uppercase tracking-[0.08em] text-neural-text-primary">Gateway Credentials</h1>
-        <p className="text-sm text-neural-text-secondary">
-          Credentials are stored server-side with encryption. Secret values are never shown in the browser.
-        </p>
-      </div>
+      <Panel accent="cyan" className="p-6 sm:p-7 lg:p-8">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="max-w-2xl">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-3xl font-semibold tracking-[-0.05em] text-neural-text-primary sm:text-4xl">
+                Gateway Credentials
+              </h1>
+              <Badge variant="warning" withDot>
+                protected
+              </Badge>
+            </div>
+            <p className="mt-3 text-sm leading-relaxed text-neural-text-secondary">
+              Credentials are stored server-side with encryption. Secret values are never shown in the browser.
+            </p>
+          </div>
+        </div>
+      </Panel>
 
       {view?.storage_mode === "redis_kv" && view.storage_available ? (
-        <div className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-4 text-sm text-emerald-100 space-y-2">
+        <div className="rounded-2xl border border-emerald-400/30 bg-emerald-500/10 p-4 text-sm leading-relaxed text-emerald-100 space-y-2">
           <p className="font-semibold">Persistent credential storage is active through Redis KV.</p>
           <p>Gateway credentials saved here can be updated on Vercel without redeploying.</p>
         </div>
       ) : null}
 
       {view?.storage_mode === "redis_kv" && !view.storage_available ? (
-        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100 space-y-2">
+        <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm leading-relaxed text-amber-100 space-y-2">
           <p className="font-semibold">Redis KV storage unavailable</p>
           <p>
             Redis KV storage is selected but UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN, or
@@ -259,7 +272,7 @@ export default function GatewaySettingsPage() {
       ) : null}
 
       {view?.storage_mode === "env_only" ? (
-        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100 space-y-2">
+        <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm leading-relaxed text-amber-100 space-y-2">
           <p className="font-semibold flex items-center gap-2">Environment-Only Mode Active</p>
           <p>
             Nesty Console is running in environment-only mode (credential storage is disabled or unavailable in this serverless runtime).
@@ -301,7 +314,7 @@ export default function GatewaySettingsPage() {
       </StateCard>
 
       {invalidApiKeyHint ? (
-        <div className="rounded-xl border border-amber-300/40 bg-amber-500/10 p-4 text-sm text-amber-100">
+        <div className="rounded-2xl border border-amber-300/40 bg-amber-500/10 p-4 text-sm leading-relaxed text-amber-100">
           Gateway API key is invalid or expired. If Gateway uses an ephemeral Console key, copy the new key from
           Gateway startup logs and update it here.
         </div>
@@ -311,14 +324,15 @@ export default function GatewaySettingsPage() {
         <ErrorBanner message={error} />
       ) : null}
       {success ? (
-        <div className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-4 text-sm text-emerald-100">
+        <div className="rounded-2xl border border-emerald-400/30 bg-emerald-500/10 p-4 text-sm leading-relaxed text-emerald-100">
           {success}
         </div>
       ) : null}
 
-      <form onSubmit={handleSave} className="neural-panel space-y-4 rounded-xl p-4">
+      <form onSubmit={handleSave} className="space-y-4">
+        <Panel accent="cyan" className="space-y-4 p-6 sm:p-7">
         <div className="space-y-2">
-          <label htmlFor="gateway_url" className="font-display text-xs uppercase tracking-[0.06em] text-neural-text-secondary">
+          <label htmlFor="gateway_url" className="font-display text-[11px] uppercase tracking-[0.12em] text-neural-text-secondary">
             Gateway URL
           </label>
           <input
@@ -326,12 +340,12 @@ export default function GatewaySettingsPage() {
             value={gatewayUrl}
             onChange={(event) => setGatewayUrl(event.target.value)}
             placeholder="https://your-gateway.example.com"
-            className="w-full rounded-lg border border-neural-text-muted/30 bg-neural-input px-3 py-2 font-mono text-sm text-neural-text-primary outline-none ring-neural-cyan/50 focus:ring"
+            className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 font-mono text-sm text-neural-text-primary outline-none ring-neural-cyan/50 focus:ring"
           />
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="gateway_api_key" className="font-display text-xs uppercase tracking-[0.06em] text-neural-text-secondary">
+          <label htmlFor="gateway_api_key" className="font-display text-[11px] uppercase tracking-[0.12em] text-neural-text-secondary">
             Replace Gateway API Key (optional)
           </label>
           <input
@@ -340,12 +354,12 @@ export default function GatewaySettingsPage() {
             value={gatewayApiKey}
             onChange={(event) => setGatewayApiKey(event.target.value)}
             placeholder={view?.storage_mode === "env_only" ? "Used for Test connection only in env-only mode" : "Leave blank to keep existing value"}
-            className="w-full rounded-lg border border-neural-text-muted/30 bg-neural-input px-3 py-2 font-mono text-sm text-neural-text-primary outline-none ring-neural-cyan/50 focus:ring"
+            className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 font-mono text-sm text-neural-text-primary outline-none ring-neural-cyan/50 focus:ring"
           />
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="internal_admin_token" className="font-display text-xs uppercase tracking-[0.06em] text-neural-text-secondary">
+          <label htmlFor="internal_admin_token" className="font-display text-[11px] uppercase tracking-[0.12em] text-neural-text-secondary">
             Replace Internal Admin Token (optional)
           </label>
           <input
@@ -354,11 +368,11 @@ export default function GatewaySettingsPage() {
             value={internalAdminToken}
             onChange={(event) => setInternalAdminToken(event.target.value)}
             placeholder={view?.storage_mode === "env_only" ? "Used for Test connection only in env-only mode" : "Leave blank to keep existing value"}
-            className="w-full rounded-lg border border-neural-text-muted/30 bg-neural-input px-3 py-2 font-mono text-sm text-neural-text-primary outline-none ring-neural-cyan/50 focus:ring"
+            className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 font-mono text-sm text-neural-text-primary outline-none ring-neural-cyan/50 focus:ring"
           />
         </div>
 
-        <label className="flex items-center gap-2 text-sm text-neural-text-secondary">
+        <label className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-neural-text-secondary">
           <input
             type="checkbox"
             checked={internalAdminEnabled}
@@ -372,7 +386,7 @@ export default function GatewaySettingsPage() {
           <button
             type="submit"
             disabled={saveDisabled}
-            className="inline-flex items-center gap-2 rounded-lg border border-neural-cyan/40 bg-neural-cyan/15 px-3 py-2 font-display text-xs uppercase tracking-[0.07em] text-neural-cyan transition hover:bg-neural-cyan/25 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-2xl border border-neural-cyan/40 bg-neural-cyan/15 px-4 py-3 font-display text-[11px] uppercase tracking-[0.12em] text-neural-cyan transition hover:bg-neural-cyan/25 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             Save credentials
@@ -381,7 +395,7 @@ export default function GatewaySettingsPage() {
             type="button"
             onClick={() => void handleTest()}
             disabled={testing || loading}
-            className="inline-flex items-center gap-2 rounded-lg border border-neural-text-muted/30 bg-neural-overlay/45 px-3 py-2 font-display text-xs uppercase tracking-[0.07em] text-neural-text-primary transition hover:border-neural-cyan/40 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3 font-display text-[11px] uppercase tracking-[0.12em] text-neural-text-primary transition hover:border-neural-cyan/40 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {testing ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             Test connection
@@ -391,24 +405,27 @@ export default function GatewaySettingsPage() {
               type="button"
               onClick={() => void handleClearStoredCredentials()}
               disabled={clearing || loading}
-              className="inline-flex items-center gap-2 rounded-lg border border-neural-red/35 bg-neural-red/12 px-3 py-2 font-display text-xs uppercase tracking-[0.07em] text-rose-100 transition hover:bg-neural-red/22 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-2xl border border-neural-red/35 bg-neural-red/12 px-4 py-3 font-display text-[11px] uppercase tracking-[0.12em] text-rose-100 transition hover:bg-neural-red/22 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {clearing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
               Clear stored credentials
             </button>
           ) : null}
-          <Link href="/settings" className="text-sm text-neural-text-secondary underline underline-offset-2">
+          <Link href="/settings" className="text-sm text-neural-text-secondary underline underline-offset-4">
             Back to settings
           </Link>
         </div>
+        </Panel>
       </form>
 
       {testResult ? (
-        <article className="neural-panel rounded-xl p-4 text-sm text-neural-text-secondary">
-          <p className="font-display text-sm uppercase tracking-[0.06em] text-neural-text-primary">Test summary: {testResult.status}</p>
-          <p className="mt-1">{testResult.message}</p>
+        <Panel accent="green" className="p-4 sm:p-6 text-sm text-neural-text-secondary">
+          <p className="font-display text-[11px] uppercase tracking-[0.12em] text-neural-text-primary">
+            Test summary: {testResult.status}
+          </p>
+          <p className="mt-2 leading-relaxed">{testResult.message}</p>
           {testResult.warning ? (
-            <p className="text-xs text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1.5 rounded mt-2">
+            <p className="mt-3 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs leading-relaxed text-amber-300">
               Warning: {testResult.warning}
             </p>
           ) : null}
@@ -423,22 +440,24 @@ export default function GatewaySettingsPage() {
               </p>
             ) : null}
           </div>
-        </article>
+        </Panel>
       ) : null}
 
       {view?.storage_mode === "env_only" ? (
-        <article className="neural-panel rounded-xl p-4 space-y-3">
-          <h3 className="font-display text-sm uppercase tracking-[0.06em] text-neural-text-primary">Vercel Environment Setup</h3>
-          <p className="text-xs text-neural-text-secondary">
+        <Panel accent="violet" className="space-y-3 p-4 sm:p-6">
+          <h3 className="font-display text-[11px] uppercase tracking-[0.12em] text-neural-text-primary">
+            Vercel Environment Setup
+          </h3>
+          <p className="text-xs leading-relaxed text-neural-text-secondary">
             Since database storage is disabled, configure these environment variables on Vercel:
           </p>
-          <ul className="list-disc pl-5 text-xs text-neural-text-secondary space-y-1 font-mono">
+          <ul className="list-disc space-y-1 pl-5 font-mono text-xs text-neural-text-secondary">
             <li>NESTY_GATEWAY_URL - Base URL of NestyAI Gateway (e.g. https://your-gateway.vercel.app)</li>
             <li>NESTY_API_KEY - API key used to authorize requests against the Gateway</li>
             <li>NESTY_CONSOLE_ENABLE_INTERNAL_ADMIN - set to &quot;true&quot; to enable model configs / diagnostics</li>
             <li>NESTY_INTERNAL_ADMIN_TOKEN - The token required for internal admin operations (optional)</li>
           </ul>
-        </article>
+        </Panel>
       ) : null}
 
       {loading ? <LoadingBlock label="Loading credentials..." /> : null}

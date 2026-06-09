@@ -169,7 +169,7 @@ export default async function SettingsPage() {
             >
               <p className="font-display text-[11px] uppercase tracking-[0.12em] text-neural-green">API Keys</p>
               <p className="mt-2 text-sm leading-relaxed text-neural-text-secondary">
-                Create, revoke, and manage environment-specific Gateway API keys.
+                Create, revoke, and manage environment-specific Gateway API keys. Requires Internal Admin Token.
               </p>
             </Link>
 

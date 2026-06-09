@@ -134,6 +134,42 @@ export type GatewayRuntimeFallbackMetadata = {
   fallback_reason?: string | null;
 };
 
+export type GatewayRetrievalMetadata = {
+  context_used?: boolean;
+  context_sources?: string[];
+  context_items_count?: number;
+  context_truncated?: boolean;
+  context_budget_chars?: number;
+  context_used_chars?: number;
+  summary_used?: boolean;
+  pinned_memory_used?: boolean;
+  fts_used?: boolean;
+  semantic_recall_used?: boolean;
+  search_used?: boolean;
+  tools_used?: string[];
+  retrieval_decision?: string;
+  retrieval_reason?: string;
+};
+
+export type GatewayPlannerMetadata = {
+  search_decision?: string;
+  search_planned?: boolean;
+  search_used?: boolean;
+  search_reason?: string;
+  tool_decision?: string;
+  tools_planned?: string[];
+  tools_used?: string[];
+  tool_reason?: string;
+  clarification_needed?: boolean;
+  clarification_reason?: string;
+};
+
+export type GatewayAnswerQualityMetadata = {
+  checked?: boolean;
+  flags?: string[];
+  action?: string;
+};
+
 export type ChatCompletionMetadata = {
   model?: string;
   model_alias?: string;
@@ -152,6 +188,9 @@ export type ChatCompletionMetadata = {
   selected_model?: string | null;
   fallback_used?: boolean;
   fallback_reason?: string | null;
+  retrieval?: GatewayRetrievalMetadata;
+  planner?: GatewayPlannerMetadata;
+  answer_quality?: GatewayAnswerQualityMetadata;
 };
 
 export type GatewayChatMetadata = ChatCompletionMetadata;

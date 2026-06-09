@@ -11,6 +11,9 @@ import { LoadingBlock } from "@/components/ui/loading-block";
 import { Panel } from "@/components/ui/panel";
 import { TokenTag } from "@/components/ui/token-tag";
 import { ProOrchestrationDetails } from "@/components/chat/pro-orchestration-details";
+import { RetrievalDetails } from "@/components/chat/retrieval-details";
+import { PlannerDetails } from "@/components/chat/planner-details";
+import { AnswerQualityDetails } from "@/components/chat/answer-quality-details";
 import { OutputSafetyDetails } from "@/components/chat/output-safety-details";
 import { ProviderFallbackDetails } from "@/components/chat/provider-fallback-details";
 import { ChatCanvasRenderer } from "@/components/chat/chat-canvas-renderer";
@@ -278,6 +281,60 @@ function extractMetadata(payload: unknown): Partial<ChatCompletionMetadata> {
     ? Object.fromEntries(Object.entries(orchestration).filter(([, v]) => v !== undefined))
     : undefined;
 
+  const rawRetrieval = (data.retrieval || metadataObj?.retrieval) as Record<string, unknown> | null | undefined;
+  const retrieval = rawRetrieval && typeof rawRetrieval === "object"
+    ? {
+        context_used: typeof rawRetrieval.context_used === "boolean" ? rawRetrieval.context_used : undefined,
+        context_sources: Array.isArray(rawRetrieval.context_sources) ? (rawRetrieval.context_sources as string[]) : undefined,
+        context_items_count: typeof rawRetrieval.context_items_count === "number" ? rawRetrieval.context_items_count : undefined,
+        context_truncated: typeof rawRetrieval.context_truncated === "boolean" ? rawRetrieval.context_truncated : undefined,
+        context_budget_chars: typeof rawRetrieval.context_budget_chars === "number" ? rawRetrieval.context_budget_chars : undefined,
+        context_used_chars: typeof rawRetrieval.context_used_chars === "number" ? rawRetrieval.context_used_chars : undefined,
+        summary_used: typeof rawRetrieval.summary_used === "boolean" ? rawRetrieval.summary_used : undefined,
+        pinned_memory_used: typeof rawRetrieval.pinned_memory_used === "boolean" ? rawRetrieval.pinned_memory_used : undefined,
+        fts_used: typeof rawRetrieval.fts_used === "boolean" ? rawRetrieval.fts_used : undefined,
+        semantic_recall_used: typeof rawRetrieval.semantic_recall_used === "boolean" ? rawRetrieval.semantic_recall_used : undefined,
+        search_used: typeof rawRetrieval.search_used === "boolean" ? rawRetrieval.search_used : undefined,
+        tools_used: Array.isArray(rawRetrieval.tools_used) ? (rawRetrieval.tools_used as string[]) : undefined,
+        retrieval_decision: typeof rawRetrieval.retrieval_decision === "string" ? rawRetrieval.retrieval_decision : undefined,
+        retrieval_reason: typeof rawRetrieval.retrieval_reason === "string" ? rawRetrieval.retrieval_reason : undefined,
+      }
+    : undefined;
+  const cleanRetrieval = retrieval
+    ? Object.fromEntries(Object.entries(retrieval).filter(([, v]) => v !== undefined))
+    : undefined;
+
+  const rawPlanner = (data.planner || metadataObj?.planner) as Record<string, unknown> | null | undefined;
+  const planner = rawPlanner && typeof rawPlanner === "object"
+    ? {
+        search_decision: typeof rawPlanner.search_decision === "string" ? rawPlanner.search_decision : undefined,
+        search_planned: typeof rawPlanner.search_planned === "boolean" ? rawPlanner.search_planned : undefined,
+        search_used: typeof rawPlanner.search_used === "boolean" ? rawPlanner.search_used : undefined,
+        search_reason: typeof rawPlanner.search_reason === "string" ? rawPlanner.search_reason : undefined,
+        tool_decision: typeof rawPlanner.tool_decision === "string" ? rawPlanner.tool_decision : undefined,
+        tools_planned: Array.isArray(rawPlanner.tools_planned) ? (rawPlanner.tools_planned as string[]) : undefined,
+        tools_used: Array.isArray(rawPlanner.tools_used) ? (rawPlanner.tools_used as string[]) : undefined,
+        tool_reason: typeof rawPlanner.tool_reason === "string" ? rawPlanner.tool_reason : undefined,
+        clarification_needed: typeof rawPlanner.clarification_needed === "boolean" ? rawPlanner.clarification_needed : undefined,
+        clarification_reason: typeof rawPlanner.clarification_reason === "string" ? rawPlanner.clarification_reason : undefined,
+      }
+    : undefined;
+  const cleanPlanner = planner
+    ? Object.fromEntries(Object.entries(planner).filter(([, v]) => v !== undefined))
+    : undefined;
+
+  const rawAnswerQuality = (data.answer_quality || metadataObj?.answer_quality) as Record<string, unknown> | null | undefined;
+  const answerQuality = rawAnswerQuality && typeof rawAnswerQuality === "object"
+    ? {
+        checked: typeof rawAnswerQuality.checked === "boolean" ? rawAnswerQuality.checked : undefined,
+        flags: Array.isArray(rawAnswerQuality.flags) ? (rawAnswerQuality.flags as string[]) : undefined,
+        action: typeof rawAnswerQuality.action === "string" ? rawAnswerQuality.action : undefined,
+      }
+    : undefined;
+  const cleanAnswerQuality = answerQuality
+    ? Object.fromEntries(Object.entries(answerQuality).filter(([, v]) => v !== undefined))
+    : undefined;
+
   return {
     model,
     model_alias: modelAlias,
@@ -291,7 +348,10 @@ function extractMetadata(payload: unknown): Partial<ChatCompletionMetadata> {
     selected_provider: selectedProvider,
     selected_model: selectedModel,
     fallback_used: fallbackUsed,
-    fallback_reason: fallbackReason
+    fallback_reason: fallbackReason,
+    retrieval: cleanRetrieval,
+    planner: cleanPlanner,
+    answer_quality: cleanAnswerQuality
   };
 }
 
@@ -364,6 +424,18 @@ function mergeMetadata(
     base.output_safety as Record<string, unknown> | null,
     next.output_safety as Record<string, unknown> | null
   );
+  const retrieval = cleanMerge(
+    base.retrieval as Record<string, unknown> | null,
+    next.retrieval as Record<string, unknown> | null
+  );
+  const planner = cleanMerge(
+    base.planner as Record<string, unknown> | null,
+    next.planner as Record<string, unknown> | null
+  );
+  const answer_quality = cleanMerge(
+    base.answer_quality as Record<string, unknown> | null,
+    next.answer_quality as Record<string, unknown> | null
+  );
 
   const attempted_providers = next.attempted_providers !== undefined ? next.attempted_providers : base.attempted_providers;
   const provider_errors = next.provider_errors !== undefined ? next.provider_errors : base.provider_errors;
@@ -373,6 +445,7 @@ function mergeMetadata(
   const fallback_reason = next.fallback_reason !== undefined ? next.fallback_reason : base.fallback_reason;
 
   return {
+    ...base,
     model,
     model_alias,
     provider,
@@ -385,7 +458,10 @@ function mergeMetadata(
     selected_provider,
     selected_model,
     fallback_used,
-    fallback_reason
+    fallback_reason,
+    retrieval: retrieval as ChatCompletionMetadata["retrieval"],
+    planner: planner as ChatCompletionMetadata["planner"],
+    answer_quality: answer_quality as ChatCompletionMetadata["answer_quality"]
   };
 }
 
@@ -1513,6 +1589,15 @@ export default function ChatPage() {
                       No Pro orchestration metadata returned. Gateway may be older than v1.0.4 or this response used a basic fallback path.
                     </p>
                   ) : null}
+                  <div className="col-span-full font-sans">
+                    <RetrievalDetails metadata={responseMetadata.retrieval} />
+                  </div>
+                  <div className="col-span-full font-sans">
+                    <PlannerDetails metadata={responseMetadata.planner} />
+                  </div>
+                  <div className="col-span-full font-sans">
+                    <AnswerQualityDetails metadata={responseMetadata.answer_quality} />
+                  </div>
                   <div className="col-span-full font-sans">
                     <OutputSafetyDetails metadata={responseMetadata.output_safety} />
                   </div>

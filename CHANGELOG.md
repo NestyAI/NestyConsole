@@ -2,6 +2,35 @@
 
 All notable changes to Nesty Console will be documented in this file.
 
+## [0.7.2] - Unreleased
+
+### Added
+
+* Added Planner metadata display in Chat Response Details.
+* Added Retrieval metadata display for context sources, truncation, and memory/search usage.
+* Added Answer Quality metadata display for quality flags and actions.
+
+### Changed
+
+* Improved Chat Response Details organization so orchestration, retrieval, planner, answer quality, output safety, and provider fallback metadata are easier to inspect.
+
+### Security
+
+* Runtime metadata rendering remains sanitized and does not expose Gateway credentials, internal admin tokens, hidden prompts, raw context, raw tool arguments, provider secrets, or stack traces.
+
+## [0.7.1] - Unreleased
+
+### Changed
+
+* Improved API Key Management UX, empty states, error states, and production QA guidance.
+* Improved one-time raw API key creation flow with clearer warnings and safer state cleanup.
+* Improved API key usage, limit, model allowlist, and revoked-state display.
+
+### Security
+
+* Rechecked API key management boundaries so raw keys remain one-time only and internal admin credentials remain server-side.
+* Added stronger UI warnings to prevent accidental API key loss or misuse.
+
 ## [0.7.0] - Unreleased
 
 ### Added

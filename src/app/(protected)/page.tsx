@@ -42,7 +42,7 @@ const cards = [
   {
     href: "/api-keys",
     title: "API Keys",
-    description: "Create and revoke Gateway API keys."
+    description: "Manage Gateway keys. Create and revoke client access tokens."
   },
   {
     href: "/settings",

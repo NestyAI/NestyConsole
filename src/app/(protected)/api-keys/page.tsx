@@ -17,11 +17,11 @@ import {
 
 import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/ui/data-table";
-import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorBanner } from "@/components/ui/error-banner";
 import { LoadingBlock } from "@/components/ui/loading-block";
 import { Panel } from "@/components/ui/panel";
 import { TokenTag } from "@/components/ui/token-tag";
+import { StatCard } from "@/components/ui/stat-card";
 
 import {
   createApiKey,
@@ -45,6 +45,7 @@ export default function ApiKeysPage() {
   const [error, setError] = useState<ApiKeyConsoleError | null>(null);
 
   // Filters state
+  const [searchTerm, setSearchTerm] = useState("");
   const [q, setQ] = useState("");
   const [environment, setEnvironment] = useState("all");
   const [revoked, setRevoked] = useState("all");
@@ -69,6 +70,7 @@ export default function ApiKeysPage() {
   const [createdRawKey, setCreatedRawKey] = useState<string | null>(null);
   const [createdApiKey, setCreatedApiKey] = useState<GatewayApiKeyPublicInfo | null>(null);
   const [copied, setCopied] = useState(false);
+  const [confirmCopied, setConfirmCopied] = useState(false);
 
   // Form states
   const [formName, setFormName] = useState("");
@@ -120,6 +122,17 @@ export default function ApiKeysPage() {
     setLoading(false);
   }, [environment, revoked, q, limit]);
 
+  // Debounce search input
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setQ(searchTerm);
+    }, 400);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchTerm]);
+
   useEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect */
     void loadCredentialsStatus();
@@ -131,10 +144,18 @@ export default function ApiKeysPage() {
     setOffset(0);
     void loadKeys(0);
     /* eslint-enable react-hooks/set-state-in-effect */
-  }, [loadKeys]);
+  }, [loadKeys, q]); // Reload when q changes from debounced search
 
   const handleRefresh = async () => {
     await Promise.all([loadCredentialsStatus(), loadKeys(offset)]);
+  };
+
+  const handleClearFilters = () => {
+    setSearchTerm("");
+    setQ("");
+    setEnvironment("all");
+    setRevoked("all");
+    setOffset(0);
   };
 
   const handlePaginate = (newOffset: number) => {
@@ -162,6 +183,18 @@ export default function ApiKeysPage() {
     setSaving(true);
     setFormError(null);
 
+    // Validate integer formats
+    if (formDaily.trim() && !/^\d+$/.test(formDaily.trim())) {
+      setFormError("Daily limit must be a positive integer.");
+      setSaving(false);
+      return;
+    }
+    if (formMonthly.trim() && !/^\d+$/.test(formMonthly.trim())) {
+      setFormError("Monthly limit must be a positive integer.");
+      setSaving(false);
+      return;
+    }
+
     const dailyLimit = formDaily.trim() ? Number.parseInt(formDaily, 10) : null;
     const monthlyLimit = formMonthly.trim() ? Number.parseInt(formMonthly, 10) : null;
 
@@ -174,6 +207,28 @@ export default function ApiKeysPage() {
       setFormError("Monthly limit must be a positive integer.");
       setSaving(false);
       return;
+    }
+
+    // Daily limit cannot exceed monthly limit
+    if (dailyLimit !== null && monthlyLimit !== null && monthlyLimit < dailyLimit) {
+      setFormError("Monthly limit cannot be lower than daily limit.");
+      setSaving(false);
+      return;
+    }
+
+    // Prefix validation: alphanumeric, underscores, hyphens, max 20 chars
+    if (formPrefix.trim()) {
+      const prefix = formPrefix.trim();
+      if (!/^[a-zA-Z0-9_-]+$/.test(prefix)) {
+        setFormError("Key prefix must contain only alphanumeric characters, underscores (_), or hyphens (-).");
+        setSaving(false);
+        return;
+      }
+      if (prefix.length > 20) {
+        setFormError("Key prefix must be at most 20 characters.");
+        setSaving(false);
+        return;
+      }
     }
 
     const payload = {
@@ -196,16 +251,24 @@ export default function ApiKeysPage() {
       setCreatedRawKey(result.data.raw_key);
       setCreatedApiKey(result.data.api_key);
       setCopied(false);
+      setConfirmCopied(false);
       setRawKeyOpen(true);
     }
   };
 
   const closeRawKeyModal = () => {
+    if (!copied && !confirmCopied) {
+      const ok = window.confirm(
+        "You have not copied this key yet. Closing will permanently hide it. Are you sure you want to proceed?"
+      );
+      if (!ok) return;
+    }
     // Crucial security constraint: Clear raw key completely from state memory
     setCreatedRawKey(null);
     setCreatedApiKey(null);
     setRawKeyOpen(false);
     setCopied(false);
+    setConfirmCopied(false);
     // Refresh table
     void loadKeys(offset);
   };
@@ -241,6 +304,18 @@ export default function ApiKeysPage() {
     setSaving(true);
     setFormError(null);
 
+    // Validate integer formats
+    if (formDaily.trim() && !/^\d+$/.test(formDaily.trim())) {
+      setFormError("Daily limit must be a positive integer.");
+      setSaving(false);
+      return;
+    }
+    if (formMonthly.trim() && !/^\d+$/.test(formMonthly.trim())) {
+      setFormError("Monthly limit must be a positive integer.");
+      setSaving(false);
+      return;
+    }
+
     const dailyLimit = formDaily.trim() ? Number.parseInt(formDaily, 10) : null;
     const monthlyLimit = formMonthly.trim() ? Number.parseInt(formMonthly, 10) : null;
 
@@ -251,6 +326,13 @@ export default function ApiKeysPage() {
     }
     if (monthlyLimit !== null && (Number.isNaN(monthlyLimit) || monthlyLimit < 0)) {
       setFormError("Monthly limit must be a positive integer.");
+      setSaving(false);
+      return;
+    }
+
+    // Daily limit cannot exceed monthly limit
+    if (dailyLimit !== null && monthlyLimit !== null && monthlyLimit < dailyLimit) {
+      setFormError("Monthly limit cannot be lower than daily limit.");
       setSaving(false);
       return;
     }
@@ -292,6 +374,7 @@ export default function ApiKeysPage() {
     } else {
       setRevokeOpen(false);
       setRevokingKey(null);
+      alert(result.data.is_revoked ? "API Key revoked successfully." : "Already revoked.");
       void loadKeys(offset);
     }
   };
@@ -308,19 +391,313 @@ export default function ApiKeysPage() {
 
   const formatTimestamp = (raw: unknown): string => {
     if (typeof raw !== "string" || !raw.trim()) {
-      return "-";
+      return "—";
     }
     const d = new Date(raw);
-    if (Number.isNaN(d.getTime())) return "-";
-    return d.toLocaleString();
+    if (Number.isNaN(d.getTime())) return "—";
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
   };
 
   const keyEnvBadge = (env?: string) => {
     const clean = String(env || "").toLowerCase().trim();
     if (clean === "prod" || clean === "live") return <Badge variant="live">{clean}</Badge>;
     if (clean === "dev") return <Badge variant="warning">{clean}</Badge>;
+    if (clean === "local") return <Badge variant="ai">{clean}</Badge>;
     return <Badge variant="inactive">{clean || "unknown"}</Badge>;
   };
+
+  // Status statistics helper calculations
+  const totalKeys = keys.length;
+  const activeKeys = keys.filter((k) => !k.is_revoked).length;
+  const revokedKeys = keys.filter((k) => k.is_revoked).length;
+
+  const usageTodayAvailable = keys.some((k) => k.usage_today !== null && k.usage_today !== undefined);
+  const usageMonthAvailable = keys.some((k) => k.usage_month !== null && k.usage_month !== undefined);
+
+  const totalUsageToday = usageTodayAvailable
+    ? keys.reduce((acc, k) => acc + (k.usage_today || 0), 0)
+    : null;
+  const totalUsageMonth = usageMonthAvailable
+    ? keys.reduce((acc, k) => acc + (k.usage_month || 0), 0)
+    : null;
+
+  const hasActiveFilters = searchTerm.trim().length > 0 || environment !== "all" || revoked !== "all";
+
+  // Determine main layout content based on error/loading/empty state
+  let mainContent;
+
+  if (!adminConfigured) {
+    mainContent = (
+      <div className="neural-panel rounded-2xl p-8 text-center space-y-4 border border-neural-red/25 bg-neural-red/5">
+        <TriangleAlert className="h-10 w-10 text-neural-red mx-auto animate-pulse" />
+        <h3 className="text-lg font-semibold text-neural-red font-display uppercase tracking-[0.05em]">
+          Internal Admin Token Required
+        </h3>
+        <p className="text-sm text-neural-text-secondary max-w-md mx-auto">
+          You must configure the Gateway internal admin token to manage API keys. Your configuration is stored encrypted server-side.
+        </p>
+        <div className="pt-2">
+          <Link
+            href="/settings/gateway"
+            className="inline-flex items-center gap-2 rounded-2xl border border-neural-cyan/35 bg-neural-cyan/14 px-4 py-2.5 font-display text-[11px] uppercase tracking-[0.12em] text-neural-cyan transition hover:bg-neural-cyan/22"
+          >
+            Go to Settings → Gateway Credentials
+          </Link>
+        </div>
+      </div>
+    );
+  } else if (error) {
+    const isTokenIssue = error.code === "internal_admin_not_configured" || error.code === "internal_admin_invalid";
+    const isCredIssue = error.code === "credentials_not_configured";
+    const isUnreachable = error.code === "gateway_unreachable";
+    const isNotFound = error.code === "api_key_not_found";
+    const isInvalidRequest = error.code === "invalid_api_key_request";
+
+    let errorTitle = "Gateway Communication Error";
+    let errorDesc = error.message || "An unexpected error occurred while communicating with the Gateway.";
+    let actionLink = "/settings/gateway";
+    let actionText = "Go to Settings → Gateway Credentials";
+
+    if (isTokenIssue) {
+      errorTitle = "Invalid or Missing Admin Token";
+      errorDesc = "The Gateway rejected your internal admin token, or it has not been configured yet.";
+    } else if (isCredIssue) {
+      errorTitle = "Gateway Credentials Missing";
+      errorDesc = "Gateway URL or API key is not configured on Nesty Console.";
+    } else if (isUnreachable) {
+      errorTitle = "Gateway Unreachable";
+      errorDesc = "Nesty Console cannot connect to the NestyAI Gateway at the current address. Ensure the service is running.";
+      actionLink = "/status";
+      actionText = "Check Gateway Status";
+    } else if (isNotFound) {
+      errorTitle = "API Key Not Found";
+      errorDesc = "The requested API key does not exist or has been deleted from the Gateway database.";
+      actionLink = "#";
+      actionText = "Refresh Keys List";
+    } else if (isInvalidRequest) {
+      errorTitle = "Invalid Key Request";
+      errorDesc = error.message || "The request payload did not meet the Gateway's validation rules.";
+    }
+
+    mainContent = (
+      <div className="neural-panel rounded-2xl p-8 text-center space-y-4 border border-neural-amber/25 bg-neural-amber/5">
+        <TriangleAlert className="h-10 w-10 text-neural-amber mx-auto" />
+        <h3 className="text-lg font-semibold text-neural-text-primary font-display uppercase tracking-[0.05em]">{errorTitle}</h3>
+        <p className="text-sm text-neural-text-secondary max-w-md mx-auto">{errorDesc}</p>
+        <div className="pt-2 flex flex-wrap justify-center gap-3">
+          {actionLink !== "#" ? (
+            <Link
+              href={actionLink}
+              className="inline-flex items-center gap-2 rounded-2xl border border-neural-cyan/35 bg-neural-cyan/14 px-4 py-2.5 font-display text-[11px] uppercase tracking-[0.12em] text-neural-cyan transition hover:bg-neural-cyan/22"
+            >
+              {actionText}
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={() => void handleRefresh()}
+              className="inline-flex items-center gap-2 rounded-2xl border border-neural-cyan/35 bg-neural-cyan/14 px-4 py-2.5 font-display text-[11px] uppercase tracking-[0.12em] text-neural-cyan transition hover:bg-neural-cyan/22"
+            >
+              {actionText}
+            </button>
+          )}
+          {isUnreachable && (
+            <Link
+              href="/settings/gateway"
+              className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-2.5 font-display text-[11px] uppercase tracking-[0.12em] text-neural-text-primary transition hover:border-white/20 hover:bg-white/[0.08]"
+            >
+              Configure Credentials
+            </Link>
+          )}
+          {!isNotFound && (
+            <button
+              type="button"
+              onClick={() => void handleRefresh()}
+              className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-2.5 font-display text-[11px] uppercase tracking-[0.12em] text-neural-text-primary transition hover:border-white/20 hover:bg-white/[0.08]"
+            >
+              Retry
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  } else if (loading) {
+    mainContent = <LoadingBlock label="Retrieving API Keys..." />;
+  } else if (keys.length === 0) {
+    if (hasActiveFilters) {
+      mainContent = (
+        <div className="neural-panel rounded-2xl p-8 text-center space-y-4 border border-white/5 bg-white/[0.01]">
+          <h3 className="text-lg font-semibold text-neural-text-primary font-display uppercase tracking-[0.05em]">No Search Results</h3>
+          <p className="text-sm text-neural-text-secondary max-w-md mx-auto">
+            No API keys matched the active environment, status, or search filters.
+          </p>
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={handleClearFilters}
+              className="inline-flex items-center gap-2 rounded-2xl border border-neural-cyan/35 bg-neural-cyan/14 px-4 py-2.5 font-display text-[11px] uppercase tracking-[0.12em] text-neural-cyan transition hover:bg-neural-cyan/22"
+            >
+              Clear Filters
+            </button>
+          </div>
+        </div>
+      );
+    } else {
+      mainContent = (
+        <div className="neural-panel rounded-2xl p-8 text-center space-y-4 border border-white/5 bg-white/[0.01]">
+          <h3 className="text-lg font-semibold text-neural-text-primary font-display uppercase tracking-[0.05em]">No API Keys Created</h3>
+          <p className="text-sm text-neural-text-secondary max-w-md mx-auto">
+            No API keys have been generated yet for this Gateway instance. Create one to get started.
+          </p>
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={openCreateModal}
+              className="inline-flex items-center gap-2 rounded-2xl border border-neural-cyan/35 bg-neural-cyan/14 px-4 py-2.5 font-display text-[11px] uppercase tracking-[0.12em] text-neural-cyan transition hover:bg-neural-cyan/22"
+            >
+              Create API Key
+            </button>
+          </div>
+        </div>
+      );
+    }
+  } else {
+    mainContent = (
+      <section className="space-y-4 animate-fade-in">
+        <DataTable>
+          <table className="min-w-full text-sm">
+            <thead className="bg-neural-overlay/55 text-left font-display text-[10px] uppercase tracking-[0.08em] text-neural-text-secondary">
+              <tr>
+                <th className="px-4 py-3">Key Name</th>
+                <th className="px-4 py-3">Env</th>
+                <th className="px-4 py-3">Prefix</th>
+                <th className="px-4 py-3">Allowed Models</th>
+                <th className="px-4 py-3">Daily</th>
+                <th className="px-4 py-3">Monthly</th>
+                <th className="px-4 py-3">Usage Today</th>
+                <th className="px-4 py-3">Usage Month</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Created At</th>
+                <th className="px-4 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {keys.map((item) => (
+                <tr
+                  key={item.id}
+                  className={`border-t border-white/[0.06] text-neural-text-primary hover:bg-white/[0.02] transition ${
+                    item.is_revoked ? "opacity-45 grayscale-[25%]" : ""
+                  }`}
+                >
+                  <td className="px-4 py-3 font-semibold">{item.name}</td>
+                  <td className="px-4 py-3">{keyEnvBadge(item.environment)}</td>
+                  <td className="px-4 py-3">
+                    <TokenTag>{item.key_prefix || "—"}</TokenTag>
+                  </td>
+                  <td className="px-4 py-3">
+                    {item.models && item.models.length > 0 ? (
+                      <div className="flex flex-wrap gap-1 max-w-[200px]">
+                        {item.models.map((m) => (
+                          <TokenTag key={m}>{m}</TokenTag>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-neural-text-muted">all aliases</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 font-mono text-xs">
+                    {item.daily_limit !== null && item.daily_limit !== undefined ? item.daily_limit.toLocaleString() : "Unlimited"}
+                  </td>
+                  <td className="px-4 py-3 font-mono text-xs">
+                    {item.monthly_limit !== null && item.monthly_limit !== undefined ? item.monthly_limit.toLocaleString() : "Unlimited"}
+                  </td>
+                  <td className="px-4 py-3 font-mono text-xs">
+                    {item.usage_today !== null && item.usage_today !== undefined ? item.usage_today.toLocaleString() : "—"}
+                  </td>
+                  <td className="px-4 py-3 font-mono text-xs">
+                    {item.usage_month !== null && item.usage_month !== undefined ? item.usage_month.toLocaleString() : "—"}
+                  </td>
+                  <td className="px-4 py-3">
+                    <Badge variant={item.is_revoked ? "error" : "success"}>
+                      {item.is_revoked ? "revoked" : "active"}
+                    </Badge>
+                  </td>
+                  <td className="px-4 py-3 font-mono text-[11px] text-neural-text-secondary">
+                    {formatTimestamp(item.created_at)}
+                  </td>
+                  <td className="px-4 py-3 text-right space-x-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDetailKey(item);
+                        setDetailOpen(true);
+                      }}
+                      title="View Details"
+                      className="p-1.5 rounded-lg border border-white/10 bg-white/[0.04] text-neural-text-secondary hover:text-neural-cyan hover:border-neural-cyan/30 transition"
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openEditModal(item)}
+                      disabled={item.is_revoked}
+                      title="Edit Key"
+                      className="p-1.5 rounded-lg border border-white/10 bg-white/[0.04] text-neural-text-secondary hover:text-neural-cyan hover:border-neural-cyan/30 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                    >
+                      <Edit2 className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openRevokeModal(item)}
+                      disabled={item.is_revoked}
+                      title="Revoke Key"
+                      className="p-1.5 rounded-lg border border-white/10 bg-white/[0.04] text-neural-text-secondary hover:text-neural-red hover:border-neural-red/35 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </DataTable>
+
+        {/* Paginated Navigation Controls */}
+        {(hasMore || offset > 0) && (
+          <div className="flex items-center justify-between gap-4 py-2 border-t border-white/[0.04]">
+            <div>
+              {offset > 0 && (
+                <button
+                  type="button"
+                  onClick={() => handlePaginate(Math.max(0, offset - limit))}
+                  disabled={loading}
+                  className="rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2 text-xs font-display uppercase tracking-[0.08em] text-neural-text-primary hover:border-white/20 disabled:opacity-40 transition"
+                >
+                  Previous
+                </button>
+              )}
+            </div>
+            <span className="font-mono text-xs text-neural-text-secondary">
+              Page {Math.floor(offset / limit) + 1}
+            </span>
+            <div>
+              {hasMore && (
+                <button
+                  type="button"
+                  onClick={() => handlePaginate(offset + limit)}
+                  disabled={loading}
+                  className="rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2 text-xs font-display uppercase tracking-[0.08em] text-neural-text-primary hover:border-white/20 disabled:opacity-40 transition"
+                >
+                  Next
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </section>
+    );
+  }
 
   return (
     <section className="space-y-6 animate-fade-in-up">
@@ -363,43 +740,23 @@ export default function ApiKeysPage() {
         </div>
       </Panel>
 
-      {/* Warnings & Admin Configuration Block */}
-      {!adminConfigured && (
-        <Panel accent="red" className="p-5 flex items-start gap-4">
-          <TriangleAlert className="h-5 w-5 text-neural-red mt-0.5 shrink-0" />
-          <div className="space-y-1">
-            <p className="font-semibold text-neural-red">Internal admin token is required to manage Gateway API keys.</p>
-            <p className="text-sm text-neural-text-secondary">
-              Configure or replace your token in{" "}
-              <Link href="/settings/gateway" className="underline text-neural-text-primary hover:text-neural-cyan">
-                Settings → Gateway Credentials
-              </Link>
-              .
-            </p>
-          </div>
-        </Panel>
-      )}
-
-      {error && (
-        <ErrorBanner code={error.code} message={error.message}>
-          {error.code === "internal_admin_not_configured" || error.code === "internal_admin_invalid" ? (
-            <p className="mt-2">
-              Configure internal admin token in{" "}
-              <Link href="/settings/gateway" className="underline text-neural-text-primary hover:text-neural-cyan">
-                Settings → Gateway Credentials
-              </Link>
-              .
-            </p>
-          ) : (
-            <p className="mt-2">
-              Verify Gateway state in{" "}
-              <Link href="/status" className="underline text-neural-text-primary hover:text-neural-cyan">
-                Status
-              </Link>
-              .
-            </p>
-          )}
-        </ErrorBanner>
+      {/* Summary Cards Grid */}
+      {adminConfigured && (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <StatCard label="Total Keys Shown" value={totalKeys} accent="cyan" />
+          <StatCard label="Active Keys" value={activeKeys} accent="green" />
+          <StatCard label="Revoked Keys" value={revokedKeys} accent="red" />
+          <StatCard
+            label="Total Usage Today"
+            value={totalUsageToday !== null ? totalUsageToday.toLocaleString() : "—"}
+            accent="violet"
+          />
+          <StatCard
+            label="Total Usage Month"
+            value={totalUsageMonth !== null ? totalUsageMonth.toLocaleString() : "—"}
+            accent="amber"
+          />
+        </div>
       )}
 
       {/* Filters Form */}
@@ -412,8 +769,8 @@ export default function ApiKeysPage() {
               </label>
               <input
                 type="text"
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search keys..."
                 className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-xs text-neural-text-primary outline-none focus:border-neural-cyan/50"
               />
@@ -426,7 +783,7 @@ export default function ApiKeysPage() {
               <select
                 value={environment}
                 onChange={(e) => setEnvironment(e.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-neural-text-primary outline-none focus:border-neural-cyan/50"
+                className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-neural-text-primary outline-none focus:border-neural-cyan/50 animate-fade-in"
               >
                 <option value="all">All Environments</option>
                 <option value="prod">Production (prod)</option>
@@ -442,7 +799,7 @@ export default function ApiKeysPage() {
               <select
                 value={revoked}
                 onChange={(e) => setRevoked(e.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-neural-text-primary outline-none focus:border-neural-cyan/50"
+                className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-neural-text-primary outline-none focus:border-neural-cyan/50 animate-fade-in"
               >
                 <option value="all">All Keys</option>
                 <option value="active">Active Only</option>
@@ -457,7 +814,7 @@ export default function ApiKeysPage() {
               <select
                 value={limit}
                 onChange={(e) => setLimit(Number(e.target.value))}
-                className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-neural-text-primary outline-none focus:border-neural-cyan/50"
+                className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-neural-text-primary outline-none focus:border-neural-cyan/50 animate-fade-in"
               >
                 <option value="25">25 keys</option>
                 <option value="50">50 keys</option>
@@ -465,137 +822,22 @@ export default function ApiKeysPage() {
                 <option value="200">200 keys</option>
               </select>
             </div>
+
+            <div className="flex items-end h-full pb-0.5 animate-fade-in">
+              <button
+                type="button"
+                onClick={handleClearFilters}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs font-display uppercase tracking-[0.08em] text-neural-text-secondary hover:border-white/20 hover:bg-white/[0.05] hover:text-neural-text-primary transition"
+              >
+                Clear Filters
+              </button>
+            </div>
           </div>
         </Panel>
       )}
 
-      {/* Main Keys List Table */}
-      {adminConfigured && (
-        <section className="space-y-4">
-          {loading ? (
-            <LoadingBlock label="Retrieving API Keys..." />
-          ) : keys.length === 0 ? (
-            <EmptyState title="No API keys found." description="Create a new key to authorize external client applications." />
-          ) : (
-            <DataTable>
-              <table className="min-w-full text-sm">
-                <thead className="bg-neural-overlay/55 text-left font-display text-[10px] uppercase tracking-[0.08em] text-neural-text-secondary">
-                  <tr>
-                    <th className="px-4 py-3">Key Name</th>
-                    <th className="px-4 py-3">Env</th>
-                    <th className="px-4 py-3">Prefix</th>
-                    <th className="px-4 py-3">Allowed Models</th>
-                    <th className="px-4 py-3">Daily</th>
-                    <th className="px-4 py-3">Monthly</th>
-                    <th className="px-4 py-3">Usage Today</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3">Created At</th>
-                    <th className="px-4 py-3 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {keys.map((item) => (
-                    <tr
-                      key={item.id}
-                      className="border-t border-white/[0.06] text-neural-text-primary hover:bg-white/[0.02] transition"
-                    >
-                      <td className="px-4 py-3 font-semibold">{item.name}</td>
-                      <td className="px-4 py-3">{keyEnvBadge(item.environment)}</td>
-                      <td className="px-4 py-3">
-                        <TokenTag>{item.key_prefix || "-"}</TokenTag>
-                      </td>
-                      <td className="px-4 py-3">
-                        {item.models && item.models.length > 0 ? (
-                          <div className="flex flex-wrap gap-1 max-w-[200px]">
-                            {item.models.map((m) => (
-                              <TokenTag key={m}>{m}</TokenTag>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-xs text-neural-text-muted">all aliases</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 font-mono text-xs">
-                        {item.daily_limit !== null && item.daily_limit !== undefined ? item.daily_limit : "-"}
-                      </td>
-                      <td className="px-4 py-3 font-mono text-xs">
-                        {item.monthly_limit !== null && item.monthly_limit !== undefined ? item.monthly_limit : "-"}
-                      </td>
-                      <td className="px-4 py-3 font-mono text-xs">
-                        {item.usage_today !== null && item.usage_today !== undefined ? item.usage_today : "-"}
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge variant={item.is_revoked ? "error" : "success"}>
-                          {item.is_revoked ? "revoked" : "active"}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3 font-mono text-[11px] text-neural-text-secondary">
-                        {formatTimestamp(item.created_at)}
-                      </td>
-                      <td className="px-4 py-3 text-right space-x-1 shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setDetailKey(item);
-                            setDetailOpen(true);
-                          }}
-                          title="View Details"
-                          className="p-1.5 rounded-lg border border-white/10 bg-white/[0.04] text-neural-text-secondary hover:text-neural-cyan hover:border-neural-cyan/30 transition"
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => openEditModal(item)}
-                          disabled={item.is_revoked}
-                          title="Edit Key"
-                          className="p-1.5 rounded-lg border border-white/10 bg-white/[0.04] text-neural-text-secondary hover:text-neural-cyan hover:border-neural-cyan/30 disabled:opacity-40 disabled:cursor-not-allowed transition"
-                        >
-                          <Edit2 className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => openRevokeModal(item)}
-                          disabled={item.is_revoked}
-                          title="Revoke Key"
-                          className="p-1.5 rounded-lg border border-white/10 bg-white/[0.04] text-neural-text-secondary hover:text-neural-red hover:border-neural-red/35 disabled:opacity-40 disabled:cursor-not-allowed transition"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </DataTable>
-          )}
-
-          {/* Simple Pagination Controls */}
-          {keys.length > 0 && (hasMore || offset > 0) && (
-            <div className="flex items-center justify-between gap-4 py-2">
-              <button
-                type="button"
-                onClick={() => handlePaginate(Math.max(0, offset - limit))}
-                disabled={offset === 0}
-                className="rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2 text-xs font-display uppercase tracking-[0.08em] text-neural-text-primary disabled:opacity-40"
-              >
-                Previous
-              </button>
-              <span className="font-mono text-xs text-neural-text-secondary">
-                Page {Math.floor(offset / limit) + 1}
-              </span>
-              <button
-                type="button"
-                onClick={() => handlePaginate(offset + limit)}
-                disabled={!hasMore}
-                className="rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2 text-xs font-display uppercase tracking-[0.08em] text-neural-text-primary disabled:opacity-40"
-              >
-                Next
-              </button>
-            </div>
-          )}
-        </section>
-      )}
+      {/* Main Content Area */}
+      {mainContent}
 
       {/* CREATE API KEY MODAL */}
       {createOpen && (
@@ -604,12 +846,12 @@ export default function ApiKeysPage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <KeyRound className="h-5 w-5 text-neural-cyan" />
-                <h3 className="text-lg font-semibold tracking-[-0.03em] text-neural-text-primary">Create API Key</h3>
+                <h3 className="text-lg font-semibold tracking-[-0.03em] text-neural-text-primary font-display uppercase tracking-[0.05em]">Create API Key</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setCreateOpen(false)}
-                className="text-neural-text-secondary hover:text-neural-text-primary"
+                className="text-neural-text-secondary hover:text-neural-text-primary transition"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -628,7 +870,7 @@ export default function ApiKeysPage() {
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
                   placeholder="e.g. CLI tool / internal app"
-                  className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-sm text-neural-text-primary outline-none focus:border-neural-cyan/50"
+                  className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-sm text-neural-text-primary outline-none focus:border-neural-cyan/50 transition font-mono"
                 />
               </div>
 
@@ -640,7 +882,7 @@ export default function ApiKeysPage() {
                   <select
                     value={formEnv}
                     onChange={(e) => setFormEnv(e.target.value)}
-                    className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-sm text-neural-text-primary outline-none focus:border-neural-cyan/50"
+                    className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-sm text-neural-text-primary outline-none focus:border-neural-cyan/50 transition"
                   >
                     <option value="prod">Production (prod)</option>
                     <option value="dev">Development (dev)</option>
@@ -656,8 +898,11 @@ export default function ApiKeysPage() {
                     value={formPrefix}
                     onChange={(e) => setFormPrefix(e.target.value)}
                     placeholder="e.g. nsk_live"
-                    className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-sm text-neural-text-primary outline-none focus:border-neural-cyan/50"
+                    className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-sm text-neural-text-primary outline-none focus:border-neural-cyan/50 transition font-mono"
                   />
+                  <p className="text-[10px] text-neural-text-muted mt-0.5">
+                    Alphanumeric, underscores, hyphens only (max 20 chars).
+                  </p>
                 </div>
               </div>
 
@@ -667,11 +912,11 @@ export default function ApiKeysPage() {
                     Daily limit (requests)
                   </label>
                   <input
-                    type="number"
+                    type="text"
                     value={formDaily}
                     onChange={(e) => setFormDaily(e.target.value)}
                     placeholder="Unlimited"
-                    className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-sm text-neural-text-primary outline-none focus:border-neural-cyan/50"
+                    className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-sm text-neural-text-primary outline-none focus:border-neural-cyan/50 transition font-mono"
                   />
                 </div>
                 <div className="space-y-1">
@@ -679,11 +924,11 @@ export default function ApiKeysPage() {
                     Monthly limit (requests)
                   </label>
                   <input
-                    type="number"
+                    type="text"
                     value={formMonthly}
                     onChange={(e) => setFormMonthly(e.target.value)}
                     placeholder="Unlimited"
-                    className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-sm text-neural-text-primary outline-none focus:border-neural-cyan/50"
+                    className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-sm text-neural-text-primary outline-none focus:border-neural-cyan/50 transition font-mono"
                   />
                 </div>
               </div>
@@ -695,14 +940,14 @@ export default function ApiKeysPage() {
                 </label>
                 <div className="flex flex-wrap gap-4">
                   {["nesty-flash-1.0", "nesty-combined-1.0", "nesty-pro-1.0"].map((alias) => (
-                    <label key={alias} className="inline-flex items-center gap-2 text-sm text-neural-text-secondary cursor-pointer">
+                    <label key={alias} className="inline-flex items-center gap-2 text-sm text-neural-text-secondary cursor-pointer select-none">
                       <input
                         type="checkbox"
                         checked={formModels.includes(alias)}
                         onChange={() => toggleModelSelection(alias)}
-                        className="h-4 w-4 rounded border-white/20 bg-surface-900/70"
+                        className="h-4 w-4 rounded border-white/20 bg-surface-900/70 text-neural-cyan focus:ring-neural-cyan focus:ring-offset-0"
                       />
-                      {alias}
+                      <span className="font-mono text-xs">{alias}</span>
                     </label>
                   ))}
                 </div>
@@ -712,14 +957,14 @@ export default function ApiKeysPage() {
                 <button
                   type="button"
                   onClick={() => setCreateOpen(false)}
-                  className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-xs font-display uppercase tracking-[0.08em] text-neural-text-primary"
+                  className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-xs font-display uppercase tracking-[0.08em] text-neural-text-primary hover:border-white/20 transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="inline-flex items-center gap-2 rounded-xl border border-neural-cyan/40 bg-neural-cyan/15 px-4 py-2.5 text-xs font-display uppercase tracking-[0.08em] text-neural-cyan"
+                  className="inline-flex items-center gap-2 rounded-xl border border-neural-cyan/40 bg-neural-cyan/15 px-4 py-2.5 text-xs font-display uppercase tracking-[0.08em] text-neural-cyan hover:bg-neural-cyan/25 transition"
                 >
                   {saving && <Loader2 className="h-4 w-4 animate-spin" />}
                   Create key
@@ -734,13 +979,24 @@ export default function ApiKeysPage() {
       {rawKeyOpen && createdRawKey && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
           <Panel accent="green" className="w-full max-w-lg p-6 bg-neural-bg border border-white/15 rounded-2xl shadow-xl space-y-4">
-            <div className="flex items-center gap-2 text-neural-green">
-              <h3 className="text-lg font-semibold tracking-[-0.03em]">API Key Created Successfully</h3>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-neural-green">
+                <h3 className="text-lg font-semibold tracking-[-0.03em] font-display uppercase tracking-[0.05em]">API Key Created — Copy It Now</h3>
+              </div>
+              <button
+                type="button"
+                onClick={closeRawKeyModal}
+                className="text-neural-text-secondary hover:text-neural-text-primary transition"
+              >
+                <X className="h-5 w-5" />
+              </button>
             </div>
 
-            <div className="rounded-xl border border-neural-amber/20 bg-neural-amber/10 p-3.5 text-xs leading-relaxed text-neural-amber">
-              <p className="font-semibold">Copy this API key now. It will not be shown again.</p>
-              <p className="mt-1">For your security, we do not store this raw key server-side once created, and it will be completely cleared from the browser memory as soon as you close this box.</p>
+            <div className="rounded-xl border border-neural-amber/20 bg-neural-amber/10 p-3.5 text-xs leading-relaxed text-neural-amber space-y-1">
+              <p className="font-semibold">This raw key is shown only once. After closing this panel, it cannot be recovered.</p>
+              <p className="text-[11px] text-neural-text-secondary">
+                For security, Console does not store raw keys. Closing this dialog clears all temporary copy state from browser memory.
+              </p>
             </div>
 
             <div className="space-y-1.5">
@@ -749,7 +1005,7 @@ export default function ApiKeysPage() {
                 <p>ID: {createdApiKey?.id}</p>
                 <p>Name: {createdApiKey?.name}</p>
                 <p>Environment: {createdApiKey?.environment}</p>
-                <p>Prefix: {createdApiKey?.key_prefix}</p>
+                <p>Prefix: {createdApiKey?.key_prefix || "—"}</p>
               </div>
             </div>
 
@@ -762,12 +1018,12 @@ export default function ApiKeysPage() {
                   type="text"
                   readOnly
                   value={createdRawKey}
-                  className="flex-1 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 font-mono text-xs text-neural-cyan select-all outline-none"
+                  className="flex-1 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 font-mono text-xs text-neural-cyan select-all outline-none border-dashed"
                 />
                 <button
                   type="button"
                   onClick={handleCopyRawKey}
-                  className="rounded-xl border border-neural-cyan/30 bg-neural-cyan/10 px-3 py-2 text-neural-cyan hover:bg-neural-cyan/20 transition flex items-center gap-1.5"
+                  className="rounded-xl border border-neural-cyan/30 bg-neural-cyan/10 px-3.5 py-2 text-neural-cyan hover:bg-neural-cyan/20 transition flex items-center gap-1.5"
                 >
                   <Copy className="h-4 w-4" />
                   {copied ? "Copied" : "Copy"}
@@ -775,11 +1031,25 @@ export default function ApiKeysPage() {
               </div>
             </div>
 
+            <div className="flex items-center gap-2 py-1">
+              <input
+                type="checkbox"
+                id="confirm-copied-checkbox"
+                checked={confirmCopied}
+                onChange={(e) => setConfirmCopied(e.target.checked)}
+                className="h-4 w-4 rounded border-white/20 bg-surface-900/70 text-neural-green focus:ring-neural-green focus:ring-offset-0"
+              />
+              <label htmlFor="confirm-copied-checkbox" className="text-xs text-neural-text-secondary cursor-pointer select-none">
+                I confirm that I have copied and safely stored this key
+              </label>
+            </div>
+
             <div className="flex justify-end pt-2">
               <button
                 type="button"
                 onClick={closeRawKeyModal}
-                className="w-full sm:w-auto rounded-xl border border-neural-green/45 bg-neural-green/12 px-6 py-2.5 text-xs font-display uppercase tracking-[0.08em] text-neural-green hover:bg-neural-green/20"
+                disabled={!confirmCopied && !copied}
+                className="w-full sm:w-auto rounded-xl border border-neural-green/45 bg-neural-green/12 px-6 py-2.5 text-xs font-display uppercase tracking-[0.08em] text-neural-green hover:bg-neural-green/20 disabled:opacity-40 disabled:cursor-not-allowed transition"
               >
                 I have copied this key
               </button>
@@ -795,12 +1065,12 @@ export default function ApiKeysPage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Edit2 className="h-5 w-5 text-neural-cyan" />
-                <h3 className="text-lg font-semibold tracking-[-0.03em] text-neural-text-primary">Edit API Key Metadata</h3>
+                <h3 className="text-lg font-semibold tracking-[-0.03em] text-neural-text-primary font-display uppercase tracking-[0.05em]">Edit API Key Metadata</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setEditOpen(false)}
-                className="text-neural-text-secondary hover:text-neural-text-primary"
+                className="text-neural-text-secondary hover:text-neural-text-primary transition"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -809,10 +1079,19 @@ export default function ApiKeysPage() {
             {formError && <ErrorBanner message={formError} />}
 
             <form onSubmit={submitEdit} className="space-y-4">
-              <div className="space-y-1 font-mono text-xs text-neural-text-muted">
+              <div className="space-y-1.5 rounded-xl border border-white/5 bg-white/[0.02] p-3 text-xs text-neural-text-secondary font-mono leading-relaxed">
                 <p>ID: {editingKey.id}</p>
-                <p>Prefix: {editingKey.key_prefix}</p>
+                <p>Prefix: {editingKey.key_prefix || "—"}</p>
+                <p className="text-neural-text-muted text-[11px] font-sans mt-1">
+                  Note: Prefix and raw keys are immutable and cannot be updated after creation.
+                </p>
               </div>
+
+              {editingKey.is_revoked && (
+                <div className="rounded-xl border border-neural-red/20 bg-neural-red/10 p-3 text-xs text-neural-red font-semibold">
+                  This key is currently revoked and cannot be modified.
+                </div>
+              )}
 
               <div className="space-y-1">
                 <label className="text-xs font-display uppercase tracking-[0.08em] text-neural-text-secondary">
@@ -822,8 +1101,9 @@ export default function ApiKeysPage() {
                   type="text"
                   required
                   value={formName}
+                  disabled={editingKey.is_revoked}
                   onChange={(e) => setFormName(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-sm text-neural-text-primary outline-none focus:border-neural-cyan/50"
+                  className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-sm text-neural-text-primary outline-none focus:border-neural-cyan/50 transition font-mono"
                 />
               </div>
 
@@ -833,8 +1113,9 @@ export default function ApiKeysPage() {
                 </label>
                 <select
                   value={formEnv}
+                  disabled={editingKey.is_revoked}
                   onChange={(e) => setFormEnv(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-sm text-neural-text-primary outline-none focus:border-neural-cyan/50"
+                  className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-sm text-neural-text-primary outline-none focus:border-neural-cyan/50 transition"
                 >
                   <option value="prod">Production (prod)</option>
                   <option value="dev">Development (dev)</option>
@@ -848,11 +1129,12 @@ export default function ApiKeysPage() {
                     Daily limit (requests)
                   </label>
                   <input
-                    type="number"
+                    type="text"
                     value={formDaily}
+                    disabled={editingKey.is_revoked}
                     onChange={(e) => setFormDaily(e.target.value)}
                     placeholder="Unlimited"
-                    className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-sm text-neural-text-primary outline-none focus:border-neural-cyan/50"
+                    className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-sm text-neural-text-primary outline-none focus:border-neural-cyan/50 transition font-mono"
                   />
                 </div>
                 <div className="space-y-1">
@@ -860,11 +1142,12 @@ export default function ApiKeysPage() {
                     Monthly limit (requests)
                   </label>
                   <input
-                    type="number"
+                    type="text"
                     value={formMonthly}
+                    disabled={editingKey.is_revoked}
                     onChange={(e) => setFormMonthly(e.target.value)}
                     placeholder="Unlimited"
-                    className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-sm text-neural-text-primary outline-none focus:border-neural-cyan/50"
+                    className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-sm text-neural-text-primary outline-none focus:border-neural-cyan/50 transition font-mono"
                   />
                 </div>
               </div>
@@ -876,14 +1159,15 @@ export default function ApiKeysPage() {
                 </label>
                 <div className="flex flex-wrap gap-4">
                   {["nesty-flash-1.0", "nesty-combined-1.0", "nesty-pro-1.0"].map((alias) => (
-                    <label key={alias} className="inline-flex items-center gap-2 text-sm text-neural-text-secondary cursor-pointer">
+                    <label key={alias} className="inline-flex items-center gap-2 text-sm text-neural-text-secondary cursor-pointer select-none">
                       <input
                         type="checkbox"
+                        disabled={editingKey.is_revoked}
                         checked={formModels.includes(alias)}
                         onChange={() => toggleModelSelection(alias)}
-                        className="h-4 w-4 rounded border-white/20 bg-surface-900/70"
+                        className="h-4 w-4 rounded border-white/20 bg-surface-900/70 text-neural-cyan focus:ring-neural-cyan focus:ring-offset-0"
                       />
-                      {alias}
+                      <span className="font-mono text-xs">{alias}</span>
                     </label>
                   ))}
                 </div>
@@ -893,14 +1177,14 @@ export default function ApiKeysPage() {
                 <button
                   type="button"
                   onClick={() => setEditOpen(false)}
-                  className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-xs font-display uppercase tracking-[0.08em] text-neural-text-primary"
+                  className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-xs font-display uppercase tracking-[0.08em] text-neural-text-primary hover:border-white/20 transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={saving}
-                  className="inline-flex items-center gap-2 rounded-xl border border-neural-cyan/40 bg-neural-cyan/15 px-4 py-2.5 text-xs font-display uppercase tracking-[0.08em] text-neural-cyan"
+                  disabled={saving || editingKey.is_revoked}
+                  className="inline-flex items-center gap-2 rounded-xl border border-neural-cyan/40 bg-neural-cyan/15 px-4 py-2.5 text-xs font-display uppercase tracking-[0.08em] text-neural-cyan hover:bg-neural-cyan/25 transition"
                 >
                   {saving && <Loader2 className="h-4 w-4 animate-spin" />}
                   Save changes
@@ -916,14 +1200,16 @@ export default function ApiKeysPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
           <Panel accent="red" className="w-full max-w-md p-6 bg-neural-bg border border-white/15 rounded-2xl shadow-xl space-y-4">
             <div className="flex items-center gap-2 text-neural-red">
-              <h3 className="text-lg font-semibold tracking-[-0.03em]">Revoke API Key</h3>
+              <h3 className="text-lg font-semibold tracking-[-0.03em] font-display uppercase tracking-[0.05em]">Revoke API Key</h3>
             </div>
 
-            <div className="text-sm text-neural-text-secondary leading-relaxed">
-              <p>Are you sure you want to revoke key <strong className="text-neural-text-primary font-bold">&ldquo;{revokingKey.name}&rdquo;</strong>?</p>
-              <p className="mt-2 text-neural-red font-semibold">
-                Revoking this API key will immediately prevent it from authenticating public Gateway requests. This cannot be undone.
+            <div className="text-sm text-neural-text-secondary leading-relaxed space-y-2">
+              <p>
+                You are about to revoke the key <strong className="text-neural-text-primary font-bold">&ldquo;{revokingKey.name}&rdquo;</strong> (Prefix: <span className="font-mono text-xs text-neural-cyan">{revokingKey.key_prefix || "—"}</span>).
               </p>
+              <div className="rounded-xl border border-neural-red/20 bg-neural-red/10 p-3 text-xs text-neural-red font-semibold leading-relaxed">
+                Revoking this key immediately prevents it from authenticating public Gateway requests. This cannot be undone.
+              </div>
             </div>
 
             <div className="space-y-1">
@@ -935,7 +1221,7 @@ export default function ApiKeysPage() {
                 value={revokeReason}
                 onChange={(e) => setRevokeReason(e.target.value)}
                 placeholder="e.g. rotated / key leaked"
-                className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-sm text-neural-text-primary outline-none focus:border-neural-red/50"
+                className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-sm text-neural-text-primary outline-none focus:border-neural-red/50 transition font-mono animate-fade-in"
               />
             </div>
 
@@ -943,7 +1229,7 @@ export default function ApiKeysPage() {
               <button
                 type="button"
                 onClick={() => setRevokeOpen(false)}
-                className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-xs font-display uppercase tracking-[0.08em] text-neural-text-primary"
+                className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-xs font-display uppercase tracking-[0.08em] text-neural-text-primary hover:border-white/20 transition"
               >
                 Cancel
               </button>
@@ -951,10 +1237,10 @@ export default function ApiKeysPage() {
                 type="button"
                 onClick={submitRevoke}
                 disabled={saving}
-                className="inline-flex items-center gap-2 rounded-xl border border-neural-red/35 bg-neural-red/12 px-4 py-2.5 text-xs font-display uppercase tracking-[0.08em] text-rose-100 hover:bg-neural-red/20"
+                className="inline-flex items-center gap-2 rounded-xl border border-neural-red/35 bg-neural-red/12 px-4 py-2.5 text-xs font-display uppercase tracking-[0.08em] text-rose-100 hover:bg-neural-red/20 transition"
               >
                 {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-                Revoke immediately
+                Revoke key
               </button>
             </div>
           </Panel>
@@ -968,12 +1254,12 @@ export default function ApiKeysPage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Eye className="h-5 w-5 text-violet-200" />
-                <h3 className="text-lg font-semibold tracking-[-0.03em] text-neural-text-primary">API Key Details</h3>
+                <h3 className="text-lg font-semibold tracking-[-0.03em] text-neural-text-primary font-display uppercase tracking-[0.05em]">API Key Details</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setDetailOpen(false)}
-                className="text-neural-text-secondary hover:text-neural-text-primary"
+                className="text-neural-text-secondary hover:text-neural-text-primary transition"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -994,7 +1280,7 @@ export default function ApiKeysPage() {
               <div className="grid gap-3 grid-cols-2 border-b border-white/5 pb-3">
                 <div>
                   <p className="text-xs uppercase font-display tracking-[0.08em] text-neural-text-muted">Prefix</p>
-                  <p className="mt-1 font-mono text-xs text-neural-text-primary">{detailKey.key_prefix}</p>
+                  <p className="mt-1 font-mono text-xs text-neural-text-primary">{detailKey.key_prefix || "—"}</p>
                 </div>
                 <div>
                   <p className="text-xs uppercase font-display tracking-[0.08em] text-neural-text-muted">ID</p>
@@ -1019,13 +1305,13 @@ export default function ApiKeysPage() {
                 <div>
                   <p className="text-xs uppercase font-display tracking-[0.08em] text-neural-text-muted mb-1 font-sans">Daily Limit</p>
                   <p className="text-neural-text-primary">
-                    {detailKey.daily_limit !== null && detailKey.daily_limit !== undefined ? `${detailKey.daily_limit} requests` : "Unlimited"}
+                    {detailKey.daily_limit !== null && detailKey.daily_limit !== undefined ? `${detailKey.daily_limit.toLocaleString()} requests` : "Unlimited"}
                   </p>
                 </div>
                 <div>
                   <p className="text-xs uppercase font-display tracking-[0.08em] text-neural-text-muted mb-1 font-sans">Monthly Limit</p>
                   <p className="text-neural-text-primary">
-                    {detailKey.monthly_limit !== null && detailKey.monthly_limit !== undefined ? `${detailKey.monthly_limit} requests` : "Unlimited"}
+                    {detailKey.monthly_limit !== null && detailKey.monthly_limit !== undefined ? `${detailKey.monthly_limit.toLocaleString()} requests` : "Unlimited"}
                   </p>
                 </div>
               </div>
@@ -1033,37 +1319,55 @@ export default function ApiKeysPage() {
               <div className="grid gap-3 grid-cols-2 border-b border-white/5 pb-3 font-mono text-xs">
                 <div>
                   <p className="text-xs uppercase font-display tracking-[0.08em] text-neural-text-muted mb-1 font-sans">Requests Today</p>
-                  <p className="text-neural-text-primary">{detailKey.usage_today ?? 0}</p>
+                  <p className="text-neural-text-primary">
+                    {detailKey.usage_today !== null && detailKey.usage_today !== undefined ? detailKey.usage_today.toLocaleString() : "—"}
+                  </p>
                 </div>
                 <div>
                   <p className="text-xs uppercase font-display tracking-[0.08em] text-neural-text-muted mb-1 font-sans">Requests Month</p>
-                  <p className="text-neural-text-primary">{detailKey.usage_month ?? 0}</p>
+                  <p className="text-neural-text-primary">
+                    {detailKey.usage_month !== null && detailKey.usage_month !== undefined ? detailKey.usage_month.toLocaleString() : "—"}
+                  </p>
                 </div>
               </div>
 
-              <div className="grid gap-3 grid-cols-2 font-mono text-xs">
+              <div className="grid gap-3 grid-cols-2 border-b border-white/5 pb-3 font-mono text-xs">
                 <div>
                   <p className="text-xs uppercase font-display tracking-[0.08em] text-neural-text-muted font-sans">Created At</p>
                   <p className="mt-1 text-neural-text-primary">{formatTimestamp(detailKey.created_at)}</p>
                 </div>
                 <div>
-                  <p className="text-xs uppercase font-display tracking-[0.08em] text-neural-text-muted font-sans">Last Used At</p>
-                  <p className="mt-1 text-neural-text-primary">{formatTimestamp(detailKey.last_used_at)}</p>
+                  <p className="text-xs uppercase font-display tracking-[0.08em] text-neural-text-muted font-sans">Updated At</p>
+                  <p className="mt-1 text-neural-text-primary">{formatTimestamp(detailKey.updated_at || detailKey.created_at)}</p>
                 </div>
               </div>
 
-              <div className="pt-2">
-                <p className="text-xs uppercase font-display tracking-[0.08em] text-neural-text-muted">Status</p>
-                <div className="mt-2 flex items-center gap-2">
-                  <Badge variant={detailKey.is_revoked ? "error" : "success"}>
-                    {detailKey.is_revoked ? "Revoked" : "Active"}
-                  </Badge>
-                  {detailKey.is_revoked && detailKey.revoked_at ? (
-                    <span className="font-mono text-xs text-neural-text-muted">
-                      on {formatTimestamp(detailKey.revoked_at)}
-                    </span>
-                  ) : null}
+              <div className="grid gap-3 grid-cols-2 border-b border-white/5 pb-3 font-mono text-xs">
+                <div>
+                  <p className="text-xs uppercase font-display tracking-[0.08em] text-neural-text-muted font-sans">Last Used At</p>
+                  <p className="mt-1 text-neural-text-primary">{formatTimestamp(detailKey.last_used_at)}</p>
                 </div>
+                <div>
+                  <p className="text-xs uppercase font-display tracking-[0.08em] text-neural-text-muted font-sans">Status</p>
+                  <div className="mt-1 flex items-center gap-2">
+                    <Badge variant={detailKey.is_revoked ? "error" : "success"}>
+                      {detailKey.is_revoked ? "Revoked" : "Active"}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              {detailKey.is_revoked && detailKey.revoked_at && (
+                <div className="font-mono text-xs">
+                  <p className="text-xs uppercase font-display tracking-[0.08em] text-neural-text-muted font-sans">Revoked At</p>
+                  <p className="mt-1 text-neural-red font-semibold">{formatTimestamp(detailKey.revoked_at)}</p>
+                </div>
+              )}
+
+              <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3 text-xs text-neural-text-secondary font-mono leading-relaxed">
+                <p className="text-neural-text-muted text-[11px] font-sans">
+                  Note: Raw keys cannot be viewed after creation. Create a new key if the original was lost.
+                </p>
               </div>
             </div>
 
@@ -1071,7 +1375,7 @@ export default function ApiKeysPage() {
               <button
                 type="button"
                 onClick={() => setDetailOpen(false)}
-                className="w-full sm:w-auto rounded-xl border border-white/10 bg-white/[0.03] px-6 py-2.5 text-xs font-display uppercase tracking-[0.08em] text-neural-text-primary"
+                className="w-full sm:w-auto rounded-xl border border-white/10 bg-white/[0.03] px-6 py-2.5 text-xs font-display uppercase tracking-[0.08em] text-neural-text-primary hover:border-white/20 transition"
               >
                 Close
               </button>

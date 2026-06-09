@@ -6,9 +6,19 @@
 
 Nesty Console is a separate frontend/admin project for operating a running `NestyAI Gateway`.
 
-Current status: **v0.7.0 - API Key Management UI**
+Current status: **v0.7.2 - Planner & Retrieval Metadata Display**
 
 Changelog: [CHANGELOG.md](CHANGELOG.md)
+
+v0.7.2 adds:
+* Console displays safe Gateway runtime metadata from v1.2.x.
+* Chat details can show retrieval sources, planner search/tool decisions, and answer quality flags.
+* Metadata display is sanitized and does not show hidden prompts, raw context, tool arguments, or secrets.
+
+v0.7.1 adds:
+* Improved API Key Management UX, empty states, error states, and production QA guidance.
+* Improved one-time raw API key creation flow with clearer warnings, copy confirmation, and safer state cleanup.
+* Improved API key usage, limit, model allowlist, and revoked-state display.
 
 v0.7.0 adds:
 * Secured API Key Management UI (`/api-keys`) to list, create, inspect, update, and revoke Gateway API keys.
@@ -228,6 +238,20 @@ Then visit `/model-configs`.
   - `INTERNAL_ADMIN_ENABLED=true` on Gateway
   - `NESTY_INTERNAL_ADMIN_TOKEN=<your-token>` on Gateway and Console
   - Optional: `NESTY_CONSOLE_ENABLE_INTERNAL_ADMIN=true`
+
+## API Key Management QA Checklist
+
+- `/api-keys` redirects to `/login` when signed out.
+- `/api/internal/api-keys` returns 401 before login.
+- Internal Admin Token is configured in `Settings → Gateway Credentials`.
+- Create API key displays `raw_key` exactly once.
+- Closing the one-time raw key panel clears it from UI state.
+- Refresh/list/detail/edit/revoke never show `raw_key` or `key_hash`.
+- Copy raw key requires user click.
+- Revoked key can no longer access Gateway public API.
+- Browser network calls only hit Console `/api/internal/api-keys` routes.
+- No Gateway internal admin token is visible in browser/network response.
+- No raw API key is stored in `localStorage`/`sessionStorage`/`cookies`/`URL`.
 
 ## Runtime QA Checklist
 

@@ -6,9 +6,14 @@
 
 Nesty Console is a separate frontend/admin project for operating a running `NestyAI Gateway`.
 
-Current status: **v0.7.2 - Planner & Retrieval Metadata Display**
+Current status: **v0.7.3 - Pro Quality Metadata Display**
 
 Changelog: [CHANGELOG.md](CHANGELOG.md)
+
+v0.7.3 adds:
+* Console supports Gateway v1.2.4 safe Pro orchestration quality metadata.
+* It can display evidence source labels, whether planner/retrieval metadata was used, whether quality guard was applied, and Pro context budget/truncation state.
+* It does not display role outputs, hidden prompts, chain-of-thought, raw context, raw search/tool payloads, or secrets.
 
 v0.7.2 adds:
 * Console displays safe Gateway runtime metadata from v1.2.x.

@@ -25,8 +25,58 @@ export function ProOrchestrationDetails({ metadata }: ProOrchestrationDetailsPro
     fallback_reason,
     streaming_fallback = false,
     total_latency_ms,
-    role_latency_ms = {}
+    role_latency_ms = {},
+    evidence_sources_used,
+    planner_metadata_used,
+    retrieval_metadata_used,
+    quality_guard_applied,
+    pro_context_budget_chars,
+    pro_context_truncated
   } = metadata;
+
+  const hasProQualityContext =
+    (Array.isArray(evidence_sources_used) && evidence_sources_used.length > 0) ||
+    (planner_metadata_used !== undefined && planner_metadata_used !== null) ||
+    (retrieval_metadata_used !== undefined && retrieval_metadata_used !== null) ||
+    (quality_guard_applied !== undefined && quality_guard_applied !== null) ||
+    (pro_context_budget_chars !== undefined && pro_context_budget_chars !== null) ||
+    (pro_context_truncated !== undefined && pro_context_truncated !== null);
+
+  const renderBooleanIndicator = (val: boolean | null | undefined) => {
+    if (val === true) {
+      return <span className="font-semibold text-neural-green">Yes</span>;
+    }
+    if (val === false) {
+      return <span className="text-neural-text-muted">No</span>;
+    }
+    return <span className="text-neural-text-muted/50 font-mono text-[10px] uppercase">unknown</span>;
+  };
+
+  const renderSourceLabel = (source: string) => {
+    const knownLabels = [
+      "recent",
+      "summary",
+      "pinned_memory",
+      "semantic_recall",
+      "fts",
+      "search",
+      "tool",
+      "retrieval",
+      "planner"
+    ];
+    if (knownLabels.includes(source)) {
+      return (
+        <TokenTag key={source} className="border-neural-cyan/20 bg-neural-cyan/5 text-neural-cyan">
+          {source}
+        </TokenTag>
+      );
+    }
+    return (
+      <Badge key={source} variant="inactive">
+        {source}
+      </Badge>
+    );
+  };
 
   // 1. Determine Badge Status and priority:
   // streaming_fallback > fallback_used or mode="fallback" > mode="full" > mode="reduced" > mode="single" > mode="off" > unknown
@@ -192,6 +242,67 @@ export function ProOrchestrationDetails({ metadata }: ProOrchestrationDetailsPro
               );
             })}
           </div>
+        </div>
+      )}
+
+      {/* Quality Context subsection */}
+      {hasProQualityContext && (
+        <div className="space-y-3 border-t border-white/10 pt-3 animate-fade-in-up">
+          <h4 className="font-display text-[10px] uppercase tracking-[0.08em] text-neural-text-muted">
+            Quality Context
+          </h4>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-xs sm:grid-cols-3 md:grid-cols-4">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.08em] text-neural-text-muted">Planner Metadata Used</p>
+              <p className="mt-0.5 font-medium">{renderBooleanIndicator(planner_metadata_used)}</p>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.08em] text-neural-text-muted">Retrieval Metadata Used</p>
+              <p className="mt-0.5 font-medium">{renderBooleanIndicator(retrieval_metadata_used)}</p>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.08em] text-neural-text-muted">Quality Guard Applied</p>
+              <p className="mt-0.5 font-medium">{renderBooleanIndicator(quality_guard_applied)}</p>
+            </div>
+            {pro_context_budget_chars !== undefined && pro_context_budget_chars !== null && (
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.08em] text-neural-text-muted">Context Budget</p>
+                <p className="mt-0.5 font-mono text-neural-text-secondary">
+                  {pro_context_budget_chars.toLocaleString()} chars
+                </p>
+              </div>
+            )}
+            {pro_context_truncated !== undefined && pro_context_truncated !== null && (
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.08em] text-neural-text-muted">Context Truncated</p>
+                <p className="mt-0.5 font-medium">
+                  {pro_context_truncated ? (
+                    <span className="font-semibold text-neural-amber">Yes</span>
+                  ) : (
+                    <span className="text-neural-green font-semibold">No</span>
+                  )}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Evidence sources */}
+          {Array.isArray(evidence_sources_used) && evidence_sources_used.length > 0 && (
+            <div className="space-y-1">
+              <p className="text-[10px] uppercase tracking-[0.08em] text-neural-text-muted">Evidence Sources Used</p>
+              <div className="flex flex-wrap gap-1.5 pt-0.5">
+                {evidence_sources_used.map((source) => renderSourceLabel(source))}
+              </div>
+            </div>
+          )}
+
+          {/* Truncation alert */}
+          {pro_context_truncated === true && (
+            <div className="flex items-start gap-2 rounded-2xl border border-neural-amber/30 bg-neural-amber/8 p-3 text-xs text-neural-amber">
+              <AlertCircle className="h-4 w-4 text-neural-amber mt-0.5 shrink-0" />
+              <span>Pro context was truncated before orchestration.</span>
+            </div>
+          )}
         </div>
       )}
 

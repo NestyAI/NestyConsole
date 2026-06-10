@@ -2,6 +2,21 @@
 
 All notable changes to Nesty Console will be documented in this file.
 
+## [0.7.3] - Unreleased
+
+### Added
+
+* Added display support for Gateway v1.2.4 Nesty Pro quality metadata.
+* Added Pro evidence source badges, retrieval/planner/quality guard usage indicators, and Pro context budget/truncation details.
+
+### Changed
+
+* Improved Nesty Pro orchestration details to distinguish role execution metadata from Pro quality/context metadata.
+
+### Security
+
+* Pro quality metadata rendering remains sanitized and does not expose role outputs, internal notes, hidden prompts, raw context, tool payloads, provider secrets, or chain-of-thought.
+
 ## [0.7.2] - Unreleased
 
 ### Added

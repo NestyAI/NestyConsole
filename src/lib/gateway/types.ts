@@ -102,6 +102,12 @@ export type GatewayOrchestrationMetadata = {
   streaming_fallback?: boolean;
   total_latency_ms?: number | null;
   role_latency_ms?: Record<string, number>;
+  evidence_sources_used?: string[] | null;
+  planner_metadata_used?: boolean | null;
+  retrieval_metadata_used?: boolean | null;
+  quality_guard_applied?: boolean | null;
+  pro_context_budget_chars?: number | null;
+  pro_context_truncated?: boolean | null;
 };
 
 export type GatewayOutputSafetyMetadata = {

@@ -241,7 +241,13 @@ function extractMetadata(payload: unknown): Partial<ChatCompletionMetadata> {
       "fallback_reason" in r ||
       "streaming_fallback" in r ||
       "total_latency_ms" in r ||
-      "role_latency_ms" in r
+      "role_latency_ms" in r ||
+      "evidence_sources_used" in r ||
+      "planner_metadata_used" in r ||
+      "retrieval_metadata_used" in r ||
+      "quality_guard_applied" in r ||
+      "pro_context_budget_chars" in r ||
+      "pro_context_truncated" in r
     );
   };
 
@@ -272,7 +278,13 @@ function extractMetadata(payload: unknown): Partial<ChatCompletionMetadata> {
         fallback_reason: rawOrch.fallback_reason as string | null | undefined,
         streaming_fallback: rawOrch.streaming_fallback as boolean | undefined,
         total_latency_ms: typeof rawOrch.total_latency_ms === "number" ? rawOrch.total_latency_ms : undefined,
-        role_latency_ms: rawOrch.role_latency_ms && typeof rawOrch.role_latency_ms === "object" ? (rawOrch.role_latency_ms as Record<string, number>) : undefined
+        role_latency_ms: rawOrch.role_latency_ms && typeof rawOrch.role_latency_ms === "object" ? (rawOrch.role_latency_ms as Record<string, number>) : undefined,
+        evidence_sources_used: Array.isArray(rawOrch.evidence_sources_used) ? (rawOrch.evidence_sources_used as string[]) : rawOrch.evidence_sources_used === null ? null : undefined,
+        planner_metadata_used: typeof rawOrch.planner_metadata_used === "boolean" ? rawOrch.planner_metadata_used : rawOrch.planner_metadata_used === null ? null : undefined,
+        retrieval_metadata_used: typeof rawOrch.retrieval_metadata_used === "boolean" ? rawOrch.retrieval_metadata_used : rawOrch.retrieval_metadata_used === null ? null : undefined,
+        quality_guard_applied: typeof rawOrch.quality_guard_applied === "boolean" ? rawOrch.quality_guard_applied : rawOrch.quality_guard_applied === null ? null : undefined,
+        pro_context_budget_chars: typeof rawOrch.pro_context_budget_chars === "number" ? rawOrch.pro_context_budget_chars : rawOrch.pro_context_budget_chars === null ? null : undefined,
+        pro_context_truncated: typeof rawOrch.pro_context_truncated === "boolean" ? rawOrch.pro_context_truncated : rawOrch.pro_context_truncated === null ? null : undefined
       }
     : undefined;
 

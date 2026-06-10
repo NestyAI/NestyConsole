@@ -809,6 +809,14 @@ export default function WorkspacesPage() {
                           </TokenTag>
                         </div>
                         <div className="flex items-center gap-1">
+                          <Link
+                            href={`/chat?workspace=${encodeURIComponent(selectedWorkspace.id)}&conversation=${encodeURIComponent(entry.id)}`}
+                            className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1 font-display text-[9px] uppercase tracking-[0.08em] text-neural-cyan transition hover:border-neural-cyan/35 hover:text-neural-text-primary"
+                            title={`Open in Chat: ${entry.label?.trim() || "Untitled conversation"}`}
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                            Open
+                          </Link>
                           <button
                             type="button"
                             onClick={() => handleEditLinkedLabel(entry)}

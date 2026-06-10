@@ -6,9 +6,16 @@
 
 Nesty Console is a separate frontend/admin project for operating a running `NestyAI Gateway`.
 
-Current status: **v0.8.2 - Workspace Import & Conversation Labels**
+Current status: **v0.8.3 - Workspace Conversation Deep Link**
 
 Changelog: [CHANGELOG.md](CHANGELOG.md)
+
+v0.8.3 adds:
+* Deep-link support to open Gateway conversations in Chat via `/chat?conversation=<id>`.
+* Combined workspace and conversation URLs: `/chat?workspace=<id>&conversation=<id>`.
+* Open in Chat actions on `/workspaces` linked conversation rows (navigation only — IDs in URL, no conversation content fetch).
+* Workspace context remains opt-in (`useWorkspaceContext=1`) and transient; linked conversation IDs or contents are never injected into workspace context.
+* Gateway credentials remain server-side only. Deep links use existing Console API proxy routes.
 
 v0.8.2 adds:
 * Safe local JSON import for workspaces (paste JSON, validate, merge, atomic save).
@@ -16,8 +23,7 @@ v0.8.2 adds:
 * Import/export panel on `/workspaces` with trusted-import warning.
 * Import only trusted workspace JSON. Suspicious secret-like fields are dropped during import.
 * Linked conversation labels are never sent to Gateway and never injected into workspace context.
-* No linked conversation contents are fetched automatically.
-* Open linked conversation in Chat is deferred until safe conversation deep-link support exists.
+* No linked conversation contents are fetched automatically from `/workspaces`.
 * Gateway credentials remain server-side only. Do not store secrets in workspace notes, prompts, or imported JSON.
 
 v0.8.1 adds:

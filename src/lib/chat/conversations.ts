@@ -21,6 +21,23 @@ export type ConversationApiError = {
   message: string;
 };
 
+export function conversationDeepLinkErrorMessage(error: ConversationApiError): string {
+  switch (error.code) {
+    case "credentials_not_configured":
+      return "Gateway credentials are not configured.";
+    case "invalid_gateway_api_key":
+      return "Gateway API key is invalid or expired.";
+    case "not_found":
+    case "conversation_not_found":
+      return "Conversation not found.";
+    default:
+      if (error.message.toLowerCase().includes("not found")) {
+        return "Conversation not found.";
+      }
+      return "Could not load linked conversation.";
+  }
+}
+
 type ListConversationsParams = {
   limit?: number;
   offset?: number;

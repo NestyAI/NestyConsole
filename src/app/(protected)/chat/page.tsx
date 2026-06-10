@@ -19,8 +19,10 @@ import { OutputSafetyDetails } from "@/components/chat/output-safety-details";
 import { ProviderFallbackDetails } from "@/components/chat/provider-fallback-details";
 import { ChatCanvasRenderer } from "@/components/chat/chat-canvas-renderer";
 import { WorkspaceChatPanel } from "@/components/chat/workspace-chat-panel";
+import { buildChatHref } from "@/lib/chat/chat-url";
 import {
   archiveOrDeleteConversation,
+  conversationDeepLinkErrorMessage,
   formatConversationTitle,
   getConversationMessages,
   listConversations,
@@ -649,6 +651,8 @@ function ChatPageContent() {
   const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(null);
   const [useWorkspaceContext, setUseWorkspaceContext] = useState<boolean>(false);
   const [workspaceWarning, setWorkspaceWarning] = useState<string | null>(null);
+  const [conversationWarning, setConversationWarning] = useState<string | null>(null);
+  const [conversationDeepLinkLoading, setConversationDeepLinkLoading] = useState(false);
 
   const handleManualOptionChange = () => {
     if (!isApplyingPresetRef.current) {
@@ -793,6 +797,7 @@ function ChatPageContent() {
   const stopRequestedRef = useRef(false);
   const preferencesHydratedRef = useRef(false);
   const workspaceAppliedKeyRef = useRef<string | null>(null);
+  const conversationAppliedKeyRef = useRef<string | null>(null);
   const messagesLengthRef = useRef(0);
 
   useEffect(() => {
@@ -986,20 +991,24 @@ function ChatPageContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- apply once per workspace URL key after preferences hydrate
   }, [searchParams]);
 
-  const syncWorkspaceUrl = useCallback(
-    (workspaceId: string, contextEnabled: boolean) => {
-      if (!workspaceId) {
-        router.replace("/chat");
-        return;
-      }
-      const params = new URLSearchParams();
-      params.set("workspace", workspaceId);
-      if (contextEnabled) {
-        params.set("useWorkspaceContext", "1");
-      }
-      router.replace(`/chat?${params.toString()}`);
+  const syncChatUrl = useCallback(
+    (
+      overrides: Partial<{
+        workspaceId: string | null;
+        conversationId: string | null;
+        useWorkspaceContext: boolean;
+      }> = {}
+    ) => {
+      const href = buildChatHref({
+        workspaceId:
+          overrides.workspaceId !== undefined ? overrides.workspaceId : activeWorkspace?.id ?? null,
+        conversationId: overrides.conversationId !== undefined ? overrides.conversationId : conversationId,
+        useWorkspaceContext:
+          overrides.useWorkspaceContext !== undefined ? overrides.useWorkspaceContext : useWorkspaceContext
+      });
+      router.replace(href);
     },
-    [router]
+    [router, activeWorkspace?.id, conversationId, useWorkspaceContext]
   );
 
   const handleWorkspaceSelect = (workspaceId: string) => {
@@ -1008,7 +1017,7 @@ function ChatPageContent() {
       setActiveWorkspace(null);
       setUseWorkspaceContext(false);
       setWorkspaceWarning(null);
-      router.replace("/chat");
+      syncChatUrl({ workspaceId: null, useWorkspaceContext: false });
       return;
     }
 
@@ -1023,14 +1032,14 @@ function ChatPageContent() {
     setWorkspaceWarning(null);
     setActiveWorkspace(workspace);
     applyWorkspaceOptions(workspace, messagesLengthRef.current > 0);
-    syncWorkspaceUrl(workspaceId, contextOn);
+    syncChatUrl({ workspaceId, useWorkspaceContext: contextOn });
   };
 
   const handleUseWorkspaceContextChange = (enabled: boolean) => {
     setUseWorkspaceContext(enabled);
     if (activeWorkspace) {
       workspaceAppliedKeyRef.current = `${activeWorkspace.id}:${enabled}`;
-      syncWorkspaceUrl(activeWorkspace.id, enabled);
+      syncChatUrl({ workspaceId: activeWorkspace.id, useWorkspaceContext: enabled });
     }
   };
 
@@ -1128,6 +1137,9 @@ function ChatPageContent() {
     setResponseMetadata(null);
     setError(null);
     setStreamingStopped(false);
+    setConversationWarning(null);
+    conversationAppliedKeyRef.current = "__none__";
+    syncChatUrl({ conversationId: null });
     pushNotice("info", "Started a new chat context.");
   };
 
@@ -1158,6 +1170,95 @@ function ChatPageContent() {
     }
   };
 
+  const applyOpenedConversation = (
+    item: ConversationListItem,
+    gatewayMessages: GatewayConversationMessage[],
+    options?: { quiet?: boolean }
+  ) => {
+    const loadedMessages = conversationMessagesToUi(gatewayMessages);
+    setMessages(loadedMessages);
+    setConversationId(item.id);
+    const lastAssistantMessage = [...gatewayMessages].reverse().find((row) => row.role === "assistant");
+    if (lastAssistantMessage) {
+      const extracted = extractMetadata(lastAssistantMessage);
+      extracted.conversation_id = item.id;
+      setResponseMetadata(extracted);
+    } else {
+      setResponseMetadata({
+        conversation_id: item.id
+      });
+    }
+
+    const latestUser = [...loadedMessages].reverse().find((row) => row.role === "user");
+    setLastUserMessage(latestUser?.content || "");
+    setSidebarOpen(false);
+    setStreamingStopped(false);
+    setError(null);
+    if (!options?.quiet) {
+      pushNotice("info", `Opened ${formatConversationTitle(item.raw)}.`);
+    }
+  };
+
+  const resolveConversationListItem = (id: string): ConversationListItem => {
+    const existing = conversations.find((item) => item.id === id);
+    if (existing) {
+      return existing;
+    }
+    return {
+      id,
+      title: "Untitled conversation",
+      archived: false,
+      raw: { id }
+    };
+  };
+
+  const openConversationById = async (id: string, options?: { fromDeepLink?: boolean }) => {
+    const trimmed = id.trim();
+    if (!trimmed) {
+      setConversationWarning("Conversation ID is missing.");
+      return;
+    }
+
+    if (options?.fromDeepLink) {
+      setConversationDeepLinkLoading(true);
+      setConversationWarning(null);
+    } else {
+      setOpeningConversationId(trimmed);
+    }
+    setConversationsError(null);
+
+    const result = await getConversationMessages(trimmed, {
+      limit: 50,
+      offset: 0,
+      order: "asc"
+    });
+
+    if (options?.fromDeepLink) {
+      setConversationDeepLinkLoading(false);
+    } else {
+      setOpeningConversationId(null);
+    }
+
+    if (!result.ok) {
+      if (options?.fromDeepLink) {
+        setConversationWarning(conversationDeepLinkErrorMessage(result.error));
+        if (
+          result.error.code === "credentials_not_configured" ||
+          result.error.code === "invalid_gateway_api_key"
+        ) {
+          setConversationsError(result.error);
+        }
+      } else {
+        setConversationsError(result.error);
+        pushNotice("info", `Unable to open conversation: ${result.error.message}`);
+      }
+      return;
+    }
+
+    const item = resolveConversationListItem(trimmed);
+    applyOpenedConversation(item, result.data.items, { quiet: options?.fromDeepLink });
+  };
+
   const openConversation = async (item: ConversationListItem) => {
     setOpeningConversationId(item.id);
     setConversationsError(null);
@@ -1176,28 +1277,37 @@ function ChatPageContent() {
       return;
     }
 
-    const loadedMessages = conversationMessagesToUi(result.data.items);
-    setMessages(loadedMessages);
-    setConversationId(item.id);
-    // Find the last assistant message to populate responseMetadata
-    const lastAssistantMessage = [...result.data.items].reverse().find((row) => row.role === "assistant");
-    if (lastAssistantMessage) {
-      const extracted = extractMetadata(lastAssistantMessage);
-      extracted.conversation_id = item.id;
-      setResponseMetadata(extracted);
-    } else {
-      setResponseMetadata({
-        conversation_id: item.id
-      });
+    applyOpenedConversation(item, result.data.items);
+  };
+
+  useEffect(() => {
+    if (!preferencesHydratedRef.current || typeof window === "undefined") {
+      return;
     }
 
-    const latestUser = [...loadedMessages].reverse().find((row) => row.role === "user");
-    setLastUserMessage(latestUser?.content || "");
-    setSidebarOpen(false);
-    setStreamingStopped(false);
-    setError(null);
-    pushNotice("info", `Opened ${formatConversationTitle(item.raw)}.`);
-  };
+    const hasConversationParam = searchParams.has("conversation");
+    const conversationIdFromUrl = searchParams.get("conversation")?.trim() ?? "";
+    const applyKey = hasConversationParam ? conversationIdFromUrl || "__empty__" : "__none__";
+
+    if (conversationAppliedKeyRef.current === applyKey) {
+      return;
+    }
+    conversationAppliedKeyRef.current = applyKey;
+
+    if (!hasConversationParam) {
+      return;
+    }
+
+    if (!conversationIdFromUrl) {
+      /* eslint-disable react-hooks/set-state-in-effect */
+      setConversationWarning("Conversation ID is missing.");
+      /* eslint-enable react-hooks/set-state-in-effect */
+      return;
+    }
+
+    void openConversationById(conversationIdFromUrl, { fromDeepLink: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- apply once per conversation URL key after preferences hydrate
+  }, [searchParams]);
 
   const handleRenameConversation = async (item: ConversationListItem) => {
     const currentTitle = formatConversationTitle(item.raw);
@@ -1603,6 +1713,28 @@ function ChatPageContent() {
           <Badge variant="warning">store=off</Badge>
         )}
       </div>
+
+      {conversationDeepLinkLoading ? (
+        <div className="rounded-2xl border border-cyan-300/25 bg-cyan-400/10 p-3 text-sm text-cyan-100 shadow-neural-soft">
+          Loading linked conversation...
+        </div>
+      ) : null}
+
+      {conversationWarning ? (
+        <div className="rounded-2xl border border-amber-300/25 bg-amber-400/10 p-3 text-sm text-amber-100 shadow-neural-soft">
+          {conversationWarning}
+          {conversationsError?.code === "credentials_not_configured" ||
+          conversationsError?.code === "invalid_gateway_api_key" ? (
+            <p className="mt-2 text-xs text-amber-100/90">
+              Configure credentials in{" "}
+              <Link href="/settings/gateway" className="underline underline-offset-2 hover:text-neural-cyan">
+                Settings {"->"} Gateway Credentials
+              </Link>
+              .
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       <WorkspaceChatPanel
         activeWorkspace={activeWorkspace}

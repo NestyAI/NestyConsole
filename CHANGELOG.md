@@ -2,6 +2,19 @@
 
 All notable changes to Nesty Console will be documented in this file.
 
+## [0.8.3] - Unreleased
+
+### Added
+- Added deep-link support for opening Gateway conversations in Chat.
+- Added Open in Chat actions for linked Workspace conversations.
+- Added combined workspace and conversation chat URLs.
+
+### Changed
+- Improved Workspace Memory Hub continuity between Workspaces and Chat.
+
+### Security
+- Conversation deep links use existing server-side Console routes and do not expose Gateway credentials, internal admin tokens, provider secrets, cookies, sessions, or request headers.
+
 ## [0.8.2] - Unreleased
 
 ### Added

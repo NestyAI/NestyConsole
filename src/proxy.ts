@@ -12,6 +12,7 @@ function isProtectedPage(pathname: string): boolean {
   }
   return (
     pathname.startsWith("/chat") ||
+    pathname.startsWith("/workspaces") ||
     pathname.startsWith("/memory") ||
     pathname.startsWith("/diagnostics") ||
     pathname.startsWith("/model-configs") ||

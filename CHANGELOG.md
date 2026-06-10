@@ -2,6 +2,16 @@
 
 All notable changes to Nesty Console will be documented in this file.
 
+## [0.8.0] - Unreleased
+
+### Added
+- Added Workspace Memory Hub for organizing project-specific context, notes, presets, and linked conversations.
+- Added local workspace templates for common NestyAI ecosystem projects.
+- Added workspace-aware chat entry flow for opening Chat with project context.
+
+### Security
+- Workspace data is stored locally as non-secret user context and never stores Gateway API keys, internal admin tokens, provider secrets, cookies, sessions, or credentials.
+
 ## [0.7.4] - Unreleased
 
 ### Added

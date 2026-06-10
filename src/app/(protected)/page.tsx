@@ -15,6 +15,11 @@ const cards = [
     description: "Protected chat UI with server-side proxy requests and conversation continuity."
   },
   {
+    href: "/workspaces",
+    title: "Workspaces",
+    description: "Organize project context, preferred presets, notes, and link conversation logs."
+  },
+  {
     href: "/memory",
     title: "Memory",
     description: "Conversation search, summaries, export, and per-message memory controls."

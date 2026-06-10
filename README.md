@@ -6,9 +6,16 @@
 
 Nesty Console is a separate frontend/admin project for operating a running `NestyAI Gateway`.
 
-Current status: **v0.7.4 - Chat Session Presets**
+Current status: **v0.8.0 - Workspace Memory Hub**
 
 Changelog: [CHANGELOG.md](CHANGELOG.md)
+
+v0.8.0 adds:
+* Local-first Workspaces (`/workspaces`) stored in browser `localStorage` under `nesty-console.workspaces.v1`.
+* Organize project notes, memory tags, linked Gateway conversation IDs, and preferred chat presets/options per workspace.
+* Open Chat with workspace context via `/chat?workspace=<id>` or `/chat?workspace=<id>&useWorkspaceContext=1`.
+* Workspace context (system prompt, pinned notes, memory tags) is injected as a transient request-only system message when enabled — not saved into visible chat history.
+* Do not store secrets in workspace notes or prompts. Gateway credentials remain server-side only.
 
 v0.7.4 adds:
 * Switch quickly between built-in presets (Fast Chat, Balanced, Deep Pro, Coding Assistant, Vietnamese Helper) or save custom session configurations.

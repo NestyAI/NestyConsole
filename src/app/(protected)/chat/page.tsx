@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
-import { Clipboard, Loader2, Menu, RefreshCcw, Send, Square, Trash2 } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { FormEvent, KeyboardEvent, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { AlertTriangle, Clipboard, Loader2, Menu, RefreshCcw, Send, Square, Trash2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -44,6 +45,8 @@ import {
   getCustomChatPresets,
   saveCustomChatPresets
 } from "@/lib/chat/presets";
+import { buildWorkspaceContext } from "@/lib/workspaces/context";
+import { type Workspace, getWorkspaceById } from "@/lib/workspaces/workspaces";
 
 type UiMessage = ChatMessage & {
   id: string;
@@ -57,6 +60,24 @@ type ConsoleError = {
 type UiNotice = {
   kind: "info" | "success";
   message: string;
+};
+
+const WORKSPACE_BADGE_VARIANTS: Record<string, "live" | "ai" | "success" | "warning" | "error" | "inactive"> = {
+  cyan: "live",
+  violet: "ai",
+  green: "success",
+  amber: "warning",
+  red: "error",
+  neutral: "inactive"
+};
+
+const WORKSPACE_BANNER_CLASSES: Record<string, string> = {
+  cyan: "border-neural-cyan/25 bg-neural-cyan/10",
+  violet: "border-neural-violet/25 bg-neural-violet/10",
+  green: "border-neural-green/25 bg-neural-green/10",
+  amber: "border-neural-amber/25 bg-neural-amber/10",
+  red: "border-neural-red/25 bg-neural-red/10",
+  neutral: "border-white/10 bg-white/[0.03]"
 };
 
 const MODELS = ["nesty-flash-1.0", "nesty-combined-1.0", "nesty-pro-1.0"] as const;
@@ -607,7 +628,8 @@ function getPresetTimestamp(): string {
   return new Date().toISOString();
 }
 
-export default function ChatPage() {
+function ChatPageContent() {
+  const searchParams = useSearchParams();
   const [messages, setMessages] = useState<UiMessage[]>([]);
   const [input, setInput] = useState("");
   const [model, setModel] = useState<(typeof MODELS)[number]>("nesty-combined-1.0");
@@ -635,6 +657,9 @@ export default function ChatPage() {
   const [customPresets, setCustomPresets] = useState<ChatPreset[]>([]);
   const builtinPresets = getBuiltInChatPresets();
   const isApplyingPresetRef = useRef(false);
+  const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(null);
+  const [useWorkspaceContext, setUseWorkspaceContext] = useState<boolean>(false);
+  const [workspaceWarning, setWorkspaceWarning] = useState<string | null>(null);
 
   const handleManualOptionChange = () => {
     if (!isApplyingPresetRef.current) {
@@ -778,6 +803,12 @@ export default function ChatPage() {
   const abortRef = useRef<AbortController | null>(null);
   const stopRequestedRef = useRef(false);
   const preferencesHydratedRef = useRef(false);
+  const workspaceAppliedKeyRef = useRef<string | null>(null);
+  const messagesLengthRef = useRef(0);
+
+  useEffect(() => {
+    messagesLengthRef.current = messages.length;
+  }, [messages]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -853,6 +884,125 @@ export default function ChatPage() {
   const pushNotice = (kind: UiNotice["kind"], message: string) => {
     setNotice({ kind, message });
   };
+
+  const applyWorkspaceOptions = (workspace: Workspace, notifyIfMessages: boolean) => {
+    isApplyingPresetRef.current = true;
+    try {
+      if (workspace.preferred_preset_id) {
+        const allPresets = [...builtinPresets, ...getCustomChatPresets()];
+        const found = allPresets.find((p) => p.id === workspace.preferred_preset_id);
+        if (found) {
+          setSelectedPresetId(found.id);
+          setModel(found.model as (typeof MODELS)[number]);
+          setSearch(found.search);
+          setTools(found.tools);
+          setStore(found.store);
+          setSemanticRecall(found.semantic_recall);
+          setStream(found.stream);
+          if (found.temperature !== undefined && found.temperature !== null) {
+            setTemperature(String(found.temperature));
+          }
+          if (found.max_tokens !== undefined && found.max_tokens !== null) {
+            setMaxTokens(String(found.max_tokens));
+          }
+          if (found.system_prompt !== undefined && found.system_prompt !== null) {
+            setSystemPrompt(found.system_prompt);
+            setShowSystemPrompt(Boolean(found.system_prompt));
+          } else {
+            setSystemPrompt("");
+            setShowSystemPrompt(false);
+          }
+        } else {
+          setSelectedPresetId("");
+          if (workspace.preferred_model && (MODELS as readonly string[]).includes(workspace.preferred_model)) {
+            setModel(workspace.preferred_model as (typeof MODELS)[number]);
+          }
+          if (workspace.preferred_search) {
+            setSearch(workspace.preferred_search);
+          }
+          if (workspace.preferred_tools) {
+            setTools(workspace.preferred_tools);
+          }
+          if (workspace.preferred_store !== undefined) {
+            setStore(workspace.preferred_store);
+          }
+          if (workspace.preferred_semantic_recall) {
+            setSemanticRecall(workspace.preferred_semantic_recall);
+          }
+        }
+      } else {
+        setSelectedPresetId("");
+        if (workspace.preferred_model && (MODELS as readonly string[]).includes(workspace.preferred_model)) {
+          setModel(workspace.preferred_model as (typeof MODELS)[number]);
+        }
+        if (workspace.preferred_search) {
+          setSearch(workspace.preferred_search);
+        }
+        if (workspace.preferred_tools) {
+          setTools(workspace.preferred_tools);
+        }
+        if (workspace.preferred_store !== undefined) {
+          setStore(workspace.preferred_store);
+        }
+        if (workspace.preferred_semantic_recall) {
+          setSemanticRecall(workspace.preferred_semantic_recall);
+        }
+      }
+
+      if (notifyIfMessages) {
+        pushNotice("info", "Workspace options applied. Existing messages were kept.");
+      }
+    } finally {
+      isApplyingPresetRef.current = false;
+    }
+  };
+
+  useEffect(() => {
+    if (!preferencesHydratedRef.current || typeof window === "undefined") {
+      return;
+    }
+
+    const workspaceId = searchParams.get("workspace")?.trim() || "";
+    const useContextParam = searchParams.get("useWorkspaceContext") === "1";
+    const applyKey = `${workspaceId}:${useContextParam}`;
+
+    if (workspaceAppliedKeyRef.current === applyKey) {
+      return;
+    }
+    workspaceAppliedKeyRef.current = applyKey;
+
+    /* eslint-disable react-hooks/set-state-in-effect */
+    if (!workspaceId) {
+      setActiveWorkspace(null);
+      setUseWorkspaceContext(false);
+      setWorkspaceWarning(null);
+      return;
+    }
+
+    const workspace = getWorkspaceById(workspaceId);
+    if (!workspace) {
+      setActiveWorkspace(null);
+      setUseWorkspaceContext(false);
+      setWorkspaceWarning(`Workspace "${workspaceId}" was not found. Continuing with normal chat.`);
+      return;
+    }
+
+    setWorkspaceWarning(null);
+    setActiveWorkspace(workspace);
+    setUseWorkspaceContext(useContextParam);
+
+    const hadMessages = messagesLengthRef.current > 0;
+    applyWorkspaceOptions(workspace, hadMessages);
+    /* eslint-enable react-hooks/set-state-in-effect */
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- apply once per workspace URL key after preferences hydrate
+  }, [searchParams]);
+
+  const workspaceContextTruncated = useMemo(() => {
+    if (!activeWorkspace) {
+      return false;
+    }
+    return buildWorkspaceContext(activeWorkspace).truncated;
+  }, [activeWorkspace]);
 
   const loadConversations = async (options: { silent?: boolean; query?: string } = {}) => {
     const silent = Boolean(options.silent);
@@ -1113,6 +1263,16 @@ export default function ChatPage() {
         role: "system",
         content: systemValue
       });
+    }
+
+    if (useWorkspaceContext && activeWorkspace) {
+      const { text } = buildWorkspaceContext(activeWorkspace);
+      if (text.trim()) {
+        payloadMessages.unshift({
+          role: "system",
+          content: text
+        });
+      }
     }
 
     const payload: ChatRequest = {
@@ -1396,6 +1556,54 @@ export default function ChatPage() {
           <Badge variant="warning">store=off</Badge>
         )}
       </div>
+
+      {workspaceWarning ? (
+        <div className="rounded-2xl border border-amber-300/25 bg-amber-400/10 p-3 text-sm text-amber-100 shadow-neural-soft">
+          {workspaceWarning}
+        </div>
+      ) : null}
+
+      {activeWorkspace ? (
+        <div
+          className={`rounded-2xl border p-3 shadow-neural-soft ${
+            WORKSPACE_BANNER_CLASSES[activeWorkspace.color || "cyan"] || WORKSPACE_BANNER_CLASSES.cyan
+          }`}
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant={WORKSPACE_BADGE_VARIANTS[activeWorkspace.color || "cyan"] || "live"}>
+                {activeWorkspace.name}
+              </Badge>
+              <span className="text-xs text-neural-text-secondary">Active workspace</span>
+            </div>
+            <Link
+              href="/workspaces"
+              className="font-display text-[10px] uppercase tracking-[0.08em] text-neural-cyan underline underline-offset-2 hover:text-neural-text-primary"
+            >
+              Manage workspace
+            </Link>
+          </div>
+          <label className="mt-3 flex cursor-pointer items-center gap-2 text-sm text-neural-text-secondary">
+            <input
+              type="checkbox"
+              checked={useWorkspaceContext}
+              onChange={(event) => setUseWorkspaceContext(event.target.checked)}
+              className="h-4 w-4 rounded border-white/10 bg-white/[0.03]"
+            />
+            <span>Use workspace context (system prompt, pinned notes, memory tags)</span>
+          </label>
+          {useWorkspaceContext && workspaceContextTruncated ? (
+            <p className="mt-2 flex items-start gap-2 text-xs text-amber-100">
+              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              Workspace context exceeds 4,000 characters and was truncated for this request.
+            </p>
+          ) : null}
+          <p className="mt-2 flex items-start gap-2 text-xs text-amber-100/90">
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            Do not put secrets in workspace notes or prompts.
+          </p>
+        </div>
+      ) : null}
 
       {!store && conversationId ? (
         <div className="rounded-2xl border border-amber-300/25 bg-amber-400/10 p-3 text-sm text-amber-100 shadow-neural-soft">
@@ -1997,5 +2205,19 @@ export default function ChatPage() {
         </aside>
       </div>
     </section>
+  );
+}
+
+export default function ChatPage() {
+  return (
+    <Suspense
+      fallback={
+        <section className="space-y-5 animate-fade-in-up">
+          <LoadingBlock label="Loading chat workspace..." />
+        </section>
+      }
+    >
+      <ChatPageContent />
+    </Suspense>
   );
 }

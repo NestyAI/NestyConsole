@@ -19,7 +19,7 @@ import { OutputSafetyDetails } from "@/components/chat/output-safety-details";
 import { ProviderFallbackDetails } from "@/components/chat/provider-fallback-details";
 import { ChatCanvasRenderer } from "@/components/chat/chat-canvas-renderer";
 import { WorkspaceChatPanel } from "@/components/chat/workspace-chat-panel";
-import { buildChatHref } from "@/lib/chat/chat-url";
+import { buildChatHref, copyChatHref } from "@/lib/chat/chat-url";
 import {
   archiveOrDeleteConversation,
   conversationDeepLinkErrorMessage,
@@ -539,6 +539,15 @@ async function copyTextToClipboard(text: string): Promise<boolean> {
   }
 }
 
+const CHAT_SCROLL_BOTTOM_THRESHOLD_PX = 80;
+
+function scrollChatToBottom(container: HTMLDivElement | null, behavior: ScrollBehavior = "auto") {
+  if (!container) {
+    return;
+  }
+  container.scrollTo({ top: container.scrollHeight, behavior });
+}
+
 function formatDateTime(raw: string | undefined): string | null {
   if (!raw) {
     return null;
@@ -792,7 +801,8 @@ function ChatPageContent() {
   const [conversationActionBusyId, setConversationActionBusyId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const endRef = useRef<HTMLDivElement | null>(null);
+  const messagesContainerRef = useRef<HTMLDivElement | null>(null);
+  const shouldAutoScrollRef = useRef(true);
   const abortRef = useRef<AbortController | null>(null);
   const stopRequestedRef = useRef(false);
   const preferencesHydratedRef = useRef(false);
@@ -805,8 +815,25 @@ function ChatPageContent() {
     messagesLengthRef.current = messages.length;
   }, [messages]);
 
+  const handleMessagesScroll = () => {
+    const container = messagesContainerRef.current;
+    if (!container) {
+      return;
+    }
+    const distance = container.scrollHeight - container.scrollTop - container.clientHeight;
+    shouldAutoScrollRef.current = distance <= CHAT_SCROLL_BOTTOM_THRESHOLD_PX;
+  };
+
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    if (!shouldAutoScrollRef.current) {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      scrollChatToBottom(messagesContainerRef.current, "auto");
+    });
+
+    return () => window.cancelAnimationFrame(frame);
   }, [messages]);
 
   useEffect(() => {
@@ -1007,7 +1034,7 @@ function ChatPageContent() {
         useWorkspaceContext:
           overrides.useWorkspaceContext !== undefined ? overrides.useWorkspaceContext : useWorkspaceContext
       });
-      router.replace(href);
+      router.replace(href, { scroll: false });
     },
     [router, activeWorkspace?.id, conversationId, useWorkspaceContext]
   );
@@ -1132,6 +1159,20 @@ function ChatPageContent() {
     window.setTimeout(() => setCopiedKey((current) => (current === key ? null : current)), 1400);
   };
 
+  const handleCopyConversationLink = async () => {
+    if (!conversationId) {
+      return;
+    }
+
+    const copied = await copyChatHref({
+      workspaceId: activeWorkspace?.id ?? null,
+      conversationId,
+      useWorkspaceContext: Boolean(activeWorkspace && useWorkspaceContext)
+    });
+
+    pushNotice(copied ? "success" : "info", copied ? "Conversation link copied." : "Could not copy link.");
+  };
+
   const startNewChat = () => {
     setMessages([]);
     setConversationId(null);
@@ -1213,18 +1254,53 @@ function ChatPageContent() {
     };
   };
 
+  const upsertConversationListItem = (found: ConversationListItem) => {
+    setConversations((prev) => {
+      const index = prev.findIndex((item) => item.id === found.id);
+      if (index >= 0) {
+        return prev.map((item) => (item.id === found.id ? found : item));
+      }
+      return [found, ...prev];
+    });
+  };
+
   const tryResolveTitleFromList = async (id: string) => {
     if (titleRefreshAttemptedRef.current.has(id)) {
       return;
     }
     titleRefreshAttemptedRef.current.add(id);
 
-    const result = await listConversations({ limit: 50, offset: 0 });
-    if (!result.ok) {
+    let alreadyResolved = false;
+    setConversations((prev) => {
+      const existing = prev.find((item) => item.id === id);
+      if (existing && formatConversationTitle(existing.raw) !== "Untitled conversation") {
+        alreadyResolved = true;
+      }
+      return prev;
+    });
+    if (alreadyResolved) {
       return;
     }
 
-    setConversations(result.data.items);
+    const PAGE_SIZE = 50;
+    const offsets = [0, 50];
+
+    for (const offset of offsets) {
+      const result = await listConversations({ limit: PAGE_SIZE, offset });
+      if (!result.ok) {
+        return;
+      }
+
+      const found = result.data.items.find((item) => item.id === id);
+      if (found) {
+        upsertConversationListItem(found);
+        return;
+      }
+
+      if (result.data.items.length < PAGE_SIZE) {
+        return;
+      }
+    }
   };
 
   const openConversationById = async (id: string, options?: { fromDeepLink?: boolean }) => {
@@ -1482,6 +1558,7 @@ function ChatPageContent() {
       }
     }
 
+    shouldAutoScrollRef.current = true;
     setMessages((prev) => [...prev, userMessage, assistantPlaceholder]);
     setLastUserMessage(text);
     setInput("");
@@ -1734,6 +1811,18 @@ function ChatPageContent() {
         ) : (
           <Badge variant="warning">store=off</Badge>
         )}
+        {conversationId ? (
+          <button
+            type="button"
+            onClick={() => void handleCopyConversationLink()}
+            className="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1 font-display text-[9px] uppercase tracking-[0.08em] text-neural-text-secondary transition-colors duration-200 hover:border-neural-cyan/35 hover:text-neural-cyan active:scale-[0.98]"
+            title="Copy conversation link"
+            aria-label="Copy conversation link"
+          >
+            <Clipboard className="h-3.5 w-3.5" aria-hidden="true" />
+            Copy Link
+          </button>
+        ) : null}
       </div>
 
       {conversationDeepLinkLoading ? (
@@ -1963,7 +2052,11 @@ function ChatPageContent() {
 
         <Panel className="flex w-full min-w-0 flex-col overflow-hidden p-0">
           <div className="flex min-h-[50vh] max-h-[72vh] 2xl:max-h-[78vh] flex-col overflow-hidden rounded-2xl border border-white/10 bg-neural-elevated/70 shadow-neural-soft w-full min-w-0">
-            <div className="neural-scroll flex-1 space-y-3 overflow-y-auto p-4 w-full min-w-0">
+            <div
+              ref={messagesContainerRef}
+              onScroll={handleMessagesScroll}
+              className="neural-scroll flex-1 space-y-3 overflow-y-auto p-4 w-full min-w-0"
+            >
               {messages.length === 0 ? (
                 <div className="space-y-4">
                   <div className="space-y-1">
@@ -2061,7 +2154,6 @@ function ChatPageContent() {
                       </article>
                     );
                   })}
-                  <div ref={endRef} />
                 </div>
               )}
             </div>

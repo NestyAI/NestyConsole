@@ -2,6 +2,31 @@
 
 All notable changes to Nesty Console will be documented in this file.
 
+## [0.8.8] - Unreleased
+
+### Fixed
+- Fixed a Chat UX issue where sending a message could scroll the page to the top.
+
+### Changed
+- Improved Chat scroll stability during message send and streaming.
+
+### Security
+- Scroll stability changes do not alter Gateway credential boundaries, server-side proxy behavior, workspace context injection, chat streaming semantics, or metadata rendering.
+
+## [0.8.7] - Unreleased
+
+### Added
+- Added absolute URL copy support for Workspace conversation links.
+- Added Copy Link action for the active Chat conversation.
+- Added optional keyboard navigation polish for the Workspace list.
+- Added bounded title refresh improvements for deep-linked conversations.
+
+### Changed
+- Improved Workspace and Chat conversation link polish while preserving existing deep-link behavior.
+
+### Security
+- Conversation links contain only Workspace IDs and Gateway conversation IDs, and continue to use server-side Console proxy routes without exposing Gateway credentials, internal admin tokens, provider secrets, cookies, sessions, or request headers.
+
 ## [0.8.6] - Unreleased
 
 ### Added

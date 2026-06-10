@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { 
   Plus, 
   Trash2, 
@@ -47,7 +47,7 @@ import {
   removeWorkspaceLinkedConversation,
   updateWorkspaceLinkedLabel
 } from "@/lib/workspaces/workspaces";
-import { buildChatHref } from "@/lib/chat/chat-url";
+import { buildChatHref, copyChatHref } from "@/lib/chat/chat-url";
 import { exportWorkspacesJson, importWorkspacesFromJson } from "@/lib/workspaces/import-export";
 import { type ChatPreset, getBuiltInChatPresets, getCustomChatPresets } from "@/lib/chat/presets";
 import { PANEL_ACCENTS, WORKSPACE_FOCUS_RING, workspaceListCardClass } from "@/lib/workspaces/ui-tokens";
@@ -363,18 +363,35 @@ export default function WorkspacesPage() {
     setLinkNotice("Conversation label updated.");
   };
 
-  const handleCopyLinkedConversationLink = async (workspaceId: string, conversationId: string) => {
-    const href = buildChatHref({ workspaceId, conversationId });
-    try {
-      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(href);
-        setLinkNotice("Conversation link copied.");
-      } else {
-        setLinkNotice("Could not copy link.");
-      }
-    } catch {
-      setLinkNotice("Could not copy link.");
+  const handleWorkspaceListKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
+    const keys = ["ArrowDown", "ArrowUp", "Home", "End"];
+    if (!keys.includes(event.key)) {
+      return;
     }
+
+    const buttons = event.currentTarget.parentElement?.querySelectorAll("button");
+    if (!buttons?.length) {
+      return;
+    }
+
+    event.preventDefault();
+    let nextIndex = index;
+    if (event.key === "ArrowDown") {
+      nextIndex = Math.min(index + 1, buttons.length - 1);
+    } else if (event.key === "ArrowUp") {
+      nextIndex = Math.max(index - 1, 0);
+    } else if (event.key === "Home") {
+      nextIndex = 0;
+    } else if (event.key === "End") {
+      nextIndex = buttons.length - 1;
+    }
+
+    (buttons[nextIndex] as HTMLButtonElement | undefined)?.focus();
+  };
+
+  const handleCopyLinkedConversationLink = async (workspaceId: string, conversationId: string) => {
+    const copied = await copyChatHref({ workspaceId, conversationId });
+    setLinkNotice(copied ? "Conversation link copied." : "Could not copy link.");
   };
 
   const handleCopyWorkspacesJson = async () => {
@@ -518,7 +535,7 @@ export default function WorkspacesPage() {
             />
           ) : (
             <WorkspaceListMotion workspaceCount={workspaces.length} selectedId={selectedId}>
-              {workspaces.map((w) => {
+              {workspaces.map((w, index) => {
                 const isSelected = w.id === selectedId;
                 const noteCount = w.pinned_notes?.length || 0;
                 const convCount = getWorkspaceLinkedConversations(w).length;
@@ -527,6 +544,7 @@ export default function WorkspacesPage() {
                     key={w.id}
                     type="button"
                     onClick={() => setSelectedId(w.id)}
+                    onKeyDown={(event) => handleWorkspaceListKeyDown(event, index)}
                     aria-pressed={isSelected}
                     aria-label={`Select workspace ${w.name}`}
                     className={`group relative w-full overflow-hidden rounded-2xl border p-4 text-left transition-colors transition-shadow duration-200 ${workspaceListCardClass(isSelected)} ${WORKSPACE_FOCUS_RING}`}

@@ -6,9 +6,23 @@
 
 Nesty Console is a separate frontend/admin project for operating a running `NestyAI Gateway`.
 
-Current status: **v0.8.6 - GSAP Workspace Motion Layer**
+Current status: **v0.8.8 - Chat Scroll Stability Hotfix**
 
 Changelog: [CHANGELOG.md](CHANGELOG.md)
+
+v0.8.8 adds:
+* Fixed chat page scroll-to-top when sending messages or during streaming.
+* Message panel now scrolls within its container; page position stays stable.
+* Near-bottom guard preserves manual scroll-up while reading history.
+* URL sync uses `scroll: false` to avoid Next.js scroll reset on conversation/workspace param updates.
+
+v0.8.7 adds:
+* Workspace linked conversation rows copy absolute app URLs (`window.location.origin` + `/chat?...`).
+* Chat status row Copy Link for the active conversation (includes workspace ID when active; `useWorkspaceContext=1` only when context is enabled).
+* Copied links contain only workspace and conversation IDs — no secrets or conversation content.
+* Optional keyboard navigation on the Workspace list (Arrow Up/Down, Home, End).
+* Bounded deep-link conversation title refresh (up to 100 conversations, once per ID per session, silent failure).
+* Gateway credentials remain server-side only; workspace context remains opt-in and transient.
 
 v0.8.6 adds:
 * Controlled GSAP motion for `/workspaces` and the Chat workspace panel (list stagger, selection glow, panel entrance, context preview fade, pin flash, notice pop-in).

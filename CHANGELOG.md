@@ -2,6 +2,19 @@
 
 All notable changes to Nesty Console will be documented in this file.
 
+## [0.8.6] - Unreleased
+
+### Added
+- Added a controlled GSAP motion layer for Workspace UI (`gsap`, `@gsap/react`).
+- Added reduced-motion guards (`canAnimate()`, `useReducedMotion()`) for all GSAP paths.
+- Added workspace list entrance stagger, selected workspace glow, chat panel entrance, context preview content fade, note pin flash, and import/export notice pop-in.
+
+### Changed
+- Improved Workspace Memory Hub and Chat workspace panel motion while preserving existing behavior and deep-link flows.
+
+### Security
+- GSAP motion is decorative client-side UI only and does not expose Gateway credentials, internal admin tokens, provider secrets, cookies, sessions, request headers, or linked conversation contents.
+
 ## [0.8.5] - Unreleased
 
 ### Changed

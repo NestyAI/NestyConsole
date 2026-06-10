@@ -6,9 +6,15 @@
 
 Nesty Console is a separate frontend/admin project for operating a running `NestyAI Gateway`.
 
-Current status: **v0.8.5 - Workspace Premium UX & Motion Refresh**
+Current status: **v0.8.6 - GSAP Workspace Motion Layer**
 
 Changelog: [CHANGELOG.md](CHANGELOG.md)
+
+v0.8.6 adds:
+* Controlled GSAP motion for `/workspaces` and the Chat workspace panel (list stagger, selection glow, panel entrance, context preview fade, pin flash, notice pop-in).
+* Reduced-motion guards on all GSAP paths; CSS/Tailwind fallback when `prefers-reduced-motion: reduce`.
+* GSAP is UI-only for Workspace surfaces — workspace CRUD, import/export, deep links, context injection, and chat streaming behavior are unchanged.
+* Root-level Cursor skills are shared workspace tooling and are not part of the Nesty Console runtime.
 
 v0.8.5 adds:
 * Premium Neural Noir UX polish for `/workspaces` and the Chat workspace panel.

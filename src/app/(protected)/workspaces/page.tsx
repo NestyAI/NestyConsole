@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { 
   Plus, 
   Trash2, 
@@ -25,7 +25,10 @@ import { WorkspaceActionButton } from "@/components/workspace/workspace-action-b
 import { WorkspaceBadge } from "@/components/workspace/workspace-badge";
 import { WorkspaceColorBar } from "@/components/workspace/workspace-color-bar";
 import { WorkspaceNotice } from "@/components/workspace/workspace-notice";
+import { WorkspaceListMotion } from "@/components/workspace/workspace-list-motion";
+import { WorkspaceNoticeMotion } from "@/components/workspace/workspace-notice-motion";
 import { WorkspaceStatItem, WorkspaceStatStrip } from "@/components/workspace/workspace-stat-strip";
+import { flashNoteCard } from "@/lib/motion/gsap-utils";
 import {
   type Workspace,
   type WorkspaceColor,
@@ -88,6 +91,7 @@ export default function WorkspacesPage() {
   const [linkNotice, setLinkNotice] = useState<string>("");
   const [exportNotice, setExportNotice] = useState<string>("");
   const [importJson, setImportJson] = useState<string>("");
+  const detailPanelRef = useRef<HTMLDivElement>(null);
 
   // Presets list
   const builtinPresets = getBuiltInChatPresets();
@@ -307,6 +311,7 @@ export default function WorkspacesPage() {
     });
     updateWorkspace(selectedWorkspace.id, { pinned_notes: updatedNotes });
     setWorkspaces(getWorkspaces());
+    window.requestAnimationFrame(() => flashNoteCard(note.id, detailPanelRef.current));
   };
 
   // Conversation Link helpers
@@ -415,6 +420,7 @@ export default function WorkspacesPage() {
   const renderNoteCard = (note: WorkspaceNote) => (
     <article
       key={note.id}
+      data-note-id={note.id}
       className={`relative space-y-2 rounded-2xl border p-3.5 transition-colors duration-200 ${
         note.pinned
           ? "border-neural-cyan/35 bg-neural-cyan/[0.04] shadow-[inset_0_0_0_1px_rgba(75,225,255,0.08)]"
@@ -511,7 +517,7 @@ export default function WorkspacesPage() {
               description="Create a workspace manually or choose from starter templates below to begin organizing."
             />
           ) : (
-            <div className="grid gap-3">
+            <WorkspaceListMotion workspaceCount={workspaces.length} selectedId={selectedId}>
               {workspaces.map((w) => {
                 const isSelected = w.id === selectedId;
                 const noteCount = w.pinned_notes?.length || 0;
@@ -550,7 +556,7 @@ export default function WorkspacesPage() {
                   </button>
                 );
               })}
-            </div>
+            </WorkspaceListMotion>
           )}
 
           {/* Starter templates */}
@@ -620,11 +626,7 @@ export default function WorkspacesPage() {
                 </button>
               </div>
 
-              {exportNotice ? (
-                <p className="animate-fade-in-up text-xs text-neural-cyan" role="status" aria-live="polite">
-                  {exportNotice}
-                </p>
-              ) : null}
+              <WorkspaceNoticeMotion message={exportNotice} />
             </div>
           </details>
         </div>
@@ -644,7 +646,11 @@ export default function WorkspacesPage() {
               </p>
             </Panel>
           ) : (
-            <Panel accent={PANEL_ACCENTS[selectedWorkspace.color || "cyan"]} className="p-5 sm:p-6 space-y-6">
+            <Panel
+              accent={PANEL_ACCENTS[selectedWorkspace.color || "cyan"]}
+              className="p-5 sm:p-6 space-y-6"
+            >
+              <div ref={detailPanelRef} className="space-y-6">
               {/* Header with name and actions */}
               <div className="flex flex-wrap items-start justify-between gap-4 border-b border-white/10 pb-4">
                 <div>
@@ -791,11 +797,7 @@ export default function WorkspacesPage() {
                   </div>
                 </form>
 
-                {linkNotice ? (
-                  <p className="animate-fade-in-up text-xs text-neural-cyan" role="status" aria-live="polite">
-                    {linkNotice}
-                  </p>
-                ) : null}
+                <WorkspaceNoticeMotion message={linkNotice} />
 
                 {getWorkspaceLinkedConversations(selectedWorkspace).length > 0 ? (
                   <div className="flex flex-col gap-2 max-h-44 overflow-y-auto pr-1">
@@ -919,6 +921,7 @@ export default function WorkspacesPage() {
                   </div>
                 );
               })()}
+              </div>
             </Panel>
           )}
         </div>

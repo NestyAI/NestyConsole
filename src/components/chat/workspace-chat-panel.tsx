@@ -1,17 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { TerminalBlock } from "@/components/ui/terminal-block";
 import { WorkspaceBadge } from "@/components/workspace/workspace-badge";
+import { WorkspaceContextPreview } from "@/components/workspace/workspace-context-preview";
 import { WorkspaceNotice } from "@/components/workspace/workspace-notice";
-import {
-  WORKSPACE_CONTEXT_CHAR_CAP,
-  getWorkspaceContextMeta
-} from "@/lib/workspaces/context";
+import { useCanAnimate } from "@/hooks/use-reduced-motion";
+import { useGSAP } from "@/lib/motion/gsap-client";
+import { fadeInUp } from "@/lib/motion/gsap-utils";
+import { canAnimate } from "@/lib/motion/reduced-motion";
+import { getWorkspaceContextMeta } from "@/lib/workspaces/context";
 import {
   WORKSPACE_BANNER_CLASSES,
   WORKSPACE_FOCUS_RING
@@ -43,6 +44,8 @@ export function WorkspaceChatPanel({
 }: WorkspaceChatPanelProps) {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [storageCorrupted, setStorageCorrupted] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const canAnimateMotion = useCanAnimate();
 
   useEffect(() => {
     const { workspaces: list, corrupted } = loadWorkspacesResult();
@@ -51,6 +54,16 @@ export function WorkspaceChatPanel({
     setStorageCorrupted(corrupted);
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [activeWorkspace?.id, activeWorkspace?.updated_at]);
+
+  useGSAP(
+    () => {
+      if (!panelRef.current || !canAnimate()) {
+        return;
+      }
+      fadeInUp(panelRef.current);
+    },
+    { scope: panelRef, dependencies: [], revertOnUpdate: false }
+  );
 
   const contextMeta = useMemo(
     () => (activeWorkspace ? getWorkspaceContextMeta(activeWorkspace) : null),
@@ -71,7 +84,10 @@ export function WorkspaceChatPanel({
 
   return (
     <div
-      className={`animate-fade-in-up rounded-2xl border p-3 shadow-neural-soft transition-colors duration-200 sm:p-4 ${accentClass}`}
+      ref={panelRef}
+      className={`rounded-2xl border p-3 shadow-neural-soft transition-colors duration-200 sm:p-4 ${accentClass} ${
+        canAnimateMotion ? "" : "animate-fade-in-up"
+      }`}
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
         <label className="flex w-full min-w-0 flex-1 flex-col gap-1 text-xs text-neural-text-secondary sm:min-w-[200px]">
@@ -165,37 +181,15 @@ export function WorkspaceChatPanel({
           ) : null}
 
           {contextMeta ? (
-            <details className="rounded-xl border border-white/10 bg-white/[0.02] p-3 text-xs text-neural-text-secondary transition-colors duration-200 open:border-neural-cyan/20">
-              <summary
-                className={`cursor-pointer font-display text-[10px] uppercase tracking-[0.08em] text-neural-text-primary ${WORKSPACE_FOCUS_RING} rounded-sm`}
-              >
-                Context preview · {useWorkspaceContext ? "enabled" : "disabled"} · {contextMeta.charCount}/
-                {WORKSPACE_CONTEXT_CHAR_CAP} chars
-                {contextMeta.truncated ? " · truncated" : ""}
-              </summary>
-              <div className="mt-3 space-y-2">
-                <p className="font-mono text-[10px]">
-                  System prompt: {contextMeta.hasSystemPrompt ? "yes" : "no"} · Pinned notes:{" "}
-                  {contextMeta.pinnedNotesCount} · Memory tags: {contextMeta.memoryTagsCount}
-                </p>
-                {useWorkspaceContext && contextMeta.truncated ? (
-                  <WorkspaceNotice tone="amber" className="text-xs">
-                    Workspace context exceeds {WORKSPACE_CONTEXT_CHAR_CAP} characters and will be truncated per request.
-                  </WorkspaceNotice>
-                ) : null}
-                {useWorkspaceContext && contextMeta.text.trim() ? (
-                  <TerminalBlock className="max-h-32 overflow-y-auto border-white/10 text-[11px]">
-                    {contextMeta.text}
-                  </TerminalBlock>
-                ) : (
-                  <p className="text-neural-text-muted italic">
-                    {useWorkspaceContext
-                      ? "No workspace context content to inject."
-                      : "Enable workspace context to preview injected content."}
-                  </p>
-                )}
-              </div>
-            </details>
+            <WorkspaceContextPreview
+              useWorkspaceContext={useWorkspaceContext}
+              charCount={contextMeta.charCount}
+              truncated={contextMeta.truncated}
+              hasSystemPrompt={contextMeta.hasSystemPrompt}
+              pinnedNotesCount={contextMeta.pinnedNotesCount}
+              memoryTagsCount={contextMeta.memoryTagsCount}
+              contextText={contextMeta.text}
+            />
           ) : null}
 
           <WorkspaceNotice tone="amber" className="text-xs">

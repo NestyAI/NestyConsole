@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
 
 import { resolveEffectiveGatewayCredentials } from "@/lib/console/credentials";
+import {
+  buildSafeErrorDetails,
+  fallbackMessageForProviderCode,
+  mapUpstreamToConsoleCode,
+  type ConsoleProviderErrorCode,
+  type UpstreamGatewayError
+} from "@/lib/gateway/provider-errors";
 import type { ChatCompletionResponse, ChatRequest } from "@/lib/gateway/types";
 
 export const runtime = "nodejs";
@@ -9,6 +16,11 @@ export const dynamic = "force-dynamic";
 type ConsoleErrorCode =
   | "credentials_not_configured"
   | "invalid_gateway_api_key"
+  | "api_key_revoked"
+  | "gateway_rate_limited"
+  | "gateway_quota_exceeded"
+  | "gateway_model_not_allowed"
+  | "gateway_invalid_model"
   | "gateway_unreachable"
   | "gateway_upstream_failed"
   | "gateway_provider_unavailable"
@@ -93,99 +105,33 @@ async function safeJson(response: Response): Promise<unknown> {
   }
 }
 
-function mapGatewayError(status: number, payload: unknown) {
-  const envelope = payload as { error?: { code?: string; message?: string; details?: Record<string, unknown> } } | null;
-  const code = String(envelope?.error?.code || "").toLowerCase();
-  const message = String(envelope?.error?.message || "").trim();
+function mapGatewayError(response: Response, payload: unknown) {
+  const envelope = payload as { error?: UpstreamGatewayError } | null;
+  const upstream = envelope?.error;
+  const upstreamCode = String(upstream?.code || "");
+  const status = response.status;
+  const code = mapUpstreamToConsoleCode(upstreamCode, status) as ConsoleErrorCode;
+  const details = buildSafeErrorDetails({
+    response,
+    upstream,
+    status
+  });
+  details.gateway_code = upstream?.code || null;
 
-  const details = {
-    upstream_status: status,
-    gateway_code: envelope?.error?.code || null
-  };
+  const message =
+    String(upstream?.message || "").trim() ||
+    fallbackMessageForProviderCode(code as ConsoleProviderErrorCode, details);
 
-  if (code === "gateway_upstream_failed") {
-    return consoleError(
-      "gateway_upstream_failed",
-      "Gateway is reachable, but the selected provider/model chain failed. Check Diagnostics or Model Configs.",
-      502,
-      details
-    );
-  }
+  const httpStatus =
+    code === "invalid_gateway_api_key" || code === "api_key_revoked"
+      ? status === 403 && code === "api_key_revoked"
+        ? 403
+        : 401
+      : status >= 400
+        ? status
+        : 500;
 
-  if (code === "rate_limited" || code === "provider_unavailable" || code === "provider_timeout") {
-    return consoleError(
-      "gateway_provider_unavailable",
-      "Gateway is reachable, but the selected provider is unavailable or rate-limited.",
-      503,
-      details
-    );
-  }
-
-  if (
-    code === "provider_auth_failed" ||
-    code === "provider_model_unavailable" ||
-    code === "provider_failed" ||
-    code === "model_unavailable" ||
-    code === "openrouter_model_unavailable"
-  ) {
-    return consoleError(
-      "gateway_upstream_failed",
-      "Gateway is reachable, but the selected provider/model chain failed. Check Diagnostics or Model Configs.",
-      502,
-      details
-    );
-  }
-
-  if (code === "invalid_api_key" || code === "missing_api_key" || status === 401 || status === 403) {
-    return consoleError(
-      "invalid_gateway_api_key",
-      "Gateway API key is invalid or expired. Update it in Settings -> Gateway Credentials.",
-      401,
-      details
-    );
-  }
-
-  if (code === "credentials_not_configured") {
-    return consoleError(
-      "credentials_not_configured",
-      "Gateway credentials are not configured. Add them in Settings -> Gateway Credentials.",
-      400,
-      details
-    );
-  }
-
-  if (status === 404) {
-    return consoleError(
-      "gateway_route_not_found",
-      "Gateway chat endpoint was not found. Check Gateway URL and API version.",
-      404,
-      details
-    );
-  }
-
-  if (status === 502) {
-    return consoleError(
-      "gateway_upstream_failed",
-      "Gateway is reachable, but the selected provider/model chain failed. Check Diagnostics or Model Configs.",
-      502,
-      details
-    );
-  }
-
-  if (status === 503) {
-    return consoleError(
-      "gateway_provider_unavailable",
-      "Gateway is reachable, but the selected provider is unavailable or rate-limited.",
-      503,
-      details
-    );
-  }
-
-  if (status >= 400) {
-    return consoleError("gateway_error", message || "Gateway chat request failed.", status, details);
-  }
-
-  return consoleError("unknown_error", message || "Gateway chat request failed.", 500, details);
+  return consoleError(code, message, httpStatus, details);
 }
 
 export async function POST(request: Request) {
@@ -236,7 +182,7 @@ export async function POST(request: Request) {
 
   if (!upstream.ok) {
     const upstreamPayload = await safeJson(upstream);
-    return mapGatewayError(upstream.status, upstreamPayload);
+    return mapGatewayError(upstream, upstreamPayload);
   }
 
   const isStream = Boolean(payload.stream);

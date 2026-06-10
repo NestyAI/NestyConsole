@@ -84,7 +84,7 @@ export default function ModelsPage() {
             </div>
             <p className="mt-3 text-sm leading-relaxed text-neural-text-secondary">
               Active model aliases exposed by NestyAI Gateway. This page is the fastest way to confirm what the gateway is
-              actually publishing right now.
+              actually publishing right now. External <code className="font-mono text-xs">/v1/models</code> responses may be filtered to an API key&apos;s allowlist when authenticated.
             </p>
           </div>
           <button

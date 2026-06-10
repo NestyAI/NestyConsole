@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { ErrorBanner } from "@/components/ui/error-banner";
 import { LoadingBlock } from "@/components/ui/loading-block";
 import { Panel } from "@/components/ui/panel";
+import { RequestIdTag } from "@/components/ui/request-id-tag";
 import { StateCard } from "@/components/ui/state-card";
 
 type CredentialSource = "stored" | "env" | "missing";
@@ -41,15 +42,21 @@ type TestResponse = {
     | "ok"
     | "credentials_not_configured"
     | "invalid_api_key"
+    | "api_key_revoked"
+    | "gateway_rate_limited"
+    | "gateway_quota_exceeded"
+    | "gateway_model_not_allowed"
+    | "gateway_invalid_model"
     | "gateway_unreachable"
     | "internal_admin_invalid"
     | "unknown_error";
   message: string;
+  request_id?: string;
   probes: {
-    health: { ok: boolean; status: number; error_code?: string };
-    ready: { ok: boolean; status: number; error_code?: string };
-    models: { ok: boolean; status: number; error_code?: string };
-    internal_admin?: { ok: boolean; status: number; error_code?: string };
+    health: { ok: boolean; status: number; error_code?: string; request_id?: string };
+    ready: { ok: boolean; status: number; error_code?: string; request_id?: string };
+    models: { ok: boolean; status: number; error_code?: string; request_id?: string };
+    internal_admin?: { ok: boolean; status: number; error_code?: string; request_id?: string };
   };
   warning?: string;
   storage_mode?: "sqlite" | "redis_kv" | "env_only";
@@ -171,6 +178,8 @@ export default function GatewaySettingsPage() {
         setError(
           "Gateway API key is invalid or expired. If Gateway uses an ephemeral Console key, copy the new key from startup logs and update it here."
         );
+      } else if (payload.status === "api_key_revoked") {
+        setError("Gateway API key was revoked. Create a new key in API Keys and update it here.");
       } else {
         let errMsg = payload.message || "Connection test failed.";
         if (payload.warning) {
@@ -219,6 +228,10 @@ export default function GatewaySettingsPage() {
 
   const invalidApiKeyHint = useMemo(
     () => view?.last_status === "invalid_api_key" || testResult?.status === "invalid_api_key",
+    [testResult?.status, view?.last_status]
+  );
+  const revokedApiKeyHint = useMemo(
+    () => view?.last_status === "api_key_revoked" || testResult?.status === "api_key_revoked",
     [testResult?.status, view?.last_status]
   );
   const saveDisabled = saving || loading || !view?.storage_available || view.storage_mode === "env_only";
@@ -317,6 +330,16 @@ export default function GatewaySettingsPage() {
         <div className="rounded-2xl border border-amber-300/40 bg-amber-500/10 p-4 text-sm leading-relaxed text-amber-100">
           Gateway API key is invalid or expired. If Gateway uses an ephemeral Console key, copy the new key from
           Gateway startup logs and update it here.
+        </div>
+      ) : null}
+
+      {revokedApiKeyHint ? (
+        <div className="rounded-2xl border border-rose-400/30 bg-rose-500/10 p-4 text-sm leading-relaxed text-rose-100">
+          Gateway API key was revoked. Create a new key in{" "}
+          <Link href="/api-keys" className="underline underline-offset-2">
+            API Keys
+          </Link>{" "}
+          and paste it here.
         </div>
       ) : null}
 
@@ -424,6 +447,7 @@ export default function GatewaySettingsPage() {
             Test summary: {testResult.status}
           </p>
           <p className="mt-2 leading-relaxed">{testResult.message}</p>
+          <RequestIdTag requestId={testResult.request_id} />
           {testResult.warning ? (
             <p className="mt-3 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs leading-relaxed text-amber-300">
               Warning: {testResult.warning}

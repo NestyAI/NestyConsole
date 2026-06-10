@@ -29,9 +29,10 @@ export type GatewayModelsResponse = {
 
 export type GatewayErrorEnvelope = {
   error: {
-    code: string;
-    message: string;
-    type: "gateway_error";
+    message?: string;
+    type?: string;
+    param?: string | null;
+    code?: string;
     details?: Record<string, unknown>;
   };
 };
@@ -51,6 +52,11 @@ export type GatewayResult<T> =
 export type GatewayErrorCode =
   | "credentials_not_configured"
   | "invalid_api_key"
+  | "api_key_revoked"
+  | "rate_limit_exceeded"
+  | "quota_exceeded"
+  | "model_not_allowed"
+  | "invalid_model"
   | "gateway_unreachable"
   | "internal_admin_invalid"
   | "diagnostics_disabled"

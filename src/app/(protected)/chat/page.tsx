@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorBanner } from "@/components/ui/error-banner";
 import { LoadingBlock } from "@/components/ui/loading-block";
 import { Panel } from "@/components/ui/panel";
+import { RequestIdTag } from "@/components/ui/request-id-tag";
 import { Select } from "@/components/ui/select";
 import { TokenTag } from "@/components/ui/token-tag";
 import { ProOrchestrationDetails } from "@/components/chat/pro-orchestration-details";
@@ -64,6 +65,13 @@ type UiMessage = ChatMessage & {
 type ConsoleError = {
   code: string;
   message: string;
+  details?: {
+    request_id?: string;
+    retry_after_seconds?: number;
+    quota_type?: string;
+    limit?: number;
+    [key: string]: unknown;
+  };
 };
 
 type UiNotice = {
@@ -115,11 +123,14 @@ function parseErrorPayload(payload: unknown): ConsoleError {
     error?: {
       code?: string;
       message?: string;
+      details?: ConsoleError["details"];
     };
   };
+  const details = envelope?.error?.details;
   return {
     code: String(envelope?.error?.code || "unknown_error"),
-    message: String(envelope?.error?.message || "Chat request failed.")
+    message: String(envelope?.error?.message || "Chat request failed."),
+    ...(details && typeof details === "object" ? { details } : {})
   };
 }
 
@@ -900,7 +911,8 @@ function ChatPageContent() {
   const sidebarCredentialError = useMemo(
     () =>
       conversationsError?.code === "credentials_not_configured" ||
-      conversationsError?.code === "invalid_gateway_api_key",
+      conversationsError?.code === "invalid_gateway_api_key" ||
+      conversationsError?.code === "api_key_revoked",
     [conversationsError?.code]
   );
 
@@ -1336,7 +1348,8 @@ function ChatPageContent() {
         setConversationWarning(conversationDeepLinkErrorMessage(result.error));
         if (
           result.error.code === "credentials_not_configured" ||
-          result.error.code === "invalid_gateway_api_key"
+          result.error.code === "invalid_gateway_api_key" ||
+          result.error.code === "api_key_revoked"
         ) {
           setConversationsError(result.error);
         }
@@ -1892,11 +1905,62 @@ function ChatPageContent() {
               </Link>
               .
             </p>
+          ) : error.code === "api_key_revoked" ? (
+            <p className="mt-2 text-xs text-neural-text-secondary">
+              This Gateway API key was revoked. Create a new key in{" "}
+              <Link href="/api-keys" className="underline underline-offset-2 hover:text-neural-cyan">
+                API Keys
+              </Link>{" "}
+              and update{" "}
+              <Link href="/settings/gateway" className="underline underline-offset-2 hover:text-neural-cyan">
+                Gateway Credentials
+              </Link>
+              .
+            </p>
           ) : error.code === "credentials_not_configured" ? (
             <p className="mt-2 text-xs text-neural-text-secondary">
               Please configure your Gateway URL and API key in{" "}
               <Link href="/settings/gateway" className="underline underline-offset-2 hover:text-neural-cyan">
                 Settings {"->"} Gateway Credentials
+              </Link>
+              .
+            </p>
+          ) : error.code === "gateway_quota_exceeded" ? (
+            <p className="mt-2 text-xs text-neural-text-secondary">
+              This API key exceeded its Gateway quota
+              {error.details?.quota_type ? ` (${error.details.quota_type})` : ""}. Review limits in{" "}
+              <Link href="/api-keys" className="underline underline-offset-2 hover:text-neural-cyan">
+                API Keys
+              </Link>
+              .
+            </p>
+          ) : error.code === "gateway_rate_limited" ? (
+            <p className="mt-2 text-xs text-neural-text-secondary">
+              {typeof error.details?.retry_after_seconds === "number"
+                ? `Rate limit exceeded. Try again in ${error.details.retry_after_seconds} seconds.`
+                : "Rate limit exceeded. Try again later."}
+            </p>
+          ) : error.code === "gateway_model_not_allowed" ? (
+            <p className="mt-2 text-xs text-neural-text-secondary">
+              This API key cannot use the selected model. Check the allowlist in{" "}
+              <Link href="/api-keys" className="underline underline-offset-2 hover:text-neural-cyan">
+                API Keys
+              </Link>{" "}
+              or update{" "}
+              <Link href="/settings/gateway" className="underline underline-offset-2 hover:text-neural-cyan">
+                Gateway Credentials
+              </Link>
+              .
+            </p>
+          ) : error.code === "gateway_invalid_model" ? (
+            <p className="mt-2 text-xs text-neural-text-secondary">
+              The selected model alias is invalid or unavailable. Check{" "}
+              <Link href="/models" className="underline underline-offset-2 hover:text-neural-cyan">
+                Models
+              </Link>{" "}
+              or{" "}
+              <Link href="/model-configs" className="underline underline-offset-2 hover:text-neural-cyan">
+                Model Configs
               </Link>
               .
             </p>
@@ -1914,7 +1978,7 @@ function ChatPageContent() {
             </p>
           ) : error.code === "gateway_provider_unavailable" ? (
             <p className="mt-2 text-xs text-neural-text-secondary">
-              The requested provider is temporarily unavailable or rate-limited. Verify provider health in{" "}
+              The requested provider is temporarily unavailable. Verify provider health in{" "}
               <Link href="/diagnostics" className="underline underline-offset-2 hover:text-neural-cyan">
                 Diagnostics Dashboard
               </Link>
@@ -1933,6 +1997,7 @@ function ChatPageContent() {
               .
             </p>
           ) : null}
+          <RequestIdTag requestId={error.details?.request_id} />
         </ErrorBanner>
       ) : null}
 

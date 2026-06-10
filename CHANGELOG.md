@@ -2,6 +2,23 @@
 
 All notable changes to Nesty Console will be documented in this file.
 
+## [0.9.1] - Unreleased
+
+### Added
+- Shared Gateway provider error mapper (`provider-errors.ts`) with code-first upstream mapping.
+- Distinct Console error codes for revoked keys, quota, rate limits, and model allowlist/alias failures.
+- Request ID display in Chat and Gateway Credentials test failures (sanitized diagnostic metadata).
+- Numeric `Retry-After` seconds hint in rate-limit error messages.
+
+### Changed
+- Chat, proxy routes, and Gateway Credentials test now align with NestyAI Gateway v1.3.0/v1.3.1 provider error envelopes.
+- API Keys revoke copy notes that external clients receive `api_key_revoked` (HTTP 403).
+- Models page notes that authenticated `/v1/models` may filter to an API key allowlist.
+
+### Security
+- Preserves existing Console error JSON shape (`type: console_error`); new Gateway fields are additive in `details` only.
+- Request IDs are sanitized before storage/render; secrets remain server-side; chat streaming passthrough unchanged.
+
 ## [0.9.0] - Unreleased
 
 ### Changed

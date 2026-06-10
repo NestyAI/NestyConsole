@@ -16,6 +16,7 @@ type ProbeSummary = {
   status: number;
   error_code?: string;
   error_message?: string;
+  request_id?: string;
 };
 
 type TestResponse = {
@@ -29,6 +30,7 @@ type TestResponse = {
     internal_admin?: ProbeSummary;
   };
   warning?: string;
+  request_id?: string;
   storage_mode?: "sqlite" | "redis_kv" | "env_only";
   storage_available?: boolean;
 };
@@ -37,11 +39,14 @@ function summarizeProbe(result: Awaited<ReturnType<typeof gatewayFetch<unknown>>
   if (result.ok) {
     return { ok: true, status: result.status };
   }
+  const requestId =
+    typeof result.error.details?.request_id === "string" ? result.error.details.request_id : undefined;
   return {
     ok: false,
     status: result.status,
     error_code: result.error.code,
-    error_message: result.error.message
+    error_message: result.error.message,
+    ...(requestId ? { request_id: requestId } : {})
   };
 }
 
@@ -64,6 +69,21 @@ function deriveFinalStatus(
   }
   if (allErrors.includes("invalid_api_key")) {
     return "invalid_api_key";
+  }
+  if (allErrors.includes("api_key_revoked")) {
+    return "api_key_revoked";
+  }
+  if (allErrors.includes("rate_limit_exceeded")) {
+    return "gateway_rate_limited";
+  }
+  if (allErrors.includes("quota_exceeded")) {
+    return "gateway_quota_exceeded";
+  }
+  if (allErrors.includes("model_not_allowed")) {
+    return "gateway_model_not_allowed";
+  }
+  if (allErrors.includes("invalid_model")) {
+    return "gateway_invalid_model";
   }
   if (allErrors.includes("internal_admin_invalid")) {
     return "internal_admin_invalid";
@@ -202,18 +222,33 @@ export async function POST(request: Request) {
 
   const status = deriveFinalStatus(probes, testCredentials);
   const ok = status === "ok";
+  const requestId =
+    probes.models.request_id ||
+    probes.health.request_id ||
+    probes.ready.request_id ||
+    probes.internal_admin?.request_id;
   const message =
     status === "ok"
       ? "Gateway credentials are working."
       : status === "invalid_api_key"
         ? "Gateway API key is invalid or expired."
-        : status === "credentials_not_configured"
-          ? "Gateway credentials are not configured."
-          : status === "internal_admin_invalid"
-            ? "Internal admin token is invalid."
-            : status === "gateway_unreachable"
-              ? "Gateway is unreachable."
-              : "Gateway test failed with an unknown error.";
+        : status === "api_key_revoked"
+          ? "Gateway API key was revoked. Paste or create a new key."
+          : status === "gateway_rate_limited"
+            ? "Gateway rate limit exceeded. Try again later."
+            : status === "gateway_quota_exceeded"
+              ? "Gateway quota exceeded for this API key."
+              : status === "gateway_model_not_allowed"
+                ? "This API key cannot access the models endpoint (allowlist restriction)."
+                : status === "gateway_invalid_model"
+                  ? "Gateway models probe returned an invalid model error."
+                  : status === "credentials_not_configured"
+                    ? "Gateway credentials are not configured."
+                    : status === "internal_admin_invalid"
+                      ? "Internal admin token is invalid."
+                      : status === "gateway_unreachable"
+                        ? "Gateway is unreachable."
+                        : "Gateway test failed with an unknown error.";
 
   // In env_only mode, do not call updateGatewayCredentialsStatus or write to DB
   if (effective.storageMode !== "env_only") {
@@ -227,6 +262,7 @@ export async function POST(request: Request) {
       message,
       probes,
       warning,
+      ...(requestId ? { request_id: requestId } : {}),
       storage_mode: effective.storageMode,
       storage_available: effective.storageAvailable
     } as TestResponse,

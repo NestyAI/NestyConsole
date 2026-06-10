@@ -64,6 +64,11 @@ export type GatewayTestStatus =
   | "ok"
   | "credentials_not_configured"
   | "invalid_api_key"
+  | "api_key_revoked"
+  | "gateway_rate_limited"
+  | "gateway_quota_exceeded"
+  | "gateway_model_not_allowed"
+  | "gateway_invalid_model"
   | "gateway_unreachable"
   | "internal_admin_invalid"
   | "unknown_error";

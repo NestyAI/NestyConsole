@@ -1207,7 +1207,7 @@ export default function ApiKeysPage() {
                 You are about to revoke the key <strong className="text-neural-text-primary font-bold">&ldquo;{revokingKey.name}&rdquo;</strong> (Prefix: <span className="font-mono text-xs text-neural-cyan">{revokingKey.key_prefix || "—"}</span>).
               </p>
               <div className="rounded-xl border border-neural-red/20 bg-neural-red/10 p-3 text-xs text-neural-red font-semibold leading-relaxed">
-                Revoking this key immediately prevents it from authenticating public Gateway requests. This cannot be undone.
+                Revoking this key immediately prevents it from authenticating public Gateway requests. External clients calling Gateway public routes will receive <code className="font-mono">api_key_revoked</code> (HTTP 403). This cannot be undone.
               </div>
             </div>
 
@@ -1360,6 +1360,9 @@ export default function ApiKeysPage() {
                 <div className="font-mono text-xs">
                   <p className="text-xs uppercase font-display tracking-[0.08em] text-neural-text-muted font-sans">Revoked At</p>
                   <p className="mt-1 text-neural-red font-semibold">{formatTimestamp(detailKey.revoked_at)}</p>
+                  <p className="mt-2 text-[11px] font-sans text-neural-text-secondary leading-relaxed">
+                    External clients calling Gateway public routes will receive <code className="font-mono">api_key_revoked</code> (HTTP 403).
+                  </p>
                 </div>
               )}
 

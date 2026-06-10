@@ -19,6 +19,11 @@ import type {
   GatewaySemanticRecallTestRequest,
   GatewaySemanticRecallTestResponse
 } from "@/lib/gateway/types";
+import {
+  buildSafeErrorDetails,
+  mapUpstreamToGatewayClientCode,
+  type UpstreamGatewayError
+} from "@/lib/gateway/provider-errors";
 
 function toGatewayError(
   code: string,
@@ -53,6 +58,23 @@ function normalizeGatewayErrorCode(
   status: number,
   path: string
 ): GatewayErrorCode {
+  const providerCode = mapUpstreamToGatewayClientCode(code);
+  if (providerCode === "api_key_revoked") {
+    return "api_key_revoked";
+  }
+  if (providerCode === "rate_limit_exceeded") {
+    return "rate_limit_exceeded";
+  }
+  if (providerCode === "quota_exceeded") {
+    return "quota_exceeded";
+  }
+  if (providerCode === "model_not_allowed") {
+    return "model_not_allowed";
+  }
+  if (providerCode === "invalid_model") {
+    return "invalid_model";
+  }
+
   const lowered = code.trim().toLowerCase();
   if (lowered === "diagnostics_disabled") {
     return "diagnostics_disabled";
@@ -156,25 +178,28 @@ export async function gatewayFetch<T>(
     if (!response.ok) {
       const errorPayload = payload as GatewayErrorEnvelope | null;
       if (errorPayload?.error) {
+        const upstreamError = errorPayload.error as UpstreamGatewayError;
         const normalizedCode = normalizeGatewayErrorCode(
-          errorPayload.error.code || "",
+          upstreamError.code || "",
           effective,
           internalAdmin,
           response.status,
           path
         );
+        const safeDetails = buildSafeErrorDetails({
+          response,
+          upstream: upstreamError,
+          status: response.status,
+          path
+        });
         return {
           ok: false,
           status: response.status,
           error: {
             code: normalizedCode,
-            message: errorPayload.error.message || "Gateway request failed.",
+            message: upstreamError.message || "Gateway request failed.",
             type: "gateway_error",
-            details: {
-              status: response.status,
-              upstream_code: errorPayload.error.code || "unknown",
-              path
-            }
+            details: safeDetails
           }
         };
       }
@@ -185,7 +210,7 @@ export async function gatewayFetch<T>(
           internalAdmin
             ? "Internal admin credentials are invalid."
             : "Gateway API key is invalid or expired. Update Gateway Credentials.",
-          { status: response.status, path },
+          buildSafeErrorDetails({ response, status: response.status, path }),
           response.status
         );
       }

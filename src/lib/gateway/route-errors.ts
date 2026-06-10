@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 
+import {
+  fallbackMessageForProviderCode,
+  mapUpstreamToConsoleCode,
+  type ConsoleProviderErrorCode
+} from "@/lib/gateway/provider-errors";
 import type { GatewayResult } from "@/lib/gateway/types";
 
 type ConsoleProxyErrorCode =
@@ -7,6 +12,7 @@ type ConsoleProxyErrorCode =
   | "credentials_not_configured"
   | "credential_storage_unavailable"
   | "invalid_gateway_api_key"
+  | "api_key_revoked"
   | "internal_admin_not_configured"
   | "internal_admin_invalid"
   | "diagnostics_disabled"
@@ -14,6 +20,10 @@ type ConsoleProxyErrorCode =
   | "provider_unavailable"
   | "provider_timeout"
   | "rate_limited"
+  | "gateway_rate_limited"
+  | "gateway_quota_exceeded"
+  | "gateway_model_not_allowed"
+  | "gateway_invalid_model"
   | "model_config_not_found"
   | "invalid_model_config"
   | "conversation_not_found"
@@ -30,8 +40,43 @@ type ConsoleProxyErrorCode =
   | "not_found"
   | "unknown_error";
 
-function normalizeGatewayErrorCode(code: string): ConsoleProxyErrorCode {
+function normalizeGatewayErrorCode(code: string, upstreamCode?: string | null, status?: number): ConsoleProxyErrorCode {
+  const upstreamMapped = upstreamCode
+    ? mapUpstreamToConsoleCode(upstreamCode, status || 500)
+    : null;
+  if (
+    upstreamMapped &&
+    [
+      "api_key_revoked",
+      "invalid_gateway_api_key",
+      "gateway_rate_limited",
+      "gateway_quota_exceeded",
+      "gateway_model_not_allowed",
+      "gateway_invalid_model",
+      "gateway_upstream_failed",
+      "gateway_provider_unavailable",
+      "credentials_not_configured"
+    ].includes(upstreamMapped)
+  ) {
+    return upstreamMapped;
+  }
+
   const lowered = code.trim().toLowerCase();
+  if (lowered === "api_key_revoked") {
+    return "api_key_revoked";
+  }
+  if (lowered === "rate_limit_exceeded") {
+    return "gateway_rate_limited";
+  }
+  if (lowered === "quota_exceeded") {
+    return "gateway_quota_exceeded";
+  }
+  if (lowered === "model_not_allowed") {
+    return "gateway_model_not_allowed";
+  }
+  if (lowered === "invalid_model") {
+    return "gateway_invalid_model";
+  }
   if (lowered === "credentials_not_configured") {
     return "credentials_not_configured";
   }
@@ -114,16 +159,29 @@ function normalizeGatewayErrorCode(code: string): ConsoleProxyErrorCode {
   return "unknown_error";
 }
 
-function fallbackMessage(code: ConsoleProxyErrorCode): string {
+function fallbackMessage(code: ConsoleProxyErrorCode, details?: Record<string, unknown>): string {
+  if (
+    code === "api_key_revoked" ||
+    code === "invalid_gateway_api_key" ||
+    code === "gateway_rate_limited" ||
+    code === "gateway_quota_exceeded" ||
+    code === "gateway_model_not_allowed" ||
+    code === "gateway_invalid_model" ||
+    code === "gateway_upstream_failed" ||
+    code === "gateway_provider_unavailable" ||
+    code === "gateway_route_not_found" ||
+    code === "credentials_not_configured" ||
+    code === "gateway_error" ||
+    code === "unknown_error"
+  ) {
+    return fallbackMessageForProviderCode(code as ConsoleProviderErrorCode, details);
+  }
+
   switch (code) {
-    case "credentials_not_configured":
-      return "Gateway credentials are not configured. Add them in Settings -> Gateway Credentials.";
     case "credential_storage_unavailable":
       return "Credential storage is unavailable. Check Settings -> Gateway Credentials storage mode.";
     case "unauthorized":
       return "Authentication required.";
-    case "invalid_gateway_api_key":
-      return "Gateway API key is invalid or expired. Update it in Settings -> Gateway Credentials.";
     case "internal_admin_not_configured":
       return "Internal admin access is not configured. Add the admin token in Settings -> Gateway Credentials.";
     case "internal_admin_invalid":
@@ -152,16 +210,8 @@ function fallbackMessage(code: ConsoleProxyErrorCode): string {
       return "Semantic recall is unavailable on Gateway.";
     case "gateway_unreachable":
       return "Console could not reach the Gateway. Check Gateway URL, tunnel, and network.";
-    case "gateway_upstream_failed":
-      return "Gateway is reachable, but the selected provider/model chain failed. Check Diagnostics or Model Configs.";
-    case "gateway_provider_unavailable":
-      return "Gateway is reachable, but the selected provider is unavailable or rate-limited.";
-    case "gateway_route_not_found":
-      return "Gateway chat endpoint was not found. Check Gateway URL and API version.";
     case "not_found":
       return "Requested resource was not found.";
-    case "gateway_error":
-      return "Gateway request failed.";
     case "api_key_not_found":
       return "The requested API key was not found.";
     case "invalid_api_key_request":
@@ -176,8 +226,10 @@ export function gatewayResultToResponse<T>(result: GatewayResult<T>) {
     return NextResponse.json(result.data, { status: result.status });
   }
 
-  const code = normalizeGatewayErrorCode(result.error.code || "");
-  const message = String(result.error.message || fallbackMessage(code));
+  const upstreamCode =
+    typeof result.error.details?.upstream_code === "string" ? result.error.details.upstream_code : null;
+  const code = normalizeGatewayErrorCode(result.error.code || "", upstreamCode, result.status);
+  const message = String(result.error.message || fallbackMessage(code, result.error.details));
   const status = result.status >= 400 ? result.status : 500;
   return NextResponse.json(
     {

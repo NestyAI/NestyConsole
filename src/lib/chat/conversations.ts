@@ -27,6 +27,16 @@ export function conversationDeepLinkErrorMessage(error: ConversationApiError): s
       return "Gateway credentials are not configured.";
     case "invalid_gateway_api_key":
       return "Gateway API key is invalid or expired.";
+    case "api_key_revoked":
+      return "Gateway API key was revoked.";
+    case "gateway_quota_exceeded":
+      return "Gateway quota exceeded for this API key.";
+    case "gateway_rate_limited":
+      return "Gateway rate limit exceeded.";
+    case "gateway_model_not_allowed":
+      return "This API key cannot access the requested model.";
+    case "gateway_invalid_model":
+      return "The requested model alias is invalid or unavailable.";
     case "not_found":
     case "conversation_not_found":
       return "Conversation not found.";

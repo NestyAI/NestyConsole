@@ -23,16 +23,22 @@ import { EmptyState } from "@/components/ui/empty-state";
 import {
   type Workspace,
   type WorkspaceColor,
+  type WorkspaceLinkedConversation,
   type WorkspaceNote,
   type WorkspaceTemplate,
+  addWorkspaceLinkedConversation,
   getWorkspaces,
+  getWorkspaceLinkedConversations,
   createWorkspace,
   createWorkspaceFromTemplate,
   updateWorkspace,
   deleteWorkspace,
   getWorkspaceTemplates,
-  makeWorkspaceNoteId
+  makeWorkspaceNoteId,
+  removeWorkspaceLinkedConversation,
+  updateWorkspaceLinkedLabel
 } from "@/lib/workspaces/workspaces";
+import { exportWorkspacesJson, importWorkspacesFromJson } from "@/lib/workspaces/import-export";
 import { type ChatPreset, getBuiltInChatPresets, getCustomChatPresets } from "@/lib/chat/presets";
 
 const PANEL_ACCENTS: Record<NonNullable<Workspace["color"]>, "cyan" | "violet" | "green" | "amber" | "red"> = {
@@ -55,6 +61,12 @@ const WORKSPACE_BADGE_VARIANTS: Record<
   red: "error",
   neutral: "inactive"
 };
+
+function sortNotesByUpdated(notes: WorkspaceNote[]): WorkspaceNote[] {
+  return [...notes].sort(
+    (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+  );
+}
 
 export default function WorkspacesPage() {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
@@ -85,6 +97,10 @@ export default function WorkspacesPage() {
 
   // Linked conversation ID state
   const [newConversationId, setNewConversationId] = useState<string>("");
+  const [newConversationLabel, setNewConversationLabel] = useState<string>("");
+  const [linkNotice, setLinkNotice] = useState<string>("");
+  const [exportNotice, setExportNotice] = useState<string>("");
+  const [importJson, setImportJson] = useState<string>("");
 
   // Presets list
   const builtinPresets = getBuiltInChatPresets();
@@ -311,16 +327,21 @@ export default function WorkspacesPage() {
     e.preventDefault();
     if (!selectedWorkspace || !newConversationId.trim()) return;
 
-    const cId = newConversationId.trim();
-    if (selectedWorkspace.linked_conversation_ids?.includes(cId)) {
-      alert("This conversation is already linked.");
+    const linkedPatch = addWorkspaceLinkedConversation(
+      selectedWorkspace,
+      newConversationId,
+      newConversationLabel
+    );
+    if (!linkedPatch) {
+      setLinkNotice("This conversation is already linked.");
       return;
     }
 
-    const updatedIds = [...(selectedWorkspace.linked_conversation_ids || []), cId];
-    updateWorkspace(selectedWorkspace.id, { linked_conversation_ids: updatedIds });
+    updateWorkspace(selectedWorkspace.id, linkedPatch);
     setWorkspaces(getWorkspaces());
     setNewConversationId("");
+    setNewConversationLabel("");
+    setLinkNotice("Conversation linked.");
   };
 
   const handleUnlinkConversation = (cId: string) => {
@@ -328,10 +349,127 @@ export default function WorkspacesPage() {
     const confirmed = window.confirm(`Unlink conversation ID "${cId}" from workspace?`);
     if (!confirmed) return;
 
-    const updatedIds = (selectedWorkspace.linked_conversation_ids || []).filter(id => id !== cId);
-    updateWorkspace(selectedWorkspace.id, { linked_conversation_ids: updatedIds });
+    const linkedPatch = removeWorkspaceLinkedConversation(selectedWorkspace, cId);
+    updateWorkspace(selectedWorkspace.id, linkedPatch);
     setWorkspaces(getWorkspaces());
+    setLinkNotice("Conversation unlinked.");
   };
+
+  const handleEditLinkedLabel = (entry: WorkspaceLinkedConversation) => {
+    if (!selectedWorkspace) return;
+    const nextLabel = window.prompt(
+      "Edit local conversation label",
+      entry.label || ""
+    );
+    if (nextLabel === null) return;
+
+    const linkedPatch = updateWorkspaceLinkedLabel(selectedWorkspace, entry.id, nextLabel);
+    if (!linkedPatch) return;
+
+    updateWorkspace(selectedWorkspace.id, linkedPatch);
+    setWorkspaces(getWorkspaces());
+    setLinkNotice("Conversation label updated.");
+  };
+
+  const handleCopyWorkspacesJson = async () => {
+    const json = exportWorkspacesJson();
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(json);
+        setExportNotice("Workspace JSON copied to clipboard.");
+      } else {
+        setExportNotice("Clipboard is not available in this browser.");
+      }
+    } catch {
+      setExportNotice("Failed to copy workspace JSON.");
+    }
+  };
+
+  const handleDownloadWorkspacesJson = () => {
+    const json = exportWorkspacesJson();
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "nesty-console-workspaces.json";
+    anchor.click();
+    URL.revokeObjectURL(url);
+    setExportNotice("Workspace JSON downloaded.");
+  };
+
+  const handleImportWorkspacesJson = () => {
+    const result = importWorkspacesFromJson(importJson);
+    if (result.error) {
+      setExportNotice(result.error);
+      return;
+    }
+
+    setWorkspaces(getWorkspaces());
+    setImportJson("");
+    setExportNotice(
+      `Imported ${result.added} workspace${result.added === 1 ? "" : "s"} · skipped ${result.skippedInvalid} invalid · regenerated ${result.regeneratedIds} ID${result.regeneratedIds === 1 ? "" : "s"}.`
+    );
+  };
+
+  const renderNoteCard = (note: WorkspaceNote) => (
+    <article
+      key={note.id}
+      className={`rounded-2xl border p-3.5 space-y-2 relative group ${
+        note.pinned
+          ? "border-neural-cyan/30 bg-neural-cyan/[0.02]"
+          : "border-white/5 bg-white/[0.01]"
+      }`}
+    >
+      <div className="flex items-start justify-between gap-4">
+        <h5 className="font-display text-sm font-semibold tracking-[-0.02em] text-neural-text-primary flex items-center gap-1.5">
+          {note.title || "Untitled Note"}
+          {note.pinned ? <Badge variant="live" className="text-[9px] px-1.5 py-0">pinned</Badge> : null}
+        </h5>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => togglePinNote(note)}
+            className={`p-1 rounded transition ${note.pinned ? "text-neural-cyan hover:text-neural-text-muted" : "text-neural-text-muted hover:text-neural-cyan"}`}
+            title={note.pinned ? "Unpin Note" : "Pin Note (included in chat context when enabled)"}
+          >
+            <Pin className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => openEditNoteForm(note)}
+            className="p-1 text-neural-text-muted hover:text-neural-cyan transition"
+            title="Edit Note"
+          >
+            <Edit className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => handleDeleteNote(note.id)}
+            className="p-1 text-neural-text-muted hover:text-neural-red transition"
+            title="Delete Note"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+      <p className="text-xs text-neural-text-secondary leading-relaxed whitespace-pre-wrap max-h-32 overflow-y-auto">
+        {note.content}
+      </p>
+      {note.tags && note.tags.length > 0 ? (
+        <div className="flex flex-wrap gap-1">
+          {note.tags.map((tag) => (
+            <span
+              key={tag}
+              className="inline-flex items-center gap-0.5 rounded border border-white/5 bg-white/[0.03] px-1.5 py-0.5 text-[9px] font-mono text-neural-text-muted"
+            >
+              <Tag className="h-2 w-2" />
+              {tag}
+            </span>
+          ))}
+        </div>
+      ) : null}
+    </article>
+  );
 
   return (
     <section className="space-y-6 animate-fade-in-up">
@@ -376,7 +514,7 @@ export default function WorkspacesPage() {
               {workspaces.map((w) => {
                 const isSelected = w.id === selectedId;
                 const noteCount = w.pinned_notes?.length || 0;
-                const convCount = w.linked_conversation_ids?.length || 0;
+                const convCount = getWorkspaceLinkedConversations(w).length;
                 return (
                   <article
                     key={w.id}
@@ -449,6 +587,54 @@ export default function WorkspacesPage() {
               ))}
             </div>
           </Panel>
+
+          <details className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+            <summary className="cursor-pointer font-display text-[11px] uppercase tracking-[0.12em] text-neural-text-secondary">
+              Import / Export Workspaces
+            </summary>
+            <div className="mt-3 space-y-4 text-xs text-neural-text-secondary">
+              <p>Copy or download local workspace JSON. No secrets are included by design.</p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => void handleCopyWorkspacesJson()}
+                  className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 font-display text-[10px] uppercase tracking-[0.08em] text-neural-text-secondary transition hover:border-neural-cyan/35 hover:text-neural-cyan"
+                >
+                  Copy JSON
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDownloadWorkspacesJson}
+                  className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 font-display text-[10px] uppercase tracking-[0.08em] text-neural-text-secondary transition hover:border-neural-cyan/35 hover:text-neural-cyan"
+                >
+                  Download .json
+                </button>
+              </div>
+
+              <div className="space-y-2 border-t border-white/10 pt-3">
+                <div className="flex items-start gap-2 rounded-2xl border border-neural-amber/20 bg-neural-amber/5 p-3 text-neural-amber">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>Only import workspace JSON you trust. Do not import secrets.</span>
+                </div>
+                <textarea
+                  value={importJson}
+                  onChange={(event) => setImportJson(event.target.value)}
+                  rows={5}
+                  placeholder="Paste workspace JSON array or single workspace object"
+                  className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-neural-text-primary outline-none transition focus:border-neural-cyan/40"
+                />
+                <button
+                  type="button"
+                  onClick={handleImportWorkspacesJson}
+                  className="rounded-xl border border-neural-cyan/40 bg-neural-cyan/15 px-3 py-2 font-display text-[10px] uppercase tracking-[0.08em] text-neural-cyan transition hover:bg-neural-cyan/25"
+                >
+                  Import JSON
+                </button>
+              </div>
+
+              {exportNotice ? <p className="text-xs text-neural-cyan">{exportNotice}</p> : null}
+            </div>
+          </details>
         </div>
 
         {/* Right pane: Workspace Detail Panel */}
@@ -572,40 +758,74 @@ export default function WorkspacesPage() {
               {/* Linked Conversations */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-4">
-                  <h4 className="font-display text-[10px] uppercase tracking-[0.08em] text-neural-text-muted">Linked Conversations ({selectedWorkspace.linked_conversation_ids?.length || 0})</h4>
+                  <h4 className="font-display text-[10px] uppercase tracking-[0.08em] text-neural-text-muted">
+                    Linked Conversations ({getWorkspaceLinkedConversations(selectedWorkspace).length})
+                  </h4>
                 </div>
+                <p className="text-[11px] text-neural-text-muted">
+                  Local labels only. Conversation contents are not fetched or injected into chat context.
+                </p>
 
-                <form onSubmit={handleLinkConversation} className="flex gap-2">
+                <form onSubmit={handleLinkConversation} className="space-y-2">
                   <input
                     type="text"
                     value={newConversationId}
                     onChange={(e) => setNewConversationId(e.target.value)}
                     placeholder="Enter Gateway Conversation UUID to link"
-                    className="flex-1 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-neural-text-primary outline-none transition focus:border-neural-cyan/40"
+                    className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-neural-text-primary outline-none transition focus:border-neural-cyan/40"
                   />
-                  <button
-                    type="submit"
-                    className="rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 font-display text-[10px] uppercase tracking-[0.08em] text-neural-text-primary hover:border-neural-cyan/40 hover:text-neural-cyan transition"
-                  >
-                    Link ID
-                  </button>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newConversationLabel}
+                      onChange={(e) => setNewConversationLabel(e.target.value)}
+                      placeholder="Optional local label"
+                      className="flex-1 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-neural-text-primary outline-none transition focus:border-neural-cyan/40"
+                    />
+                    <button
+                      type="submit"
+                      className="rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 font-display text-[10px] uppercase tracking-[0.08em] text-neural-text-primary hover:border-neural-cyan/40 hover:text-neural-cyan transition"
+                    >
+                      Link ID
+                    </button>
+                  </div>
                 </form>
 
-                {selectedWorkspace.linked_conversation_ids && selectedWorkspace.linked_conversation_ids.length > 0 ? (
-                  <div className="flex flex-col gap-2 max-h-36 overflow-y-auto pr-1">
-                    {selectedWorkspace.linked_conversation_ids.map(cId => (
-                      <div key={cId} className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-2">
-                        <TokenTag className="max-w-[calc(100%-2rem)] truncate font-mono text-[10px]">
-                          {cId}
-                        </TokenTag>
-                        <button
-                          type="button"
-                          onClick={() => handleUnlinkConversation(cId)}
-                          className="text-neural-text-muted hover:text-neural-red transition"
-                          title="Unlink conversation ID"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
+                {linkNotice ? <p className="text-xs text-neural-cyan">{linkNotice}</p> : null}
+
+                {getWorkspaceLinkedConversations(selectedWorkspace).length > 0 ? (
+                  <div className="flex flex-col gap-2 max-h-44 overflow-y-auto pr-1">
+                    {getWorkspaceLinkedConversations(selectedWorkspace).map((entry) => (
+                      <div
+                        key={entry.id}
+                        className="flex items-start justify-between gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-2"
+                      >
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <p className="text-xs font-medium text-neural-text-primary">
+                            {entry.label?.trim() || "Untitled conversation"}
+                          </p>
+                          <TokenTag className="max-w-full truncate font-mono text-[10px]">
+                            {entry.id}
+                          </TokenTag>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleEditLinkedLabel(entry)}
+                            className="p-1 text-neural-text-muted hover:text-neural-cyan transition"
+                            title="Edit local label"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleUnlinkConversation(entry.id)}
+                            className="p-1 text-neural-text-muted hover:text-neural-red transition"
+                            title="Unlink conversation ID"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -615,84 +835,69 @@ export default function WorkspacesPage() {
               </div>
 
               {/* Workspace notes */}
-              <div className="space-y-3 border-t border-white/10 pt-4">
-                <div className="flex items-center justify-between gap-4">
-                  <h4 className="font-display text-[10px] uppercase tracking-[0.08em] text-neural-text-muted">
-                    Project Notes ({selectedWorkspace.pinned_notes?.length || 0})
-                  </h4>
-                  <button
-                    type="button"
-                    onClick={openNewNoteForm}
-                    className="inline-flex items-center gap-1 rounded-xl border border-white/10 bg-white/[0.04] px-2.5 py-1.5 font-display text-[9px] uppercase tracking-[0.08em] text-neural-text-secondary hover:border-neural-cyan/35 hover:text-neural-cyan transition"
-                  >
-                    <Plus className="h-3 w-3" />
-                    Add Note
-                  </button>
-                </div>
+              {(() => {
+                const allNotes = selectedWorkspace.pinned_notes ?? [];
+                const pinnedNotes = sortNotesByUpdated(allNotes.filter((note) => note.pinned));
+                const otherNotes = sortNotesByUpdated(allNotes.filter((note) => !note.pinned));
+                const linkedCount = getWorkspaceLinkedConversations(selectedWorkspace).length;
 
-                {selectedWorkspace.pinned_notes && selectedWorkspace.pinned_notes.length > 0 ? (
-                  <div className="grid gap-3 max-h-[300px] overflow-y-auto pr-1">
-                    {selectedWorkspace.pinned_notes.map((note) => (
-                      <article 
-                        key={note.id} 
-                        className={`rounded-2xl border p-3.5 space-y-2 relative group ${
-                          note.pinned 
-                            ? "border-neural-cyan/30 bg-neural-cyan/[0.02]" 
-                            : "border-white/5 bg-white/[0.01]"
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-4">
-                          <h5 className="font-display text-sm font-semibold tracking-[-0.02em] text-neural-text-primary flex items-center gap-1.5">
-                            {note.title || "Untitled Note"}
-                            {note.pinned && <Badge variant="live" className="text-[9px] px-1.5 py-0">pinned</Badge>}
-                          </h5>
-                          <div className="flex items-center gap-1">
-                            <button
-                              type="button"
-                              onClick={() => togglePinNote(note)}
-                              className={`p-1 rounded transition ${note.pinned ? "text-neural-cyan hover:text-neural-text-muted" : "text-neural-text-muted hover:text-neural-cyan"}`}
-                              title={note.pinned ? "Unpin Note" : "Pin Note (Includes note content in chat context)"}
-                            >
-                              <Pin className="h-3.5 w-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => openEditNoteForm(note)}
-                              className="p-1 text-neural-text-muted hover:text-neural-cyan transition"
-                              title="Edit Note"
-                            >
-                              <Edit className="h-3.5 w-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteNote(note.id)}
-                              className="p-1 text-neural-text-muted hover:text-neural-red transition"
-                              title="Delete Note"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                        <p className="text-xs text-neural-text-secondary leading-relaxed whitespace-pre-wrap max-h-32 overflow-y-auto">
-                          {note.content}
+                return (
+                  <div className="space-y-4 border-t border-white/10 pt-4">
+                    <div className="flex flex-wrap items-center justify-between gap-4">
+                      <div className="space-y-1">
+                        <h4 className="font-display text-[10px] uppercase tracking-[0.08em] text-neural-text-muted">
+                          Project Notes
+                        </h4>
+                        <p className="text-xs text-neural-text-secondary">
+                          {allNotes.length} note{allNotes.length === 1 ? "" : "s"} · {pinnedNotes.length} pinned ·{" "}
+                          {linkedCount} linked conversation{linkedCount === 1 ? "" : "s"}
                         </p>
-                        {note.tags && note.tags.length > 0 && (
-                          <div className="flex flex-wrap gap-1">
-                            {note.tags.map(tag => (
-                              <span key={tag} className="inline-flex items-center gap-0.5 rounded border border-white/5 bg-white/[0.03] px-1.5 py-0.5 text-[9px] font-mono text-neural-text-muted">
-                                <Tag className="h-2 w-2" />
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </article>
-                    ))}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={openNewNoteForm}
+                        className="inline-flex items-center gap-1 rounded-xl border border-white/10 bg-white/[0.04] px-2.5 py-1.5 font-display text-[9px] uppercase tracking-[0.08em] text-neural-text-secondary hover:border-neural-cyan/35 hover:text-neural-cyan transition"
+                      >
+                        <Plus className="h-3 w-3" />
+                        Add Note
+                      </button>
+                    </div>
+
+                    <div className="space-y-2">
+                      <p className="font-display text-[10px] uppercase tracking-[0.08em] text-neural-cyan">
+                        Pinned notes (injected into chat context)
+                      </p>
+                      <p className="text-[11px] text-neural-text-muted">
+                        Only pinned notes are sent as transient workspace context when enabled in Chat.
+                      </p>
+                      {pinnedNotes.length > 0 ? (
+                        <div className="grid gap-3 max-h-[220px] overflow-y-auto pr-1">
+                          {pinnedNotes.map((note) => renderNoteCard(note))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-neural-text-muted italic">No pinned notes yet.</p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <p className="font-display text-[10px] uppercase tracking-[0.08em] text-neural-text-muted">
+                        Other notes
+                      </p>
+                      {otherNotes.length > 0 ? (
+                        <div className="grid gap-3 max-h-[220px] overflow-y-auto pr-1">
+                          {otherNotes.map((note) => renderNoteCard(note))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-neural-text-muted italic">No unpinned notes.</p>
+                      )}
+                    </div>
+
+                    {allNotes.length === 0 ? (
+                      <p className="text-xs text-neural-text-muted italic">No notes created for this workspace.</p>
+                    ) : null}
                   </div>
-                ) : (
-                  <p className="text-xs text-neural-text-muted italic">No notes created for this workspace.</p>
-                )}
-              </div>
+                );
+              })()}
             </Panel>
           )}
         </div>

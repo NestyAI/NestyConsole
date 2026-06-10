@@ -10,6 +10,13 @@ export type WorkspaceNote = {
   updated_at: string;
 };
 
+export type WorkspaceLinkedConversation = {
+  id: string;
+  label?: string;
+  created_at: string;
+  updated_at: string;
+};
+
 export type Workspace = {
   id: string;
   name: string;
@@ -24,10 +31,18 @@ export type Workspace = {
   system_prompt?: string;
   pinned_notes?: WorkspaceNote[];
   linked_conversation_ids?: string[];
+  linked_conversations?: WorkspaceLinkedConversation[];
   memory_tags?: string[];
   created_at: string;
   updated_at: string;
 };
+
+const SECRET_LIKE_KEY_PATTERN =
+  /^(.*)(key|token|secret|password|credential|auth|cookie|session|bearer)(.*)$/i;
+
+export function makeWorkspaceId(): string {
+  return `workspace-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+}
 
 const STARTER_TEMPLATES: Array<Omit<Workspace, "id" | "created_at" | "updated_at">> = [
   {
@@ -140,6 +155,168 @@ export function makeWorkspaceNoteId(): string {
   return `note-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
 }
 
+export function stripSecretLikeKeys(raw: unknown): unknown {
+  if (Array.isArray(raw)) {
+    return raw.map((item) => stripSecretLikeKeys(item));
+  }
+  if (!raw || typeof raw !== "object") {
+    return raw;
+  }
+
+  const source = raw as Record<string, unknown>;
+  const cleaned: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(source)) {
+    if (SECRET_LIKE_KEY_PATTERN.test(key)) {
+      continue;
+    }
+    cleaned[key] = stripSecretLikeKeys(value);
+  }
+  return cleaned;
+}
+
+export function normalizeWorkspaceLinkedConversation(raw: unknown): WorkspaceLinkedConversation | null {
+  if (!raw || typeof raw !== "object") {
+    return null;
+  }
+  const record = raw as Record<string, unknown>;
+  const id = typeof record.id === "string" && record.id.trim() ? record.id.trim() : "";
+  if (!id) {
+    return null;
+  }
+  const label = typeof record.label === "string" ? record.label.trim() : undefined;
+  const created_at = typeof record.created_at === "string" ? record.created_at : new Date().toISOString();
+  const updated_at = typeof record.updated_at === "string" ? record.updated_at : new Date().toISOString();
+  return { id, label: label || undefined, created_at, updated_at };
+}
+
+function mergeWorkspaceLinkedConversations(
+  linkedConversations: WorkspaceLinkedConversation[],
+  linkedConversationIds: string[]
+): WorkspaceLinkedConversation[] {
+  const byId = new Map<string, WorkspaceLinkedConversation>();
+  const now = new Date().toISOString();
+
+  for (const entry of linkedConversations) {
+    if (!entry.id.trim()) {
+      continue;
+    }
+    byId.set(entry.id, entry);
+  }
+
+  for (const conversationId of linkedConversationIds) {
+    const trimmed = conversationId.trim();
+    if (!trimmed || byId.has(trimmed)) {
+      continue;
+    }
+    byId.set(trimmed, {
+      id: trimmed,
+      created_at: now,
+      updated_at: now
+    });
+  }
+
+  return Array.from(byId.values());
+}
+
+function syncLinkedConversationFields(workspace: Workspace): Workspace {
+  const rich = (workspace.linked_conversations ?? [])
+    .map((entry) => normalizeWorkspaceLinkedConversation(entry))
+    .filter((entry): entry is WorkspaceLinkedConversation => entry !== null);
+  const legacyIds = (workspace.linked_conversation_ids ?? [])
+    .map((id) => id.trim())
+    .filter(Boolean);
+
+  const linked_conversations = mergeWorkspaceLinkedConversations(rich, legacyIds);
+  const linked_conversation_ids = linked_conversations.map((entry) => entry.id);
+
+  return {
+    ...workspace,
+    linked_conversations,
+    linked_conversation_ids
+  };
+}
+
+export function getWorkspaceLinkedConversations(workspace: Workspace): WorkspaceLinkedConversation[] {
+  return syncLinkedConversationFields(workspace).linked_conversations ?? [];
+}
+
+export function workspaceHasLinkedConversation(workspace: Workspace, conversationId: string): boolean {
+  const trimmed = conversationId.trim();
+  if (!trimmed) {
+    return false;
+  }
+  return getWorkspaceLinkedConversations(workspace).some((entry) => entry.id === trimmed);
+}
+
+export function addWorkspaceLinkedConversation(
+  workspace: Workspace,
+  conversationId: string,
+  label?: string
+): { linked_conversations: WorkspaceLinkedConversation[]; linked_conversation_ids: string[] } | null {
+  const trimmedId = conversationId.trim();
+  if (!trimmedId || workspaceHasLinkedConversation(workspace, trimmedId)) {
+    return null;
+  }
+
+  const now = new Date().toISOString();
+  const trimmedLabel = label?.trim() || undefined;
+  const current = getWorkspaceLinkedConversations(workspace);
+  const linked_conversations = [
+    ...current,
+    {
+      id: trimmedId,
+      label: trimmedLabel,
+      created_at: now,
+      updated_at: now
+    }
+  ];
+
+  return {
+    linked_conversations,
+    linked_conversation_ids: linked_conversations.map((entry) => entry.id)
+  };
+}
+
+export function removeWorkspaceLinkedConversation(
+  workspace: Workspace,
+  conversationId: string
+): { linked_conversations: WorkspaceLinkedConversation[]; linked_conversation_ids: string[] } {
+  const trimmedId = conversationId.trim();
+  const linked_conversations = getWorkspaceLinkedConversations(workspace).filter(
+    (entry) => entry.id !== trimmedId
+  );
+  return {
+    linked_conversations,
+    linked_conversation_ids: linked_conversations.map((entry) => entry.id)
+  };
+}
+
+export function updateWorkspaceLinkedLabel(
+  workspace: Workspace,
+  conversationId: string,
+  label: string
+): { linked_conversations: WorkspaceLinkedConversation[]; linked_conversation_ids: string[] } | null {
+  const trimmedId = conversationId.trim();
+  const trimmedLabel = label.trim();
+  const current = getWorkspaceLinkedConversations(workspace);
+  const index = current.findIndex((entry) => entry.id === trimmedId);
+  if (index === -1) {
+    return null;
+  }
+
+  const linked_conversations = [...current];
+  linked_conversations[index] = {
+    ...linked_conversations[index],
+    label: trimmedLabel || undefined,
+    updated_at: new Date().toISOString()
+  };
+
+  return {
+    linked_conversations,
+    linked_conversation_ids: linked_conversations.map((entry) => entry.id)
+  };
+}
+
 export function getWorkspaceTemplates(): WorkspaceTemplate[] {
   return [...STARTER_TEMPLATES];
 }
@@ -176,14 +353,14 @@ export function normalizeWorkspace(raw: unknown): Workspace | null {
   }
   const r = raw as Record<string, unknown>;
 
-  const id = typeof r.id === "string" && r.id.trim() ? r.id.trim() : `workspace-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
-  const name = typeof r.name === "string" && r.name.trim() ? r.name.trim() : "Unnamed Workspace";
+  const id = typeof r.id === "string" && r.id.trim() ? r.id.trim() : makeWorkspaceId();
+  const name = typeof r.name === "string" && r.name.trim() ? r.name.trim() : "Untitled workspace";
   const description = typeof r.description === "string" ? r.description.trim() : undefined;
   
   const validColors = ["cyan", "violet", "green", "amber", "red", "neutral"] as const;
   const color = typeof r.color === "string" && (validColors as readonly string[]).includes(r.color)
     ? (r.color as Workspace["color"])
-    : "cyan";
+    : "neutral";
 
   const preferred_preset_id = typeof r.preferred_preset_id === "string" && r.preferred_preset_id.trim() ? r.preferred_preset_id.trim() : undefined;
   const preferred_model = typeof r.preferred_model === "string" && r.preferred_model.trim() ? r.preferred_model.trim() : undefined;
@@ -215,6 +392,16 @@ export function normalizeWorkspace(raw: unknown): Workspace | null {
     }
   }
 
+  const linked_conversations: WorkspaceLinkedConversation[] = [];
+  if (Array.isArray(r.linked_conversations)) {
+    for (const entry of r.linked_conversations) {
+      const normalized = normalizeWorkspaceLinkedConversation(entry);
+      if (normalized) {
+        linked_conversations.push(normalized);
+      }
+    }
+  }
+
   const memory_tags: string[] = [];
   if (Array.isArray(r.memory_tags)) {
     for (const tag of r.memory_tags) {
@@ -227,7 +414,7 @@ export function normalizeWorkspace(raw: unknown): Workspace | null {
   const created_at = typeof r.created_at === "string" ? r.created_at : new Date().toISOString();
   const updated_at = typeof r.updated_at === "string" ? r.updated_at : new Date().toISOString();
 
-  return {
+  return syncLinkedConversationFields({
     id,
     name,
     description,
@@ -241,34 +428,42 @@ export function normalizeWorkspace(raw: unknown): Workspace | null {
     system_prompt,
     pinned_notes,
     linked_conversation_ids,
+    linked_conversations,
     memory_tags,
     created_at,
     updated_at
-  };
+  });
 }
 
 const WORKSPACES_STORAGE_KEY = "nesty-console.workspaces.v1";
 
-export function getWorkspaces(): Workspace[] {
+export function loadWorkspacesResult(): { workspaces: Workspace[]; corrupted: boolean } {
   if (typeof window === "undefined") {
-    return [];
+    return { workspaces: [], corrupted: false };
   }
   try {
     const raw = window.localStorage.getItem(WORKSPACES_STORAGE_KEY);
     if (!raw) {
-      return [];
+      return { workspaces: [], corrupted: false };
     }
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) {
-      return [];
+      return { workspaces: [], corrupted: true };
     }
-    return parsed
-      .map(normalizeWorkspace)
-      .filter((w): w is Workspace => w !== null);
+    return {
+      workspaces: parsed
+        .map(normalizeWorkspace)
+        .filter((w): w is Workspace => w !== null),
+      corrupted: false
+    };
   } catch (err) {
     console.warn("Failed to load workspaces from localStorage:", err);
-    return [];
+    return { workspaces: [], corrupted: true };
   }
+}
+
+export function getWorkspaces(): Workspace[] {
+  return loadWorkspacesResult().workspaces;
 }
 
 export function saveWorkspaces(workspaces: Workspace[]): boolean {
@@ -292,12 +487,12 @@ export function getWorkspaceById(id: string): Workspace | null {
 
 export function createWorkspace(input: Omit<Workspace, "id" | "created_at" | "updated_at" | "pinned_notes" | "linked_conversation_ids">): Workspace {
   const list = getWorkspaces();
-  const uuid = `workspace-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
   const fresh: Workspace = {
     ...input,
-    id: uuid,
+    id: makeWorkspaceId(),
     pinned_notes: [],
     linked_conversation_ids: [],
+    linked_conversations: [],
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   };
@@ -309,7 +504,6 @@ export function createWorkspace(input: Omit<Workspace, "id" | "created_at" | "up
 
 export function createWorkspaceFromTemplate(template: Omit<Workspace, "id" | "created_at" | "updated_at">): Workspace {
   const list = getWorkspaces();
-  const uuid = `workspace-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
   const now = new Date().toISOString();
   const clonedNotes = (template.pinned_notes ?? []).map((note) => ({
     ...note,
@@ -319,9 +513,10 @@ export function createWorkspaceFromTemplate(template: Omit<Workspace, "id" | "cr
   }));
   const fresh: Workspace = {
     ...template,
-    id: uuid,
+    id: makeWorkspaceId(),
     pinned_notes: clonedNotes,
     linked_conversation_ids: [...(template.linked_conversation_ids ?? [])],
+    linked_conversations: [...(template.linked_conversations ?? [])],
     memory_tags: [...(template.memory_tags ?? [])],
     created_at: now,
     updated_at: now

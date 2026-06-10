@@ -9,6 +9,13 @@ export type WorkspaceContextResult = {
   truncated: boolean;
 };
 
+export type WorkspaceContextMeta = WorkspaceContextResult & {
+  charCount: number;
+  hasSystemPrompt: boolean;
+  pinnedNotesCount: number;
+  memoryTagsCount: number;
+};
+
 export function buildWorkspaceContext(workspace: Workspace): WorkspaceContextResult {
   const parts: string[] = [];
 
@@ -45,4 +52,21 @@ export function buildWorkspaceContext(workspace: Workspace): WorkspaceContextRes
   }
 
   return { text, truncated };
+}
+
+export function getWorkspaceContextMeta(workspace: Workspace): WorkspaceContextMeta {
+  const { text, truncated } = buildWorkspaceContext(workspace);
+  const pinnedNotesCount = (workspace.pinned_notes ?? []).filter(
+    (note) => note.pinned && note.content.trim()
+  ).length;
+  const memoryTagsCount = (workspace.memory_tags ?? []).filter((tag) => tag.trim()).length;
+
+  return {
+    text,
+    truncated,
+    charCount: text.length,
+    hasSystemPrompt: Boolean(workspace.system_prompt?.trim()),
+    pinnedNotesCount,
+    memoryTagsCount
+  };
 }

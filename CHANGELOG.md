@@ -2,6 +2,33 @@
 
 All notable changes to Nesty Console will be documented in this file.
 
+## [0.8.2] - Unreleased
+
+### Added
+- Added safe local JSON import for Workspace Memory Hub.
+- Added local labels for linked workspace conversations.
+- Added improved import/export workflow for browser-local workspaces.
+
+### Changed
+- Improved linked conversation readability in Workspaces while keeping references local-only.
+
+### Security
+- Workspace import sanitizes data, drops suspicious secret-like fields, remains browser-local, and never stores Gateway credentials, internal admin tokens, provider secrets, cookies, sessions, or request headers.
+
+## [0.8.1] - Unreleased
+
+### Added
+- Added workspace switcher and current-conversation linking in Chat.
+- Added workspace context preview for safer visibility into injected project context.
+- Added clearer pinned-note visibility for Workspace Memory Hub.
+- Added local workspace JSON export (copy and download) on `/workspaces`.
+
+### Changed
+- Improved Workspace Memory Hub usability and chat integration while keeping workspace data local-first.
+
+### Security
+- Workspace context remains opt-in, transient, local-first, and does not expose Gateway credentials, internal admin tokens, provider secrets, cookies, sessions, or linked conversation contents.
+
 ## [0.8.0] - Unreleased
 
 ### Added

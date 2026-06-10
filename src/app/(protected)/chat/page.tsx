@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { FormEvent, KeyboardEvent, Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, Clipboard, Loader2, Menu, RefreshCcw, Send, Square, Trash2 } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { FormEvent, KeyboardEvent, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Clipboard, Loader2, Menu, RefreshCcw, Send, Square, Trash2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -18,6 +18,7 @@ import { AnswerQualityDetails } from "@/components/chat/answer-quality-details";
 import { OutputSafetyDetails } from "@/components/chat/output-safety-details";
 import { ProviderFallbackDetails } from "@/components/chat/provider-fallback-details";
 import { ChatCanvasRenderer } from "@/components/chat/chat-canvas-renderer";
+import { WorkspaceChatPanel } from "@/components/chat/workspace-chat-panel";
 import {
   archiveOrDeleteConversation,
   formatConversationTitle,
@@ -46,7 +47,12 @@ import {
   saveCustomChatPresets
 } from "@/lib/chat/presets";
 import { buildWorkspaceContext } from "@/lib/workspaces/context";
-import { type Workspace, getWorkspaceById } from "@/lib/workspaces/workspaces";
+import {
+  addWorkspaceLinkedConversation,
+  type Workspace,
+  getWorkspaceById,
+  updateWorkspace
+} from "@/lib/workspaces/workspaces";
 
 type UiMessage = ChatMessage & {
   id: string;
@@ -60,24 +66,6 @@ type ConsoleError = {
 type UiNotice = {
   kind: "info" | "success";
   message: string;
-};
-
-const WORKSPACE_BADGE_VARIANTS: Record<string, "live" | "ai" | "success" | "warning" | "error" | "inactive"> = {
-  cyan: "live",
-  violet: "ai",
-  green: "success",
-  amber: "warning",
-  red: "error",
-  neutral: "inactive"
-};
-
-const WORKSPACE_BANNER_CLASSES: Record<string, string> = {
-  cyan: "border-neural-cyan/25 bg-neural-cyan/10",
-  violet: "border-neural-violet/25 bg-neural-violet/10",
-  green: "border-neural-green/25 bg-neural-green/10",
-  amber: "border-neural-amber/25 bg-neural-amber/10",
-  red: "border-neural-red/25 bg-neural-red/10",
-  neutral: "border-white/10 bg-white/[0.03]"
 };
 
 const MODELS = ["nesty-flash-1.0", "nesty-combined-1.0", "nesty-pro-1.0"] as const;
@@ -629,6 +617,7 @@ function getPresetTimestamp(): string {
 }
 
 function ChatPageContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [messages, setMessages] = useState<UiMessage[]>([]);
   const [input, setInput] = useState("");
@@ -997,12 +986,70 @@ function ChatPageContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- apply once per workspace URL key after preferences hydrate
   }, [searchParams]);
 
-  const workspaceContextTruncated = useMemo(() => {
-    if (!activeWorkspace) {
-      return false;
+  const syncWorkspaceUrl = useCallback(
+    (workspaceId: string, contextEnabled: boolean) => {
+      if (!workspaceId) {
+        router.replace("/chat");
+        return;
+      }
+      const params = new URLSearchParams();
+      params.set("workspace", workspaceId);
+      if (contextEnabled) {
+        params.set("useWorkspaceContext", "1");
+      }
+      router.replace(`/chat?${params.toString()}`);
+    },
+    [router]
+  );
+
+  const handleWorkspaceSelect = (workspaceId: string) => {
+    if (!workspaceId) {
+      workspaceAppliedKeyRef.current = ":false";
+      setActiveWorkspace(null);
+      setUseWorkspaceContext(false);
+      setWorkspaceWarning(null);
+      router.replace("/chat");
+      return;
     }
-    return buildWorkspaceContext(activeWorkspace).truncated;
-  }, [activeWorkspace]);
+
+    const workspace = getWorkspaceById(workspaceId);
+    if (!workspace) {
+      setWorkspaceWarning(`Workspace "${workspaceId}" was not found. Continuing with normal chat.`);
+      return;
+    }
+
+    const contextOn = useWorkspaceContext;
+    workspaceAppliedKeyRef.current = `${workspaceId}:${contextOn}`;
+    setWorkspaceWarning(null);
+    setActiveWorkspace(workspace);
+    applyWorkspaceOptions(workspace, messagesLengthRef.current > 0);
+    syncWorkspaceUrl(workspaceId, contextOn);
+  };
+
+  const handleUseWorkspaceContextChange = (enabled: boolean) => {
+    setUseWorkspaceContext(enabled);
+    if (activeWorkspace) {
+      workspaceAppliedKeyRef.current = `${activeWorkspace.id}:${enabled}`;
+      syncWorkspaceUrl(activeWorkspace.id, enabled);
+    }
+  };
+
+  const handleLinkCurrentConversation = () => {
+    if (!activeWorkspace || !conversationId) {
+      return;
+    }
+    const conversationMatch = conversations.find((item) => item.id === conversationId);
+    const label = conversationMatch ? formatConversationTitle(conversationMatch.raw) : "Current chat";
+    const linkedPatch = addWorkspaceLinkedConversation(activeWorkspace, conversationId, label);
+    if (!linkedPatch) {
+      return;
+    }
+    const updated = updateWorkspace(activeWorkspace.id, linkedPatch);
+    if (updated) {
+      setActiveWorkspace(updated);
+      pushNotice("success", "Conversation linked to workspace.");
+    }
+  };
 
   const loadConversations = async (options: { silent?: boolean; query?: string } = {}) => {
     const silent = Boolean(options.silent);
@@ -1557,53 +1604,15 @@ function ChatPageContent() {
         )}
       </div>
 
-      {workspaceWarning ? (
-        <div className="rounded-2xl border border-amber-300/25 bg-amber-400/10 p-3 text-sm text-amber-100 shadow-neural-soft">
-          {workspaceWarning}
-        </div>
-      ) : null}
-
-      {activeWorkspace ? (
-        <div
-          className={`rounded-2xl border p-3 shadow-neural-soft ${
-            WORKSPACE_BANNER_CLASSES[activeWorkspace.color || "cyan"] || WORKSPACE_BANNER_CLASSES.cyan
-          }`}
-        >
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant={WORKSPACE_BADGE_VARIANTS[activeWorkspace.color || "cyan"] || "live"}>
-                {activeWorkspace.name}
-              </Badge>
-              <span className="text-xs text-neural-text-secondary">Active workspace</span>
-            </div>
-            <Link
-              href="/workspaces"
-              className="font-display text-[10px] uppercase tracking-[0.08em] text-neural-cyan underline underline-offset-2 hover:text-neural-text-primary"
-            >
-              Manage workspace
-            </Link>
-          </div>
-          <label className="mt-3 flex cursor-pointer items-center gap-2 text-sm text-neural-text-secondary">
-            <input
-              type="checkbox"
-              checked={useWorkspaceContext}
-              onChange={(event) => setUseWorkspaceContext(event.target.checked)}
-              className="h-4 w-4 rounded border-white/10 bg-white/[0.03]"
-            />
-            <span>Use workspace context (system prompt, pinned notes, memory tags)</span>
-          </label>
-          {useWorkspaceContext && workspaceContextTruncated ? (
-            <p className="mt-2 flex items-start gap-2 text-xs text-amber-100">
-              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              Workspace context exceeds 4,000 characters and was truncated for this request.
-            </p>
-          ) : null}
-          <p className="mt-2 flex items-start gap-2 text-xs text-amber-100/90">
-            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            Do not put secrets in workspace notes or prompts.
-          </p>
-        </div>
-      ) : null}
+      <WorkspaceChatPanel
+        activeWorkspace={activeWorkspace}
+        useWorkspaceContext={useWorkspaceContext}
+        workspaceWarning={workspaceWarning}
+        conversationId={conversationId}
+        onWorkspaceSelect={handleWorkspaceSelect}
+        onUseWorkspaceContextChange={handleUseWorkspaceContextChange}
+        onLinkCurrentConversation={handleLinkCurrentConversation}
+      />
 
       {!store && conversationId ? (
         <div className="rounded-2xl border border-amber-300/25 bg-amber-400/10 p-3 text-sm text-amber-100 shadow-neural-soft">

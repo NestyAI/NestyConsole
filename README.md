@@ -6,9 +6,27 @@
 
 Nesty Console is a separate frontend/admin project for operating a running `NestyAI Gateway`.
 
-Current status: **v0.8.0 - Workspace Memory Hub**
+Current status: **v0.8.2 - Workspace Import & Conversation Labels**
 
 Changelog: [CHANGELOG.md](CHANGELOG.md)
+
+v0.8.2 adds:
+* Safe local JSON import for workspaces (paste JSON, validate, merge, atomic save).
+* Local labels for linked workspace conversations (browser-only metadata).
+* Import/export panel on `/workspaces` with trusted-import warning.
+* Import only trusted workspace JSON. Suspicious secret-like fields are dropped during import.
+* Linked conversation labels are never sent to Gateway and never injected into workspace context.
+* No linked conversation contents are fetched automatically.
+* Open linked conversation in Chat is deferred until safe conversation deep-link support exists.
+* Gateway credentials remain server-side only. Do not store secrets in workspace notes, prompts, or imported JSON.
+
+v0.8.1 adds:
+* In-chat workspace switcher to change active project without leaving Chat.
+* Link current conversation to the active workspace (local reference only).
+* Collapsible workspace context preview showing character count, included components, and safe built context text.
+* Clearer pinned vs unpinned notes on `/workspaces` — only pinned notes are injected into chat context.
+* Local workspace JSON export (copy or download).
+* Workspace context remains opt-in, transient, and browser-local. Do not store secrets in workspace notes or prompts.
 
 v0.8.0 adds:
 * Local-first Workspaces (`/workspaces`) stored in browser `localStorage` under `nesty-console.workspaces.v1`.

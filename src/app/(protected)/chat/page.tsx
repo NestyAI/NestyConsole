@@ -38,6 +38,12 @@ import type {
   GatewayRuntimeFallbackMetadata,
   GatewayConversationMessage
 } from "@/lib/gateway/types";
+import {
+  type ChatPreset,
+  getBuiltInChatPresets,
+  getCustomChatPresets,
+  saveCustomChatPresets
+} from "@/lib/chat/presets";
 
 type UiMessage = ChatMessage & {
   id: string;
@@ -590,6 +596,17 @@ function conversationMessagesToUi(messages: GatewayConversationMessage[]): UiMes
     .filter((item): item is UiMessage => Boolean(item));
 }
 
+function makePresetId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return `custom-${crypto.randomUUID()}`;
+  }
+  return `custom-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+}
+
+function getPresetTimestamp(): string {
+  return new Date().toISOString();
+}
+
 export default function ChatPage() {
   const [messages, setMessages] = useState<UiMessage[]>([]);
   const [input, setInput] = useState("");
@@ -613,6 +630,140 @@ export default function ChatPage() {
   const [responseMetadata, setResponseMetadata] = useState<ChatCompletionMetadata | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [messageModes, setMessageModes] = useState<Record<string, "rendered" | "raw">>({});
+
+  const [selectedPresetId, setSelectedPresetId] = useState<string>("");
+  const [customPresets, setCustomPresets] = useState<ChatPreset[]>([]);
+  const builtinPresets = getBuiltInChatPresets();
+  const isApplyingPresetRef = useRef(false);
+
+  const handleManualOptionChange = () => {
+    if (!isApplyingPresetRef.current) {
+      setSelectedPresetId("");
+    }
+  };
+
+  const handleSelectPreset = (id: string) => {
+    if (!id) {
+      setSelectedPresetId("");
+      return;
+    }
+
+    const allPresets = [...builtinPresets, ...customPresets];
+    const found = allPresets.find((p) => p.id === id);
+    if (!found) {
+      return;
+    }
+
+    isApplyingPresetRef.current = true;
+    try {
+      setSelectedPresetId(found.id);
+      
+      setModel(found.model as (typeof MODELS)[number]);
+      setSearch(found.search);
+      setTools(found.tools);
+      setStore(found.store);
+      setSemanticRecall(found.semantic_recall);
+      setStream(found.stream);
+
+      if (found.temperature !== undefined && found.temperature !== null) {
+        setTemperature(String(found.temperature));
+      }
+      if (found.max_tokens !== undefined && found.max_tokens !== null) {
+        setMaxTokens(String(found.max_tokens));
+      }
+      if (found.system_prompt !== undefined && found.system_prompt !== null) {
+        setSystemPrompt(found.system_prompt);
+        setShowSystemPrompt(Boolean(found.system_prompt));
+      } else {
+        setSystemPrompt("");
+        setShowSystemPrompt(false);
+      }
+
+      if (messages.length > 0) {
+        pushNotice("info", "Preset applied. Existing messages were kept.");
+      }
+    } finally {
+      isApplyingPresetRef.current = false;
+    }
+  };
+
+  const handleSaveCurrentAsPreset = () => {
+    const name = window.prompt("Enter a name for this custom preset:");
+    if (!name || !name.trim()) {
+      return;
+    }
+
+    const desc = window.prompt("Enter an optional description:") || "";
+    const nameTrimmed = name.trim();
+    
+    const existingIndex = customPresets.findIndex(p => p.name.toLowerCase() === nameTrimmed.toLowerCase());
+    if (existingIndex >= 0) {
+      const confirmOverwrite = window.confirm(`A custom preset named "${nameTrimmed}" already exists. Overwrite it?`);
+      if (!confirmOverwrite) {
+        return;
+      }
+    }
+
+    let tempNum: number | null = null;
+    if (temperature.trim()) {
+      const val = Number(temperature);
+      if (!Number.isNaN(val)) tempNum = val;
+    }
+    
+    let tokensNum: number | null = null;
+    if (maxTokens.trim()) {
+      const val = Number(maxTokens);
+      if (!Number.isNaN(val)) tokensNum = val;
+    }
+
+    const newPreset: ChatPreset = {
+      id: existingIndex >= 0 ? customPresets[existingIndex].id : makePresetId(),
+      name: nameTrimmed,
+      description: desc.trim() || undefined,
+      model,
+      search,
+      tools,
+      store,
+      semantic_recall: semanticRecall,
+      stream,
+      temperature: tempNum,
+      max_tokens: tokensNum,
+      system_prompt: systemPrompt || undefined,
+      is_builtin: false,
+      updated_at: getPresetTimestamp()
+    };
+
+    let updatedCustoms: ChatPreset[];
+    if (existingIndex >= 0) {
+      updatedCustoms = [...customPresets];
+      updatedCustoms[existingIndex] = newPreset;
+    } else {
+      updatedCustoms = [...customPresets, newPreset];
+    }
+
+    setCustomPresets(updatedCustoms);
+    saveCustomChatPresets(updatedCustoms);
+    setSelectedPresetId(newPreset.id);
+    pushNotice("success", `Preset "${nameTrimmed}" saved.`);
+  };
+
+  const handleDeletePreset = (id: string) => {
+    const found = customPresets.find(p => p.id === id);
+    if (!found) {
+      return;
+    }
+
+    const confirmDelete = window.confirm(`Are you sure you want to delete the preset "${found.name}"?`);
+    if (!confirmDelete) {
+      return;
+    }
+
+    const updated = customPresets.filter(p => p.id !== id);
+    setCustomPresets(updated);
+    saveCustomChatPresets(updated);
+    setSelectedPresetId("");
+    pushNotice("info", `Preset "${found.name}" deleted.`);
+  };
 
   const [conversations, setConversations] = useState<ConversationListItem[]>([]);
   const [conversationQuery, setConversationQuery] = useState("");
@@ -638,6 +789,13 @@ export default function ChatPage() {
     }
 
     /* eslint-disable react-hooks/set-state-in-effect */
+    try {
+      const customs = getCustomChatPresets();
+      setCustomPresets(customs);
+    } catch {
+      // Ignore safely
+    }
+
     try {
       const raw = window.localStorage.getItem(PREFERENCES_KEY);
       if (!raw) {
@@ -1636,11 +1794,75 @@ export default function ChatPage() {
         <aside className="neural-panel w-full min-w-0 space-y-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4 shadow-neural-soft">
           <h2 className="font-display text-sm uppercase tracking-[0.07em] text-neural-text-primary">Chat Options</h2>
 
+          {/* Preset Selector */}
+          <div className="space-y-2 rounded-2xl border border-white/5 bg-white/[0.02] p-3">
+            <label className="block space-y-1 text-sm text-neural-text-secondary">
+              <span className="font-display text-[10px] uppercase tracking-[0.08em]">Chat Preset</span>
+              <select
+                value={selectedPresetId}
+                onChange={(event) => handleSelectPreset(event.target.value)}
+                className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-neural-text-primary outline-none transition focus:border-neural-cyan/40 focus:bg-white/[0.05]"
+              >
+                <option value="">-- Custom (No Preset) --</option>
+                <optgroup label="Built-in Presets">
+                  {builtinPresets.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </optgroup>
+                {customPresets.length > 0 && (
+                  <optgroup label="Custom Presets">
+                    {customPresets.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+              </select>
+            </label>
+
+            {(() => {
+              const currentPreset = [...builtinPresets, ...customPresets].find(p => p.id === selectedPresetId);
+              return (
+                <>
+                  {currentPreset && currentPreset.description && (
+                    <p className="text-[11px] text-neural-text-muted leading-relaxed">
+                      {currentPreset.description}
+                    </p>
+                  )}
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={handleSaveCurrentAsPreset}
+                      className="flex-1 rounded-full border border-neural-cyan/40 bg-neural-cyan/5 px-2.5 py-1.5 font-display text-[10px] uppercase tracking-[0.06em] text-neural-cyan transition hover:bg-neural-cyan/12"
+                    >
+                      Save Current
+                    </button>
+                    {currentPreset && !currentPreset.is_builtin && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeletePreset(currentPreset.id)}
+                        className="rounded-full border border-neural-red/40 bg-neural-red/5 px-2.5 py-1.5 font-display text-[10px] uppercase tracking-[0.06em] text-neural-red transition hover:bg-neural-red/12"
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+
           <label className="block space-y-1 text-sm text-neural-text-secondary">
             <span>Model</span>
             <select
               value={model}
-              onChange={(event) => setModel(event.target.value as (typeof MODELS)[number])}
+              onChange={(event) => {
+                setModel(event.target.value as (typeof MODELS)[number]);
+                handleManualOptionChange();
+              }}
               className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2.5 font-mono text-sm text-neural-text-primary outline-none transition focus:border-neural-cyan/40 focus:bg-white/[0.05]"
             >
               {MODELS.map((item) => (
@@ -1655,7 +1877,10 @@ export default function ChatPage() {
             <span>Search</span>
             <select
               value={search}
-              onChange={(event) => setSearch(event.target.value as "auto" | "on" | "off")}
+              onChange={(event) => {
+                setSearch(event.target.value as "auto" | "on" | "off");
+                handleManualOptionChange();
+              }}
               className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-neural-text-primary outline-none transition focus:border-neural-cyan/40 focus:bg-white/[0.05]"
             >
               <option value="auto">auto</option>
@@ -1668,7 +1893,10 @@ export default function ChatPage() {
             <span>Tools</span>
             <select
               value={tools}
-              onChange={(event) => setTools(event.target.value as "auto" | "off")}
+              onChange={(event) => {
+                setTools(event.target.value as "auto" | "off");
+                handleManualOptionChange();
+              }}
               className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-neural-text-primary outline-none transition focus:border-neural-cyan/40 focus:bg-white/[0.05]"
             >
               <option value="auto">auto</option>
@@ -1680,7 +1908,10 @@ export default function ChatPage() {
             <span>Semantic recall</span>
             <select
               value={semanticRecall}
-              onChange={(event) => setSemanticRecall(event.target.value as "auto" | "on" | "off")}
+              onChange={(event) => {
+                setSemanticRecall(event.target.value as "auto" | "on" | "off");
+                handleManualOptionChange();
+              }}
               className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-neural-text-primary outline-none transition focus:border-neural-cyan/40 focus:bg-white/[0.05]"
             >
               <option value="auto">auto</option>
@@ -1693,7 +1924,10 @@ export default function ChatPage() {
             <span>Temperature</span>
             <input
               value={temperature}
-              onChange={(event) => setTemperature(event.target.value)}
+              onChange={(event) => {
+                setTemperature(event.target.value);
+                handleManualOptionChange();
+              }}
               className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2.5 font-mono text-sm text-neural-text-primary outline-none transition focus:border-neural-cyan/40 focus:bg-white/[0.05]"
             />
           </label>
@@ -1702,7 +1936,10 @@ export default function ChatPage() {
             <span>Max tokens</span>
             <input
               value={maxTokens}
-              onChange={(event) => setMaxTokens(event.target.value)}
+              onChange={(event) => {
+                setMaxTokens(event.target.value);
+                handleManualOptionChange();
+              }}
               className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2.5 font-mono text-sm text-neural-text-primary outline-none transition focus:border-neural-cyan/40 focus:bg-white/[0.05]"
             />
           </label>
@@ -1711,7 +1948,10 @@ export default function ChatPage() {
             <input
               type="checkbox"
               checked={store}
-              onChange={(event) => setStore(event.target.checked)}
+              onChange={(event) => {
+                setStore(event.target.checked);
+                handleManualOptionChange();
+              }}
               className="h-4 w-4 rounded border-white/10 bg-white/[0.03]"
             />
             store conversation
@@ -1721,7 +1961,10 @@ export default function ChatPage() {
             <input
               type="checkbox"
               checked={stream}
-              onChange={(event) => setStream(event.target.checked)}
+              onChange={(event) => {
+                setStream(event.target.checked);
+                handleManualOptionChange();
+              }}
               className="h-4 w-4 rounded border-white/10 bg-white/[0.03]"
             />
             stream response
@@ -1740,7 +1983,10 @@ export default function ChatPage() {
                 <p className="text-xs text-neural-text-secondary">This field is local UI context only. Do not paste secrets.</p>
                 <textarea
                   value={systemPrompt}
-                  onChange={(event) => setSystemPrompt(event.target.value)}
+                  onChange={(event) => {
+                    setSystemPrompt(event.target.value);
+                    handleManualOptionChange();
+                  }}
                   rows={4}
                   placeholder="Optional system instruction for this browser session"
                   className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2.5 text-xs text-neural-text-primary outline-none transition placeholder:text-neural-text-muted focus:border-neural-cyan/40 focus:bg-white/[0.05]"

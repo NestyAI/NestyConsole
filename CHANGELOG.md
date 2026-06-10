@@ -2,6 +2,16 @@
 
 All notable changes to Nesty Console will be documented in this file.
 
+## [0.7.4] - Unreleased
+
+### Added
+- Added Chat Session Presets for quickly switching between common NestyChat modes.
+- Added built-in presets for Fast Chat, Balanced, Deep Pro, Coding Assistant, and Vietnamese Helper.
+- Added local custom presets saved in browser-local non-secret preferences.
+
+### Security
+- Chat presets store only non-secret UI preferences and never store Gateway API keys, internal admin tokens, provider secrets, or credentials.
+
 ## [0.7.3] - Unreleased
 
 ### Added

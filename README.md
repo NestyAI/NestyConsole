@@ -6,9 +6,14 @@
 
 Nesty Console is a separate frontend/admin project for operating a running `NestyAI Gateway`.
 
-Current status: **v0.7.3 - Pro Quality Metadata Display**
+Current status: **v0.7.4 - Chat Session Presets**
 
 Changelog: [CHANGELOG.md](CHANGELOG.md)
+
+v0.7.4 adds:
+* Switch quickly between built-in presets (Fast Chat, Balanced, Deep Pro, Coding Assistant, Vietnamese Helper) or save custom session configurations.
+* Presets store only non-secret UI options locally in browser localStorage.
+* Gateway credentials and tokens remain server-side only.
 
 v0.7.3 adds:
 * Console supports Gateway v1.2.4 safe Pro orchestration quality metadata.

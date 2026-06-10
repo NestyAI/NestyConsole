@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorBanner } from "@/components/ui/error-banner";
 import { LoadingBlock } from "@/components/ui/loading-block";
 import { Badge } from "@/components/ui/badge";
+import { Select } from "@/components/ui/select";
 import { Panel } from "@/components/ui/panel";
 import { TerminalBlock } from "@/components/ui/terminal-block";
 import { TokenTag } from "@/components/ui/token-tag";
@@ -629,16 +630,16 @@ export default function ModelConfigsPage() {
                           </label>
                           <label className="space-y-1 text-xs text-neural-text-secondary">
                             <span>enabled</span>
-                            <select
+                            <Select
                               value={item.enabled === false ? "false" : "true"}
                               onChange={(event) =>
                                 updateChainItem(index, (prev) => ({ ...prev, enabled: event.target.value !== "false" }))
                               }
-                              className="w-full rounded border border-neural-text-muted/30 bg-neural-input px-2 py-1 font-mono text-xs text-neural-text-primary focus:border-neural-cyan/50 focus:outline-none"
+                              className="font-mono text-xs py-1"
                             >
                               <option value="true">true</option>
                               <option value="false">false</option>
-                            </select>
+                            </Select>
                           </label>
                         </div>
                         <div className="mt-2 flex flex-wrap gap-1">

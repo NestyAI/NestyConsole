@@ -1,3 +1,4 @@
+import { FOCUS_RING } from "@/lib/design/tokens";
 import type { WorkspaceColor } from "@/lib/workspaces/workspaces";
 
 export type WorkspaceBadgeVariant = "live" | "ai" | "success" | "warning" | "error" | "inactive";
@@ -14,12 +15,12 @@ export const WORKSPACE_BADGE_VARIANTS: Record<WorkspaceColor, WorkspaceBadgeVari
 };
 
 export const WORKSPACE_BANNER_CLASSES: Record<WorkspaceColor, string> = {
-  cyan: "border-neural-cyan/25 bg-neural-cyan/10",
-  violet: "border-neural-violet/25 bg-neural-violet/10",
-  green: "border-neural-green/25 bg-neural-green/10",
-  amber: "border-neural-amber/25 bg-neural-amber/10",
-  red: "border-neural-red/25 bg-neural-red/10",
-  neutral: "border-white/10 bg-white/[0.03]"
+  cyan: "border-neural-cyan/20 bg-neural-cyan/[0.06]",
+  violet: "border-neural-violet/20 bg-neural-violet/[0.06]",
+  green: "border-neural-green/20 bg-neural-green/[0.06]",
+  amber: "border-neural-amber/20 bg-neural-amber/[0.06]",
+  red: "border-neural-red/20 bg-neural-red/[0.06]",
+  neutral: "border-white/10 bg-neural-elevated/60"
 };
 
 export const WORKSPACE_COLOR_BAR_CLASSES: Record<WorkspaceColor, string> = {
@@ -46,9 +47,8 @@ export function workspaceBadgeVariant(color?: WorkspaceColor): WorkspaceBadgeVar
 
 export function workspaceListCardClass(selected: boolean): string {
   return selected
-    ? "border-neural-cyan/50 bg-neural-cyan/[0.06] shadow-neural-glow ring-1 ring-neural-cyan/20"
-    : "border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.05]";
+    ? "border-neural-cyan/35 bg-neural-cyan/[0.05] shadow-neural-glow"
+    : "border-white/10 bg-neural-elevated/40 hover:border-white/18 hover:bg-neural-elevated/70";
 }
 
-export const WORKSPACE_FOCUS_RING =
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neural-cyan/40 focus-visible:ring-offset-2 focus-visible:ring-offset-neural-void";
+export const WORKSPACE_FOCUS_RING = FOCUS_RING;

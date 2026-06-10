@@ -13,12 +13,12 @@ type BadgeProps = {
 };
 
 const VARIANT_CLASS: Record<BadgeVariant, string> = {
-  success: "border-neural-green/35 bg-neural-green/12 text-neural-green",
-  warning: "border-neural-amber/35 bg-neural-amber/12 text-neural-amber",
-  error: "border-neural-red/35 bg-neural-red/12 text-neural-red",
-  inactive: "border-neural-text-muted/35 bg-neural-overlay/40 text-neural-text-secondary",
-  ai: "border-neural-violet/35 bg-neural-violet/14 text-violet-200",
-  live: "border-neural-cyan/40 bg-neural-cyan/14 text-neural-cyan"
+  success: "border-neural-green/25 bg-neural-green/10 text-neural-green",
+  warning: "border-neural-amber/25 bg-neural-amber/10 text-neural-amber",
+  error: "border-neural-red/25 bg-neural-red/10 text-rose-200",
+  inactive: "border-white/10 bg-neural-elevated/80 text-neural-text-secondary",
+  ai: "border-neural-violet/25 bg-neural-violet/10 text-violet-200",
+  live: "border-neural-cyan/25 bg-neural-cyan/10 text-neural-cyan"
 };
 
 const DOT_TONE: Record<BadgeVariant, "success" | "warning" | "error" | "neutral" | "live" | "ai"> = {
@@ -34,7 +34,7 @@ export function Badge({ children, variant = "inactive", className, withDot = fal
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-mono text-[11px] uppercase tracking-[0.04em]",
+        "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-medium",
         VARIANT_CLASS[variant],
         className
       )}

@@ -6,7 +6,10 @@ import Image from "next/image";
 import { Loader2, LockKeyhole } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { StatusDot } from "@/components/ui/status-dot";
+import { SECTION_LABEL_CLASS } from "@/lib/design/tokens";
 
 type LoginError = {
   code?: string;
@@ -53,7 +56,7 @@ export function LoginForm() {
   };
 
   return (
-    <div className="neural-panel w-full max-w-5xl overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.03]">
+    <div className="neural-panel w-full max-w-5xl overflow-hidden rounded-xl">
       <div className="grid lg:grid-cols-[0.95fr_1.05fr]">
         <section className="border-b border-white/[0.08] p-6 sm:p-7 lg:border-b-0 lg:border-r lg:p-8">
           <div className="flex items-center justify-between gap-3">
@@ -64,7 +67,7 @@ export function LoginForm() {
           </div>
 
           <div className="mt-8 flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-neural-cyan/25 bg-neural-cyan/10">
+            <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-white/10 bg-neural-elevated/80">
               <LockKeyhole className="h-5 w-5 text-neural-cyan" />
             </div>
             <div>
@@ -107,29 +110,29 @@ export function LoginForm() {
         <section className="p-6 sm:p-7 lg:p-8">
           <form onSubmit={onSubmit} className="space-y-4">
             <div className="space-y-2">
-              <label htmlFor="username" className="font-display text-[11px] uppercase tracking-[0.12em] text-neural-text-secondary">
+              <label htmlFor="username" className={SECTION_LABEL_CLASS}>
                 Username
               </label>
-              <input
+              <Input
                 id="username"
                 autoComplete="username"
                 value={username}
                 onChange={(event) => setUsername(event.target.value)}
-                className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 font-mono text-sm text-neural-text-primary outline-none transition placeholder:text-neural-text-muted focus:border-neural-cyan/45 focus:bg-white/[0.06] focus:ring-0"
+                className="font-mono"
               />
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="password" className="font-display text-[11px] uppercase tracking-[0.12em] text-neural-text-secondary">
+              <label htmlFor="password" className={SECTION_LABEL_CLASS}>
                 Password
               </label>
-              <input
+              <Input
                 id="password"
                 type="password"
                 autoComplete="current-password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 font-mono text-sm text-neural-text-primary outline-none transition placeholder:text-neural-text-muted focus:border-neural-cyan/45 focus:bg-white/[0.06] focus:ring-0"
+                className="font-mono"
               />
             </div>
 
@@ -144,14 +147,10 @@ export function LoginForm() {
               </p>
             )}
 
-            <button
-              type="submit"
-              disabled={submitting}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-neural-cyan/35 bg-neural-cyan/14 px-4 py-3 font-display text-[11px] uppercase tracking-[0.12em] text-neural-cyan transition hover:bg-neural-cyan/22 disabled:cursor-not-allowed disabled:opacity-60"
-            >
+            <Button type="submit" variant="primary" disabled={submitting} className="w-full py-2.5">
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               Sign in
-            </button>
+            </Button>
           </form>
         </section>
       </div>

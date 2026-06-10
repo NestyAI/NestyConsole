@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { Select } from "@/components/ui/select";
 import { WorkspaceBadge } from "@/components/workspace/workspace-badge";
 import { WorkspaceContextPreview } from "@/components/workspace/workspace-context-preview";
 import { WorkspaceNotice } from "@/components/workspace/workspace-notice";
@@ -85,18 +86,18 @@ export function WorkspaceChatPanel({
   return (
     <div
       ref={panelRef}
-      className={`rounded-2xl border p-3 shadow-neural-soft transition-colors duration-200 sm:p-4 ${accentClass} ${
+      className={`rounded-xl border p-3 transition-colors duration-200 sm:p-4 ${accentClass} ${
         canAnimateMotion ? "" : "animate-fade-in-up"
       }`}
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
         <label className="flex w-full min-w-0 flex-1 flex-col gap-1 text-xs text-neural-text-secondary sm:min-w-[200px]">
           <span className="font-display text-[10px] uppercase tracking-[0.08em]">Workspace</span>
-          <select
+          <Select
             id="chat-workspace-select"
             value={activeWorkspace?.id ?? ""}
             onChange={(event) => onWorkspaceSelect(event.target.value)}
-            className={`w-full rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-neural-text-primary outline-none transition-colors duration-200 focus:border-neural-cyan/40 ${WORKSPACE_FOCUS_RING}`}
+            className={WORKSPACE_FOCUS_RING}
           >
             <option value="">No workspace</option>
             {workspaces.map((workspace) => (
@@ -104,7 +105,7 @@ export function WorkspaceChatPanel({
                 {workspace.name}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
         <Link
           href="/workspaces"

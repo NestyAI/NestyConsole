@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorBanner } from "@/components/ui/error-banner";
 import { LoadingBlock } from "@/components/ui/loading-block";
 import { Panel } from "@/components/ui/panel";
+import { Select } from "@/components/ui/select";
 import { TokenTag } from "@/components/ui/token-tag";
 import { ProOrchestrationDetails } from "@/components/chat/pro-orchestration-details";
 import { RetrievalDetails } from "@/components/chat/retrieval-details";
@@ -1729,9 +1730,8 @@ function ChatPageContent() {
   );
 
   return (
-    <section className="space-y-5 animate-fade-in-up">
-      <Panel accent="cyan" className="relative overflow-hidden p-6 sm:p-7 lg:p-8">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-neural-cyan/12 to-transparent" />
+    <section className="space-y-5">
+      <Panel accent="cyan" className="p-6 sm:p-7 lg:p-8">
         <div className="relative flex flex-wrap items-start justify-between gap-5">
           <div className="max-w-2xl space-y-3">
             <div className="flex flex-wrap items-center gap-2">
@@ -1799,7 +1799,7 @@ function ChatPageContent() {
         </div>
       </Panel>
 
-      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-xs text-neural-text-secondary">
+      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-neural-elevated/50 px-4 py-3 text-xs text-neural-text-secondary">
         {conversationId ? (
           <TokenTag>Conversation: {shortConversationLabel(conversationId)}</TokenTag>
         ) : (
@@ -2051,7 +2051,7 @@ function ChatPageContent() {
         </aside>
 
         <Panel className="flex w-full min-w-0 flex-col overflow-hidden p-0">
-          <div className="flex min-h-[50vh] max-h-[72vh] 2xl:max-h-[78vh] flex-col overflow-hidden rounded-2xl border border-white/10 bg-neural-elevated/70 shadow-neural-soft w-full min-w-0">
+          <div className="flex min-h-[50vh] max-h-[72vh] 2xl:max-h-[78vh] flex-col overflow-hidden rounded-xl border border-white/10 bg-neural-elevated/70 w-full min-w-0">
             <div
               ref={messagesContainerRef}
               onScroll={handleMessagesScroll}
@@ -2086,7 +2086,7 @@ function ChatPageContent() {
                       return (
                         <article
                           key={message.id}
-                          className="animate-message-enter rounded-2xl border border-neural-cyan/35 bg-neural-cyan/10 p-4"
+                          className="animate-message-enter rounded-xl border border-neural-cyan/20 bg-neural-cyan/[0.06] p-4"
                         >
                           <div className="flex items-start justify-between gap-2">
                             <p className="font-display text-xs uppercase tracking-[0.08em] text-neural-cyan">{message.role}</p>
@@ -2109,7 +2109,7 @@ function ChatPageContent() {
                     return (
                       <article
                         key={message.id}
-                        className="animate-message-enter rounded-2xl border border-white/10 bg-white/[0.03] p-4"
+                        className="animate-message-enter rounded-xl border border-white/10 bg-neural-elevated/50 p-4"
                       >
                         <div className="mb-3 flex items-start justify-between gap-2 border-b border-white/10 pb-3 select-none">
                           <p className="font-display text-xs uppercase tracking-[0.08em] text-neural-cyan">{message.role}</p>
@@ -2261,10 +2261,9 @@ function ChatPageContent() {
           <div className="space-y-2 rounded-2xl border border-white/5 bg-white/[0.02] p-3">
             <label className="block space-y-1 text-sm text-neural-text-secondary">
               <span className="font-display text-[10px] uppercase tracking-[0.08em]">Chat Preset</span>
-              <select
+              <Select
                 value={selectedPresetId}
                 onChange={(event) => handleSelectPreset(event.target.value)}
-                className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-neural-text-primary outline-none transition focus:border-neural-cyan/40 focus:bg-white/[0.05]"
               >
                 <option value="">-- Custom (No Preset) --</option>
                 <optgroup label="Built-in Presets">
@@ -2283,7 +2282,7 @@ function ChatPageContent() {
                     ))}
                   </optgroup>
                 )}
-              </select>
+              </Select>
             </label>
 
             {(() => {
@@ -2320,67 +2319,64 @@ function ChatPageContent() {
 
           <label className="block space-y-1 text-sm text-neural-text-secondary">
             <span>Model</span>
-            <select
+            <Select
               value={model}
               onChange={(event) => {
                 setModel(event.target.value as (typeof MODELS)[number]);
                 handleManualOptionChange();
               }}
-              className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2.5 font-mono text-sm text-neural-text-primary outline-none transition focus:border-neural-cyan/40 focus:bg-white/[0.05]"
+              className="font-mono"
             >
               {MODELS.map((item) => (
                 <option key={item} value={item}>
                   {item}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
 
           <label className="block space-y-1 text-sm text-neural-text-secondary">
             <span>Search</span>
-            <select
+            <Select
               value={search}
               onChange={(event) => {
                 setSearch(event.target.value as "auto" | "on" | "off");
                 handleManualOptionChange();
               }}
-              className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-neural-text-primary outline-none transition focus:border-neural-cyan/40 focus:bg-white/[0.05]"
             >
               <option value="auto">auto</option>
               <option value="on">on</option>
               <option value="off">off</option>
-            </select>
+            </Select>
           </label>
 
           <label className="block space-y-1 text-sm text-neural-text-secondary">
             <span>Tools</span>
-            <select
+            <Select
               value={tools}
               onChange={(event) => {
                 setTools(event.target.value as "auto" | "off");
                 handleManualOptionChange();
               }}
-              className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-neural-text-primary outline-none transition focus:border-neural-cyan/40 focus:bg-white/[0.05]"
             >
               <option value="auto">auto</option>
               <option value="off">off</option>
-            </select>
+            </Select>
           </label>
 
           <label className="block space-y-1 text-sm text-neural-text-secondary">
             <span>Semantic recall</span>
-            <select
+            <Select
               value={semanticRecall}
               onChange={(event) => {
                 setSemanticRecall(event.target.value as "auto" | "on" | "off");
                 handleManualOptionChange();
               }}
-              className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-neural-text-primary outline-none transition focus:border-neural-cyan/40 focus:bg-white/[0.05]"
             >
               <option value="auto">auto</option>
               <option value="on">on</option>
               <option value="off">off</option>
-            </select>
+            </Select>
           </label>
 
           <label className="block space-y-1 text-sm text-neural-text-secondary">

@@ -75,38 +75,37 @@ export default function HomePage() {
             <Badge variant="live" withDot>
               Operations
             </Badge>
-            <Badge variant="ai">Neural Dark</Badge>
+            <Badge variant="inactive">Product UI</Badge>
             <Badge variant="inactive">Single Admin</Badge>
           </div>
 
           <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_auto] lg:items-end">
             <div>
               <Image src="/NestyAI_Full.svg" alt="Nesty Console" width={300} height={58} className="h-auto w-[260px]" />
-              <h1 className="mt-6 max-w-2xl text-4xl font-semibold tracking-[-0.06em] text-neural-text-primary sm:text-5xl lg:text-6xl">
+              <h1 className="mt-6 max-w-2xl text-3xl font-semibold tracking-[-0.04em] text-neural-text-primary sm:text-4xl lg:text-5xl">
                 Nesty Console
               </h1>
               <p className="mt-4 max-w-2xl text-base leading-relaxed text-neural-text-secondary">
-                Mission control for gateway operations, memory review, model governance, and diagnostics. Built for a
-                single operator who needs speed without losing clarity.
+                Premium control console for gateway operations, memory review, model governance, and diagnostics.
               </p>
 
-              <div className="mt-6 flex flex-wrap gap-3">
+              <div className="mt-6 flex flex-wrap gap-2">
                 <Link
                   href="/status"
-                  className="inline-flex items-center gap-2 rounded-2xl border border-neural-cyan/35 bg-neural-cyan/14 px-4 py-3 font-display text-[11px] uppercase tracking-[0.12em] text-neural-cyan transition hover:bg-neural-cyan/22"
+                  className="inline-flex items-center gap-2 rounded-lg border border-neural-cyan/25 bg-neural-cyan/10 px-3.5 py-2 text-sm font-medium text-neural-cyan transition hover:bg-neural-cyan/16"
                 >
                   Check gateway
                   <ArrowRight className="h-4 w-4" />
                 </Link>
                 <Link
                   href="/chat"
-                  className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3 font-display text-[11px] uppercase tracking-[0.12em] text-neural-text-primary transition hover:border-white/20 hover:bg-white/[0.08]"
+                  className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-neural-elevated/60 px-3.5 py-2 text-sm font-medium text-neural-text-primary transition hover:bg-neural-overlay/50"
                 >
-                  Open chat ops
+                  Open chat
                 </Link>
                 <Link
                   href="/memory"
-                  className="inline-flex items-center gap-2 rounded-2xl border border-neural-violet/35 bg-neural-violet/14 px-4 py-3 font-display text-[11px] uppercase tracking-[0.12em] text-violet-200 transition hover:bg-neural-violet/22"
+                  className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-neural-elevated/60 px-3.5 py-2 text-sm font-medium text-neural-text-secondary transition hover:text-neural-text-primary"
                 >
                   Inspect memory
                 </Link>

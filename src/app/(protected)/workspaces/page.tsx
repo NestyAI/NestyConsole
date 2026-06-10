@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 
 import { Panel } from "@/components/ui/panel";
+import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { TokenTag } from "@/components/ui/token-tag";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -983,10 +984,9 @@ export default function WorkspacesPage() {
                 </label>
                 <label className="block space-y-1 text-neural-text-secondary">
                   <span>Color Theme Accent</span>
-                  <select
+                  <Select
                     value={formColor}
                     onChange={(e) => setFormColor(e.target.value as WorkspaceColor)}
-                    className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-neural-text-primary outline-none transition focus:border-neural-cyan/40"
                   >
                     <option value="cyan">Cyan</option>
                     <option value="violet">Violet</option>
@@ -994,7 +994,7 @@ export default function WorkspacesPage() {
                     <option value="amber">Amber</option>
                     <option value="red">Red</option>
                     <option value="neutral">Neutral</option>
-                  </select>
+                  </Select>
                 </label>
               </div>
 
@@ -1015,10 +1015,9 @@ export default function WorkspacesPage() {
                 <div className="grid gap-3 sm:grid-cols-2">
                   <label className="block space-y-1 text-neural-text-secondary">
                     <span>Preferred Chat Preset</span>
-                    <select
+                    <Select
                       value={formPresetId}
                       onChange={(e) => handleFormPresetChange(e.target.value)}
-                      className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-neural-text-primary outline-none transition focus:border-neural-cyan/40"
                     >
                       <option value="">-- No Preset Override --</option>
                       <optgroup label="Built-in Presets">
@@ -1033,74 +1032,74 @@ export default function WorkspacesPage() {
                           ))}
                         </optgroup>
                       )}
-                    </select>
+                    </Select>
                   </label>
 
                   <label className="block space-y-1 text-neural-text-secondary">
                     <span>Preferred Model Override</span>
-                    <select
+                    <Select
                       value={formModel}
                       onChange={(e) => setFormModel(e.target.value)}
-                      className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 font-mono text-neural-text-primary outline-none transition focus:border-neural-cyan/40"
+                      className="font-mono"
                     >
                       <option value="">Default (No Override)</option>
                       <option value="nesty-flash-1.0">nesty-flash-1.0</option>
                       <option value="nesty-combined-1.0">nesty-combined-1.0</option>
                       <option value="nesty-pro-1.0">nesty-pro-1.0</option>
-                    </select>
+                    </Select>
                   </label>
                 </div>
 
                 <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
                   <label className="block space-y-1 text-neural-text-secondary">
                     <span>Search</span>
-                    <select
+                    <Select
                       value={formSearch}
                       onChange={(e) => setFormSearch(e.target.value)}
-                      className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-2 py-2 text-neural-text-primary outline-none transition focus:border-neural-cyan/40"
+                      className="py-2"
                     >
                       <option value="">Default</option>
                       <option value="auto">auto</option>
                       <option value="on">on</option>
                       <option value="off">off</option>
-                    </select>
+                    </Select>
                   </label>
                   <label className="block space-y-1 text-neural-text-secondary">
                     <span>Tools</span>
-                    <select
+                    <Select
                       value={formTools}
                       onChange={(e) => setFormTools(e.target.value)}
-                      className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-2 py-2 text-neural-text-primary outline-none transition focus:border-neural-cyan/40"
+                      className="py-2"
                     >
                       <option value="">Default</option>
                       <option value="auto">auto</option>
                       <option value="off">off</option>
-                    </select>
+                    </Select>
                   </label>
                   <label className="block space-y-1 text-neural-text-secondary">
                     <span>Store Logs</span>
-                    <select
+                    <Select
                       value={formStore}
                       onChange={(e) => setFormStore(e.target.value)}
-                      className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-2 py-2 text-neural-text-primary outline-none transition focus:border-neural-cyan/40"
+                      className="py-2"
                     >
                       <option value="">Default</option>
                       <option value="true">Yes</option>
                       <option value="false">No</option>
-                    </select>
+                    </Select>
                   </label>
                   <label className="block space-y-1 text-neural-text-secondary">
                     <span>Semantic Recall</span>
-                    <select
+                    <Select
                       value={formSemanticRecall}
                       onChange={(e) => setFormSemanticRecall(e.target.value)}
-                      className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-2 py-2 text-neural-text-primary outline-none transition focus:border-neural-cyan/40"
+                      className="py-2"
                     >
                       <option value="">Default</option>
                       <option value="auto">auto</option>
                       <option value="on">on</option>
                       <option value="off">off</option>
-                    </select>
+                    </Select>
                   </label>
                 </div>
               </div>

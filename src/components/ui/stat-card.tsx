@@ -9,12 +9,12 @@ type StatCardProps = {
   accent?: "cyan" | "amber" | "green" | "violet" | "red";
 };
 
-export function StatCard({ label, value, hint, accent = "cyan" }: StatCardProps) {
+export function StatCard({ label, value, hint, accent }: StatCardProps) {
   return (
-    <Panel accent={accent} className="min-h-[144px]">
-      <p className="font-display text-[11px] uppercase tracking-[0.12em] text-neural-text-secondary">{label}</p>
-      <p className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-neural-text-primary">{value}</p>
-      {hint ? <p className="mt-3 text-sm leading-relaxed text-neural-text-secondary">{hint}</p> : null}
+    <Panel accent={accent} className="min-h-[128px]">
+      <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-neural-text-secondary">{label}</p>
+      <p className="mt-3 text-2xl font-semibold tracking-[-0.03em] text-neural-text-primary">{value}</p>
+      {hint ? <p className="mt-2 text-sm leading-relaxed text-neural-text-secondary">{hint}</p> : null}
     </Panel>
   );
 }

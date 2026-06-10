@@ -20,6 +20,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { ErrorBanner } from "@/components/ui/error-banner";
 import { LoadingBlock } from "@/components/ui/loading-block";
 import { Panel } from "@/components/ui/panel";
+import { Select } from "@/components/ui/select";
 import { TokenTag } from "@/components/ui/token-tag";
 import { StatCard } from "@/components/ui/stat-card";
 
@@ -780,47 +781,47 @@ export default function ApiKeysPage() {
               <label className="font-display text-[10px] uppercase tracking-[0.12em] text-neural-text-secondary">
                 Environment
               </label>
-              <select
+              <Select
                 value={environment}
                 onChange={(e) => setEnvironment(e.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-neural-text-primary outline-none focus:border-neural-cyan/50 animate-fade-in"
+                className="text-xs py-2"
               >
                 <option value="all">All Environments</option>
                 <option value="prod">Production (prod)</option>
                 <option value="dev">Development (dev)</option>
                 <option value="local">Local (local)</option>
-              </select>
+              </Select>
             </div>
 
             <div className="space-y-1.5">
               <label className="font-display text-[10px] uppercase tracking-[0.12em] text-neural-text-secondary">
                 Status
               </label>
-              <select
+              <Select
                 value={revoked}
                 onChange={(e) => setRevoked(e.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-neural-text-primary outline-none focus:border-neural-cyan/50 animate-fade-in"
+                className="text-xs py-2"
               >
                 <option value="all">All Keys</option>
                 <option value="active">Active Only</option>
                 <option value="revoked">Revoked Only</option>
-              </select>
+              </Select>
             </div>
 
             <div className="space-y-1.5">
               <label className="font-display text-[10px] uppercase tracking-[0.12em] text-neural-text-secondary">
                 Limit
               </label>
-              <select
+              <Select
                 value={limit}
                 onChange={(e) => setLimit(Number(e.target.value))}
-                className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-neural-text-primary outline-none focus:border-neural-cyan/50 animate-fade-in"
+                className="text-xs py-2"
               >
                 <option value="25">25 keys</option>
                 <option value="50">50 keys</option>
                 <option value="100">100 keys</option>
                 <option value="200">200 keys</option>
-              </select>
+              </Select>
             </div>
 
             <div className="flex items-end h-full pb-0.5 animate-fade-in">
@@ -879,15 +880,14 @@ export default function ApiKeysPage() {
                   <label className="text-xs font-display uppercase tracking-[0.08em] text-neural-text-secondary">
                     Environment
                   </label>
-                  <select
+                  <Select
                     value={formEnv}
                     onChange={(e) => setFormEnv(e.target.value)}
-                    className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-sm text-neural-text-primary outline-none focus:border-neural-cyan/50 transition"
                   >
                     <option value="prod">Production (prod)</option>
                     <option value="dev">Development (dev)</option>
                     <option value="local">Local (local)</option>
-                  </select>
+                  </Select>
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-display uppercase tracking-[0.08em] text-neural-text-secondary">
@@ -1111,16 +1111,15 @@ export default function ApiKeysPage() {
                 <label className="text-xs font-display uppercase tracking-[0.08em] text-neural-text-secondary">
                   Environment
                 </label>
-                <select
+                <Select
                   value={formEnv}
                   disabled={editingKey.is_revoked}
                   onChange={(e) => setFormEnv(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-sm text-neural-text-primary outline-none focus:border-neural-cyan/50 transition"
                 >
                   <option value="prod">Production (prod)</option>
                   <option value="dev">Development (dev)</option>
                   <option value="local">Local (local)</option>
-                </select>
+                </Select>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">

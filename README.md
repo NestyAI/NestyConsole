@@ -6,9 +6,16 @@
 
 Nesty Console is a separate frontend/admin project for operating a running `NestyAI Gateway`.
 
-Current status: **v0.8.8 - Chat Scroll Stability Hotfix**
+Current status: **v0.9.0 - Product UI Rebuild**
 
 Changelog: [CHANGELOG.md](CHANGELOG.md)
+
+v0.9.0 adds:
+* Calmer premium product design system (graphite surfaces, restrained accents, reduced neon/glow).
+* Refreshed shell, shared UI primitives, form controls, and major page surfaces.
+* Fixed native select/dropdown readability (dark closed state, readable options, consistent focus).
+* Product behavior unchanged — Gateway proxy boundaries, chat streaming, credentials, and workspace context injection are preserved.
+* Root-level Cursor skills remain shared workspace tooling and are not part of the Nesty Console runtime.
 
 v0.8.8 adds:
 * Fixed chat page scroll-to-top when sending messages or during streaming.

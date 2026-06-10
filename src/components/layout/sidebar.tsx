@@ -26,8 +26,8 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-full border-b border-white/[0.08] bg-[rgba(8,13,22,0.62)] px-3 py-4 backdrop-blur-xl md:sticky md:top-16 md:h-[calc(100dvh-4rem)] md:w-[284px] md:border-b-0 md:border-r md:px-4 md:py-5">
-      <div className="mb-4 hidden rounded-2xl border border-white/10 bg-white/[0.04] p-3 md:block">
+    <aside className="w-full border-b border-white/10 bg-neural-shell/95 px-3 py-4 md:sticky md:top-16 md:h-[calc(100dvh-4rem)] md:w-[260px] md:border-b-0 md:border-r md:px-3 md:py-5">
+      <div className="mb-4 hidden rounded-xl border border-white/10 bg-neural-elevated/50 p-3 md:block">
         <Image
           src="/NestyAI_Full.svg"
           alt="Nesty Console"
@@ -36,18 +36,18 @@ export function Sidebar() {
           className="h-auto w-[180px]"
           priority
         />
-        <p className="mt-3 text-xs text-neural-text-secondary">
-          Single-operator workspace for gateway control, memory review, diagnostics, and model config.
+        <p className="mt-3 text-xs leading-relaxed text-neural-text-secondary">
+          Gateway control, memory review, diagnostics, and model configuration.
         </p>
       </div>
       <div className="mb-3 hidden items-center justify-between md:flex">
-        <p className="font-display text-[11px] uppercase tracking-[0.12em] text-neural-text-secondary">Workspace</p>
-        <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[11px] text-neural-text-secondary">
+        <p className="text-[11px] font-medium uppercase tracking-[0.1em] text-neural-text-muted">Navigation</p>
+        <span className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-neural-elevated/60 px-2 py-1 text-[11px] text-neural-text-secondary">
           <StatusDot tone="live" />
-          Connected
+          Online
         </span>
       </div>
-      <nav className="grid grid-cols-2 gap-2 md:grid-cols-1">
+      <nav className="grid grid-cols-2 gap-1.5 md:grid-cols-1">
         {navItems.map((item) => {
           const Icon = item.icon;
           const active =
@@ -59,28 +59,28 @@ export function Sidebar() {
               key={item.href}
               href={item.href}
               className={cn(
-                "inline-flex items-center gap-2 rounded-2xl border px-3 py-2.5 font-display text-[11px] uppercase tracking-[0.08em] transition",
+                "inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition",
                 active
-                  ? "border-neural-cyan/40 bg-neural-cyan/12 text-neural-cyan shadow-neural-glow"
-                  : "border-white/10 bg-white/[0.03] text-neural-text-secondary hover:border-white/20 hover:bg-white/[0.05] hover:text-neural-text-primary"
+                  ? "border-neural-cyan/25 bg-neural-cyan/[0.08] text-neural-cyan"
+                  : "border-transparent text-neural-text-secondary hover:border-white/10 hover:bg-neural-elevated/60 hover:text-neural-text-primary"
               )}
             >
-              <Icon className="h-4 w-4" />
+              <Icon className="h-4 w-4 shrink-0" />
               <span>{item.label}</span>
             </Link>
           );
         })}
       </nav>
-      <div className="mt-4 md:mt-8">
-        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3">
+      <div className="mt-4 md:mt-6">
+        <div className="rounded-xl border border-white/10 bg-neural-elevated/50 p-3">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="font-display text-[11px] uppercase tracking-[0.12em] text-neural-text-secondary">Session</p>
-              <p className="mt-1 text-sm text-neural-text-primary">Protected access</p>
+              <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-neural-text-muted">Session</p>
+              <p className="mt-1 text-sm text-neural-text-primary">Protected</p>
             </div>
             <StatusDot tone="live" />
           </div>
-          <LogoutButton className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 font-display text-[11px] uppercase tracking-[0.08em] text-neural-text-primary transition hover:border-neural-cyan/40 hover:bg-white/[0.08] hover:text-neural-cyan disabled:cursor-not-allowed disabled:opacity-60" />
+          <LogoutButton className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-white/10 bg-neural-elevated/80 px-3 py-2 text-sm font-medium text-neural-text-primary transition hover:border-white/20 hover:bg-neural-overlay/60 disabled:cursor-not-allowed disabled:opacity-60" />
         </div>
       </div>
     </aside>

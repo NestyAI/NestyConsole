@@ -2,6 +2,17 @@
 
 All notable changes to Nesty Console will be documented in this file.
 
+## [0.9.0] - Unreleased
+
+### Changed
+- Rebuilt Nesty Console UI around a calmer premium product design system.
+- Improved global layout, navigation shell, panels, cards, buttons, forms, selects, tables, badges, and workspace/chat surfaces.
+- Fixed inconsistent dropdown/select styling and removed unreadable white-on-white states.
+- Improved responsive behavior, accessibility, and visual consistency across major Console pages.
+
+### Security
+- Product UI rebuild preserves server-side Gateway credential boundaries, protected route behavior, workspace context semantics, chat streaming behavior, metadata rendering, and local-first workspace storage.
+
 ## [0.8.8] - Unreleased
 
 ### Fixed

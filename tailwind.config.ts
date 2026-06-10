@@ -10,28 +10,37 @@ const config: Config = {
     extend: {
       colors: {
         neural: {
-          void: "#05070D",
-          base: "#0A0E1A",
-          elevated: "#101420",
-          panel: "#161C2E",
-          overlay: "#1D2438",
-          input: "#0F1320",
-          cyan: "#00E8FF",
-          amber: "#FFB020",
-          violet: "#8B5CF6",
-          green: "#10D98A",
-          red: "#FF4D6A",
+          app: "#07090f",
+          shell: "#0b0f17",
+          void: "#07090f",
+          base: "#0b0f17",
+          elevated: "#10151f",
+          panel: "#131a26",
+          overlay: "#1c2535",
+          input: "#0f141d",
+          cyan: "#3b9eff",
+          amber: "#e5a84a",
+          violet: "#7c6fe6",
+          green: "#34c38a",
+          red: "#e85d75",
           text: {
-            primary: "#EEF2FF",
-            secondary: "#8892A8",
-            muted: "#4A5268",
-            code: "#7EE8A2"
+            primary: "#e8edf5",
+            secondary: "#9aa6b8",
+            muted: "#667385",
+            code: "#a8b8cc"
           }
         },
+        console: {
+          app: "#07090f",
+          shell: "#0b0f17",
+          surface: "#131a26",
+          raised: "#171f2d",
+          input: "#0f141d"
+        },
         surface: {
-          950: "#0a0f1c",
-          900: "#10182b",
-          800: "#15213a"
+          950: "#07090f",
+          900: "#0b0f17",
+          800: "#131a26"
         }
       },
       fontFamily: {
@@ -40,8 +49,8 @@ const config: Config = {
         mono: ["var(--font-geist-mono)", "ui-monospace", "SFMono-Regular", "monospace"]
       },
       boxShadow: {
-        "neural-panel": "0 0 0 1px rgba(148, 163, 184, 0.12), 0 18px 48px rgba(2, 8, 20, 0.42)",
-        "neural-glow": "0 0 0 1px rgba(75, 225, 255, 0.14), 0 0 28px rgba(75, 225, 255, 0.18)"
+        "neural-panel": "0 0 0 1px rgba(148, 163, 184, 0.1), 0 4px 16px rgba(0, 0, 0, 0.28)",
+        "neural-glow": "0 0 0 1px rgba(59, 158, 255, 0.18), inset 0 0 0 1px rgba(59, 158, 255, 0.06)"
       },
       keyframes: {
         "fade-in-up": {

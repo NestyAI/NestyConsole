@@ -6,9 +6,25 @@
 
 Nesty Console is a separate frontend/admin project for operating a running `NestyAI Gateway`.
 
-Current status: **v0.8.3 - Workspace Conversation Deep Link**
+Current status: **v0.8.5 - Workspace Premium UX & Motion Refresh**
 
 Changelog: [CHANGELOG.md](CHANGELOG.md)
+
+v0.8.5 adds:
+* Premium Neural Noir UX polish for `/workspaces` and the Chat workspace panel.
+* Improved visual hierarchy for pinned vs unpinned notes, linked conversation rows, and import/export.
+* Subtle CSS/Tailwind micro-interactions, responsive layout, and accessibility improvements (keyboard focus, aria-live notices).
+* Workspace Hub remains local-first (`localStorage`). Chat supports workspace and conversation deep links.
+* Context injection remains opt-in and transient; only pinned notes and memory tags are used for context.
+* Linked conversations are local references/labels only. Import/export remains browser-local.
+* Root-level Cursor skills are shared workspace tooling and are not part of the Nesty Console runtime.
+
+v0.8.4 adds:
+* Opening a conversation from the Chat sidebar updates the URL with `conversation=<id>` (and preserves active workspace / `useWorkspaceContext=1` when set).
+* Copy Link action on `/workspaces` linked conversation rows (IDs only, no conversation content fetch).
+* Silent title refresh for deep-linked conversations when the sidebar conversation list contains metadata.
+* Links contain only workspace and conversation IDs. Gateway credentials remain server-side only.
+* No linked conversation contents are injected into workspace context.
 
 v0.8.3 adds:
 * Deep-link support to open Gateway conversations in Chat via `/chat?conversation=<id>`.

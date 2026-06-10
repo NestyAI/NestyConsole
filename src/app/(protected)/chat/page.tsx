@@ -798,6 +798,7 @@ function ChatPageContent() {
   const preferencesHydratedRef = useRef(false);
   const workspaceAppliedKeyRef = useRef<string | null>(null);
   const conversationAppliedKeyRef = useRef<string | null>(null);
+  const titleRefreshAttemptedRef = useRef<Set<string>>(new Set());
   const messagesLengthRef = useRef(0);
 
   useEffect(() => {
@@ -1212,6 +1213,20 @@ function ChatPageContent() {
     };
   };
 
+  const tryResolveTitleFromList = async (id: string) => {
+    if (titleRefreshAttemptedRef.current.has(id)) {
+      return;
+    }
+    titleRefreshAttemptedRef.current.add(id);
+
+    const result = await listConversations({ limit: 50, offset: 0 });
+    if (!result.ok) {
+      return;
+    }
+
+    setConversations(result.data.items);
+  };
+
   const openConversationById = async (id: string, options?: { fromDeepLink?: boolean }) => {
     const trimmed = id.trim();
     if (!trimmed) {
@@ -1255,8 +1270,13 @@ function ChatPageContent() {
       return;
     }
 
+    const hadListItem = Boolean(conversations.find((row) => row.id === trimmed));
     const item = resolveConversationListItem(trimmed);
     applyOpenedConversation(item, result.data.items, { quiet: options?.fromDeepLink });
+
+    if (options?.fromDeepLink && !hadListItem) {
+      void tryResolveTitleFromList(trimmed);
+    }
   };
 
   const openConversation = async (item: ConversationListItem) => {
@@ -1278,6 +1298,8 @@ function ChatPageContent() {
     }
 
     applyOpenedConversation(item, result.data.items);
+    conversationAppliedKeyRef.current = item.id;
+    syncChatUrl({ conversationId: item.id });
   };
 
   useEffect(() => {

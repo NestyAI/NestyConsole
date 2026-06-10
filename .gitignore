@@ -6,3 +6,5 @@ out/
 data/
 npm-debug.log*
 .cursorignore
+.agents/
+skills-lock.json

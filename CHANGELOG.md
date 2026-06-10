@@ -2,6 +2,29 @@
 
 All notable changes to Nesty Console will be documented in this file.
 
+## [0.8.5] - Unreleased
+
+### Changed
+- Refined Workspace Memory Hub and Chat workspace integration with a premium Neural Noir UX pass.
+- Improved Workspace list, notes, linked conversation rows, import/export UI, and context preview visual hierarchy.
+- Improved responsive behavior, accessibility, and micro-interactions for Workspace-related UI.
+
+### Security
+- Workspace UI polish preserves the local-first model and does not expose Gateway credentials, internal admin tokens, provider secrets, cookies, sessions, request headers, or linked conversation contents.
+
+## [0.8.4] - Unreleased
+
+### Added
+- Added URL sync when opening conversations from the Chat sidebar.
+- Added Copy Link action for linked Workspace conversations.
+- Added silent title refresh for deep-linked conversations when conversation list metadata is available.
+
+### Changed
+- Improved Workspace Conversation Deep Link continuity between Workspaces and Chat.
+
+### Security
+- Conversation links contain only local workspace IDs and Gateway conversation IDs, and continue to use existing server-side Console proxy routes without exposing Gateway credentials, internal admin tokens, provider secrets, cookies, sessions, or request headers.
+
 ## [0.8.3] - Unreleased
 
 ### Added

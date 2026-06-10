@@ -4,6 +4,7 @@ export type ChatUrlParams = {
   useWorkspaceContext?: boolean;
 };
 
+/** Builds `/chat` href with params in stable order: workspace, conversation, useWorkspaceContext. Empty values are omitted; values are URL-encoded via URLSearchParams. */
 export function buildChatHref(params: ChatUrlParams = {}): string {
   const search = new URLSearchParams();
   const workspaceId = params.workspaceId?.trim();

@@ -2,37 +2,25 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Link2 } from "lucide-react";
+import { Link2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { TerminalBlock } from "@/components/ui/terminal-block";
+import { WorkspaceBadge } from "@/components/workspace/workspace-badge";
+import { WorkspaceNotice } from "@/components/workspace/workspace-notice";
 import {
   WORKSPACE_CONTEXT_CHAR_CAP,
   getWorkspaceContextMeta
 } from "@/lib/workspaces/context";
 import {
+  WORKSPACE_BANNER_CLASSES,
+  WORKSPACE_FOCUS_RING
+} from "@/lib/workspaces/ui-tokens";
+import {
   type Workspace,
   loadWorkspacesResult,
   workspaceHasLinkedConversation
 } from "@/lib/workspaces/workspaces";
-
-const WORKSPACE_BADGE_VARIANTS: Record<string, "live" | "ai" | "success" | "warning" | "error" | "inactive"> = {
-  cyan: "live",
-  violet: "ai",
-  green: "success",
-  amber: "warning",
-  red: "error",
-  neutral: "inactive"
-};
-
-const WORKSPACE_BANNER_CLASSES: Record<string, string> = {
-  cyan: "border-neural-cyan/25 bg-neural-cyan/10",
-  violet: "border-neural-violet/25 bg-neural-violet/10",
-  green: "border-neural-green/25 bg-neural-green/10",
-  amber: "border-neural-amber/25 bg-neural-amber/10",
-  red: "border-neural-red/25 bg-neural-red/10",
-  neutral: "border-white/10 bg-white/[0.03]"
-};
 
 type WorkspaceChatPanelProps = {
   activeWorkspace: Workspace | null;
@@ -82,14 +70,17 @@ export function WorkspaceChatPanel({
     : "border-white/10 bg-white/[0.03]";
 
   return (
-    <div className={`rounded-2xl border p-3 shadow-neural-soft ${accentClass}`}>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <label className="flex min-w-[200px] flex-1 flex-col gap-1 text-xs text-neural-text-secondary">
+    <div
+      className={`animate-fade-in-up rounded-2xl border p-3 shadow-neural-soft transition-colors duration-200 sm:p-4 ${accentClass}`}
+    >
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <label className="flex w-full min-w-0 flex-1 flex-col gap-1 text-xs text-neural-text-secondary sm:min-w-[200px]">
           <span className="font-display text-[10px] uppercase tracking-[0.08em]">Workspace</span>
           <select
+            id="chat-workspace-select"
             value={activeWorkspace?.id ?? ""}
             onChange={(event) => onWorkspaceSelect(event.target.value)}
-            className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-neural-text-primary outline-none transition focus:border-neural-cyan/40"
+            className={`w-full rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-neural-text-primary outline-none transition-colors duration-200 focus:border-neural-cyan/40 ${WORKSPACE_FOCUS_RING}`}
           >
             <option value="">No workspace</option>
             {workspaces.map((workspace) => (
@@ -101,74 +92,96 @@ export function WorkspaceChatPanel({
         </label>
         <Link
           href="/workspaces"
-          className="font-display text-[10px] uppercase tracking-[0.08em] text-neural-cyan underline underline-offset-2 hover:text-neural-text-primary"
+          className={`shrink-0 font-display text-[10px] uppercase tracking-[0.08em] text-neural-cyan underline underline-offset-2 transition-colors hover:text-neural-text-primary ${WORKSPACE_FOCUS_RING} rounded-sm`}
         >
           Manage workspaces
         </Link>
       </div>
 
+      {!activeWorkspace ? (
+        <p className="mt-2 text-xs text-neural-text-muted">No workspace selected. Chat runs without project context.</p>
+      ) : null}
+
       {storageCorrupted ? (
-        <p className="mt-2 text-xs text-amber-100">
+        <WorkspaceNotice tone="amber" className="mt-2 text-xs">
           Workspace storage could not be read. Continuing with normal chat.
-        </p>
+        </WorkspaceNotice>
       ) : null}
 
       {workspaceWarning ? (
-        <p className="mt-2 text-xs text-amber-100">{workspaceWarning}</p>
+        <WorkspaceNotice tone="amber" className="mt-2 text-xs">
+          {workspaceWarning}
+        </WorkspaceNotice>
       ) : null}
 
       {activeWorkspace ? (
         <div className="mt-3 space-y-3 border-t border-white/10 pt-3">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant={WORKSPACE_BADGE_VARIANTS[activeWorkspace.color || "cyan"] || "live"}>
-              {activeWorkspace.name}
-            </Badge>
+            <WorkspaceBadge color={activeWorkspace.color}>{activeWorkspace.name}</WorkspaceBadge>
             <span className="text-xs text-neural-text-secondary">Active workspace</span>
           </div>
 
-          <label className="flex cursor-pointer items-center gap-2 text-sm text-neural-text-secondary">
-            <input
-              type="checkbox"
-              checked={useWorkspaceContext}
-              onChange={(event) => onUseWorkspaceContextChange(event.target.checked)}
-              className="h-4 w-4 rounded border-white/10 bg-white/[0.03]"
-            />
-            <span>Use workspace context (system prompt, pinned notes, memory tags)</span>
-          </label>
+          <div
+            className={`rounded-xl border p-3 transition-colors duration-200 ${
+              useWorkspaceContext
+                ? "border-neural-cyan/30 bg-neural-cyan/[0.04]"
+                : "border-white/10 bg-white/[0.02]"
+            }`}
+          >
+            <label className="flex cursor-pointer items-start gap-2 text-sm text-neural-text-secondary">
+              <input
+                type="checkbox"
+                checked={useWorkspaceContext}
+                onChange={(event) => onUseWorkspaceContextChange(event.target.checked)}
+                className={`mt-0.5 h-4 w-4 rounded border-white/10 bg-white/[0.03] ${WORKSPACE_FOCUS_RING}`}
+              />
+              <span>
+                <span className="font-display text-[10px] uppercase tracking-[0.08em] text-neural-text-primary">
+                  Workspace context {useWorkspaceContext ? "enabled" : "disabled"}
+                </span>
+                <span className="mt-1 block text-xs">
+                  Injects system prompt, pinned notes, and memory tags per request only — not saved to chat history.
+                </span>
+              </span>
+            </label>
+          </div>
 
           {showLinkAction ? (
             <button
               type="button"
               onClick={onLinkCurrentConversation}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-1.5 font-display text-[10px] uppercase tracking-[0.08em] text-neural-text-secondary transition hover:border-neural-cyan/35 hover:text-neural-cyan"
+              className={`inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-1.5 font-display text-[10px] uppercase tracking-[0.08em] text-neural-text-secondary transition-colors duration-200 hover:border-neural-cyan/35 hover:text-neural-cyan active:scale-[0.98] ${WORKSPACE_FOCUS_RING}`}
             >
-              <Link2 className="h-3.5 w-3.5" />
+              <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
               Link current conversation
             </button>
           ) : null}
 
           {isConversationLinked ? (
-            <p className="text-xs text-neural-text-muted">Current conversation is already linked.</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="success">Linked</Badge>
+              <span className="text-xs text-neural-text-muted">Current conversation is already linked to this workspace.</span>
+            </div>
           ) : null}
 
           {contextMeta ? (
-            <details className="rounded-xl border border-white/10 bg-white/[0.02] p-3 text-xs text-neural-text-secondary">
-              <summary className="cursor-pointer font-display text-[10px] uppercase tracking-[0.08em] text-neural-text-primary">
+            <details className="rounded-xl border border-white/10 bg-white/[0.02] p-3 text-xs text-neural-text-secondary transition-colors duration-200 open:border-neural-cyan/20">
+              <summary
+                className={`cursor-pointer font-display text-[10px] uppercase tracking-[0.08em] text-neural-text-primary ${WORKSPACE_FOCUS_RING} rounded-sm`}
+              >
                 Context preview · {useWorkspaceContext ? "enabled" : "disabled"} · {contextMeta.charCount}/
                 {WORKSPACE_CONTEXT_CHAR_CAP} chars
                 {contextMeta.truncated ? " · truncated" : ""}
               </summary>
               <div className="mt-3 space-y-2">
-                <p>
+                <p className="font-mono text-[10px]">
                   System prompt: {contextMeta.hasSystemPrompt ? "yes" : "no"} · Pinned notes:{" "}
                   {contextMeta.pinnedNotesCount} · Memory tags: {contextMeta.memoryTagsCount}
                 </p>
                 {useWorkspaceContext && contextMeta.truncated ? (
-                  <p className="flex items-start gap-2 text-amber-100">
-                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                    Workspace context exceeds {WORKSPACE_CONTEXT_CHAR_CAP} characters and will be truncated per
-                    request.
-                  </p>
+                  <WorkspaceNotice tone="amber" className="text-xs">
+                    Workspace context exceeds {WORKSPACE_CONTEXT_CHAR_CAP} characters and will be truncated per request.
+                  </WorkspaceNotice>
                 ) : null}
                 {useWorkspaceContext && contextMeta.text.trim() ? (
                   <TerminalBlock className="max-h-32 overflow-y-auto border-white/10 text-[11px]">
@@ -185,10 +198,9 @@ export function WorkspaceChatPanel({
             </details>
           ) : null}
 
-          <p className="flex items-start gap-2 text-xs text-amber-100/90">
-            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          <WorkspaceNotice tone="amber" className="text-xs">
             Do not put secrets in workspace notes or prompts.
-          </p>
+          </WorkspaceNotice>
         </div>
       ) : null}
     </div>

@@ -52,6 +52,10 @@ export function Modal({
   const rootRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     if (!mounted) {
@@ -63,14 +67,18 @@ export function Modal({
     document.body.style.overflow = "hidden";
 
     const frame = window.requestAnimationFrame(() => {
-      const target = initialFocusRef?.current || dialogRef.current?.querySelector<HTMLElement>(FOCUSABLE) || dialogRef.current;
+      const content = dialogRef.current?.querySelector<HTMLElement>("[data-modal-body]");
+      const target =
+        initialFocusRef?.current ||
+        content?.querySelector<HTMLElement>(FOCUSABLE) ||
+        dialogRef.current;
       target?.focus();
     });
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (event.key !== "Tab" || !dialogRef.current) {
@@ -100,7 +108,7 @@ export function Modal({
       document.body.style.overflow = previousOverflow;
       previousFocus?.focus();
     };
-  }, [initialFocusRef, mounted, onClose]);
+  }, [mounted, initialFocusRef]);
 
   useGSAP(
     () => {
@@ -173,7 +181,7 @@ export function Modal({
             <X className="size-4" aria-hidden="true" />
           </IconButton>
         </header>
-        <div className="px-5 py-5 sm:px-6">{children}</div>
+        <div data-modal-body className="px-5 py-5 sm:px-6">{children}</div>
         {footer ? <footer className="border-t border-white/[0.08] px-5 py-4 sm:px-6">{footer}</footer> : null}
       </div>
     </div>,

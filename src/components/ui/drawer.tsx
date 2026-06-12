@@ -51,6 +51,10 @@ export function Drawer({
   const rootRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const drawerRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     if (!mounted) {
@@ -61,13 +65,17 @@ export function Drawer({
     document.body.style.overflow = "hidden";
 
     const frame = window.requestAnimationFrame(() => {
-      const target = initialFocusRef?.current || drawerRef.current?.querySelector<HTMLElement>(FOCUSABLE) || drawerRef.current;
+      const content = drawerRef.current?.querySelector<HTMLElement>("[data-drawer-body]");
+      const target =
+        initialFocusRef?.current ||
+        content?.querySelector<HTMLElement>(FOCUSABLE) ||
+        drawerRef.current;
       target?.focus();
     });
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (event.key !== "Tab" || !drawerRef.current) {
@@ -96,7 +104,7 @@ export function Drawer({
       document.body.style.overflow = previousOverflow;
       previousFocus?.focus();
     };
-  }, [initialFocusRef, mounted, onClose]);
+  }, [mounted, initialFocusRef]);
 
   useGSAP(
     () => {
@@ -168,7 +176,7 @@ export function Drawer({
             <X className="size-4" aria-hidden="true" />
           </IconButton>
         </header>
-        <div className="neural-scroll min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">{children}</div>
+        <div data-drawer-body className="neural-scroll min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">{children}</div>
         {footer ? <footer className="border-t border-white/[0.08] px-5 py-4 sm:px-6">{footer}</footer> : null}
       </div>
     </div>,

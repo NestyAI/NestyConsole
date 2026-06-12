@@ -2,6 +2,67 @@
 
 All notable changes to Nesty Console will be documented in this file.
 
+## [0.10.0] - Unreleased
+
+### Added
+- Titanium Noir Cinematic Command Deck visual system with deep blue-black ambient foundations and cold titanium surfaces.
+- Shared glass surface tiers, page motion wrappers, status primitives, loading skeletons, accessible Modal, and accessible Drawer.
+- Floating desktop sidebar and independent floating topbar with grouped operator navigation.
+- Page-specific command heroes across Dashboard, Chat, Workspaces, Status, Models, Diagnostics, Memory, API Keys, Providers, and Settings.
+
+### Changed
+- Rebuilt the protected Console presentation layer in place with stronger contrast, more spacious command panels, and consistent responsive behavior.
+- Standardized API Key and Runtime Provider overlays with focus trapping, Escape handling, focus return, and body scroll locking.
+- Restricted glass blur to the topbar, modal/drawer overlays, and sticky chat composer.
+- Added restrained GSAP entrance and overlay motion with reduced-motion support and transform/opacity-only animation.
+
+### Performance
+- Bounded entrance staggering and avoided layout-affecting animation properties.
+- Kept base and raised glass surfaces blur-free to reduce GPU cost.
+
+### Security
+- Preserves existing routes, server/client boundaries, data fetching, forms, API semantics, credential handling, and secret redaction.
+- Chat streaming parser, SSE format, stop/cancel flow, scroll stabilization, and message persistence remain unchanged.
+
+## [0.9.3] - Unreleased
+
+### Added
+- Server-proxied Gateway v1.5 runtime provider APIs under `/api/console/runtime/*`.
+- Settings page: `/settings/providers` for runtime OpenAI-compatible provider CRUD, test, enable/disable.
+- Gateway v1.5.2 policy error mapping and friendly Chat/Diagnostics copy (`gateway_policy_*` codes).
+- Diagnostics runtime status panel synced from `GET /internal/console/runtime/status`.
+- Model Configs provider-chain suggestions from runtime provider catalog (manual ID entry preserved).
+- Optional Console client auth headers (`NESTY_CONSOLE_CLIENT_ID`, `NESTY_CONSOLE_CLIENT_SECRET`) for runtime proxy calls.
+- Policy error fixtures in `validate:provider-parsers`.
+
+### Changed
+- Chat stream mid-flight errors preserve safe `details` (including `request_id` and `reason_code` when present).
+- Settings overview links to Runtime Providers; env status shows console client secret readiness.
+
+### Security
+- Browser never calls Gateway runtime APIs directly; all traffic goes through Console server routes.
+- Provider `api_key` is accepted only transiently on create/update POST bodies and is stripped from all responses.
+- Built-in providers remain read-only in Console UI (disable-only).
+
+## [0.9.2] - Unreleased
+
+### Added
+- Pure provider error parsers module (`provider-error-parsers.ts`) for Retry-After, HTTP-date Retry-After, and `X-RateLimit-Reset`.
+- Safe rate-limit reset metadata in error `details` (`rate_limit_reset_seconds`, `rate_limit_reset_at`).
+- Request ID copy button on `RequestIdTag` (client-only, no new dependencies).
+- Diagnostics error banner shows Request ID + log correlation hint.
+- Optional supplementary script: `pnpm run validate:provider-parsers` (Node strip-types; not required for release).
+
+### Changed
+- Health, ready, and models API routes use shared `gatewayResultToResponse` on error paths only.
+- Chat, Status, and Gateway Credentials show friendly rate-limit retry/reset copy from normalized `details`.
+- Status page accepts Console error codes and displays request ID on probe failures.
+
+### Security
+- Raw `Retry-After` and `X-RateLimit-Reset` header values are never shown in UI.
+- HTTP-date Retry-After accepts valid future dates only (rejects past and >7 days).
+- Chat SSE passthrough unchanged; no Gateway or credential/auth changes.
+
 ## [0.9.1] - Unreleased
 
 ### Added

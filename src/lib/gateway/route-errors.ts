@@ -5,6 +5,7 @@ import {
   mapUpstreamToConsoleCode,
   type ConsoleProviderErrorCode
 } from "@/lib/gateway/provider-errors";
+import { policyMessageForCode } from "@/lib/gateway/policy-errors";
 import type { GatewayResult } from "@/lib/gateway/types";
 
 type ConsoleProxyErrorCode =
@@ -38,7 +39,19 @@ type ConsoleProxyErrorCode =
   | "api_key_not_found"
   | "invalid_api_key_request"
   | "not_found"
-  | "unknown_error";
+  | "unknown_error"
+  | "gateway_policy_violation"
+  | "gateway_secret_exfiltration_blocked"
+  | "gateway_malicious_cyber_request"
+  | "gateway_unsafe_output_blocked"
+  | "gateway_prompt_injection_detected"
+  | "runtime_provider_not_found"
+  | "runtime_provider_invalid"
+  | "runtime_provider_conflict"
+  | "runtime_provider_secret_missing"
+  | "runtime_provider_test_failed"
+  | "runtime_provider_builtin_readonly"
+  | "console_client_auth_failed";
 
 function normalizeGatewayErrorCode(code: string, upstreamCode?: string | null, status?: number): ConsoleProxyErrorCode {
   const upstreamMapped = upstreamCode
@@ -55,7 +68,19 @@ function normalizeGatewayErrorCode(code: string, upstreamCode?: string | null, s
       "gateway_invalid_model",
       "gateway_upstream_failed",
       "gateway_provider_unavailable",
-      "credentials_not_configured"
+      "credentials_not_configured",
+      "gateway_policy_violation",
+      "gateway_secret_exfiltration_blocked",
+      "gateway_malicious_cyber_request",
+      "gateway_unsafe_output_blocked",
+      "gateway_prompt_injection_detected",
+      "runtime_provider_not_found",
+      "runtime_provider_invalid",
+      "runtime_provider_conflict",
+      "runtime_provider_secret_missing",
+      "runtime_provider_test_failed",
+      "runtime_provider_builtin_readonly",
+      "console_client_auth_failed"
     ].includes(upstreamMapped)
   ) {
     return upstreamMapped;
@@ -149,12 +174,47 @@ function normalizeGatewayErrorCode(code: string, upstreamCode?: string | null, s
   if (lowered === "api_key_not_found") {
     return "api_key_not_found";
   }
-  if (
-    lowered === "invalid_api_key_request" ||
-    lowered === "api_key_create_failed" ||
-    lowered === "api_key_revoke_failed"
-  ) {
+  if (lowered === "invalid_api_key_request" || lowered === "api_key_create_failed" || lowered === "api_key_revoke_failed") {
     return "invalid_api_key_request";
+  }
+  if (
+    lowered === "safety_violation" ||
+    lowered === "gateway_policy_violation"
+  ) {
+    return "gateway_policy_violation";
+  }
+  if (lowered === "secret_exfiltration_blocked" || lowered === "gateway_secret_exfiltration_blocked") {
+    return "gateway_secret_exfiltration_blocked";
+  }
+  if (lowered === "malicious_cyber_request" || lowered === "gateway_malicious_cyber_request") {
+    return "gateway_malicious_cyber_request";
+  }
+  if (lowered === "unsafe_output_blocked" || lowered === "gateway_unsafe_output_blocked") {
+    return "gateway_unsafe_output_blocked";
+  }
+  if (lowered === "prompt_injection_detected" || lowered === "gateway_prompt_injection_detected") {
+    return "gateway_prompt_injection_detected";
+  }
+  if (lowered === "runtime_provider_not_found") {
+    return "runtime_provider_not_found";
+  }
+  if (lowered === "runtime_provider_invalid") {
+    return "runtime_provider_invalid";
+  }
+  if (lowered === "runtime_provider_conflict") {
+    return "runtime_provider_conflict";
+  }
+  if (lowered === "runtime_provider_secret_missing") {
+    return "runtime_provider_secret_missing";
+  }
+  if (lowered === "runtime_provider_test_failed") {
+    return "runtime_provider_test_failed";
+  }
+  if (lowered === "runtime_provider_builtin_readonly") {
+    return "runtime_provider_builtin_readonly";
+  }
+  if (lowered === "console_client_auth_failed") {
+    return "console_client_auth_failed";
   }
   return "unknown_error";
 }
@@ -216,6 +276,26 @@ function fallbackMessage(code: ConsoleProxyErrorCode, details?: Record<string, u
       return "The requested API key was not found.";
     case "invalid_api_key_request":
       return "The API key request was invalid.";
+    case "gateway_policy_violation":
+    case "gateway_secret_exfiltration_blocked":
+    case "gateway_malicious_cyber_request":
+    case "gateway_unsafe_output_blocked":
+    case "gateway_prompt_injection_detected":
+      return policyMessageForCode(code, typeof details?.reason_code === "string" ? details.reason_code : null);
+    case "runtime_provider_not_found":
+      return "Runtime provider was not found on Gateway.";
+    case "runtime_provider_invalid":
+      return "Runtime provider payload is invalid. Check required fields and try again.";
+    case "runtime_provider_conflict":
+      return "A provider with this ID already exists.";
+    case "runtime_provider_secret_missing":
+      return "Runtime provider is missing a configured secret. Add an API key or env reference.";
+    case "runtime_provider_test_failed":
+      return "Runtime provider test failed. Check base URL, model, and credentials.";
+    case "runtime_provider_builtin_readonly":
+      return "Built-in providers are read-only. Disable routing instead of deleting.";
+    case "console_client_auth_failed":
+      return "Console client authentication failed. Check NESTY_CONSOLE_CLIENT_ID and NESTY_CONSOLE_CLIENT_SECRET.";
     default:
       return "Unknown gateway error.";
   }

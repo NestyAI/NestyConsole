@@ -4,7 +4,10 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
 
+import { MotionPage } from "@/components/motion/motion-page";
+import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorBanner } from "@/components/ui/error-banner";
 import { LoadingBlock } from "@/components/ui/loading-block";
@@ -72,31 +75,27 @@ export default function ModelsPage() {
   }, [refresh]);
 
   return (
-    <section className="space-y-6 animate-fade-in-up">
-      <Panel accent="cyan" className="p-6 sm:p-7 lg:p-8">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="max-w-2xl">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-3xl font-semibold tracking-[-0.05em] text-neural-text-primary sm:text-4xl">Models</h1>
-              <Badge variant="live" withDot>
-                live
-              </Badge>
-            </div>
-            <p className="mt-3 text-sm leading-relaxed text-neural-text-secondary">
-              Active model aliases exposed by NestyAI Gateway. This page is the fastest way to confirm what the gateway is
-              actually publishing right now. External <code className="font-mono text-xs">/v1/models</code> responses may be filtered to an API key&apos;s allowlist when authenticated.
-            </p>
-          </div>
-          <button
+    <MotionPage>
+      <PageHeader
+        title="Models"
+        description={
+          <>
+            Active aliases published by NestyAI Gateway. External <code className="font-mono text-xs">/v1/models</code>{" "}
+            responses may be filtered by an API key&apos;s allowlist.
+          </>
+        }
+        actions={
+          <Button
             type="button"
             onClick={() => void refresh(true)}
-            className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3 font-display text-[11px] uppercase tracking-[0.12em] text-neural-text-primary transition hover:border-neural-cyan/40 hover:bg-white/[0.08] hover:text-neural-cyan"
+            variant="secondary"
+            className="min-h-11"
           >
             <RefreshCw className={`h-4 w-4 ${state.loading ? "animate-spin" : ""}`} />
             Refresh
-          </button>
-        </div>
-      </Panel>
+          </Button>
+        }
+      />
 
       {state.error ? (
         <ErrorBanner code={state.error.code || "gateway_error"} message={state.error.message}>
@@ -122,7 +121,7 @@ export default function ModelsPage() {
         ) : null}
 
         {state.items.map((model) => (
-          <Panel key={model.id} accent="cyan" className="p-5 sm:p-6">
+          <Panel key={model.id} tier="raised" accent="cyan" className="p-5 sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <TokenTag>{model.id}</TokenTag>
               <Badge variant="live">{model.config_source || "default"}</Badge>
@@ -132,6 +131,6 @@ export default function ModelsPage() {
           </Panel>
         ))}
       </div>
-    </section>
+    </MotionPage>
   );
 }

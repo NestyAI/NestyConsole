@@ -1,20 +1,38 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Loader2, LockKeyhole } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Activity, KeyRound, Loader2, LockKeyhole, ShieldCheck } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
+import { ErrorBanner } from "@/components/ui/error-banner";
+import { FormField } from "@/components/ui/form-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { StatusDot } from "@/components/ui/status-dot";
-import { SECTION_LABEL_CLASS } from "@/lib/design/tokens";
+import { StatusPill } from "@/components/ui/status-pill";
 
 type LoginError = {
   code?: string;
   message?: string;
 };
+
+const controlPoints = [
+  {
+    icon: ShieldCheck,
+    title: "Protected relay",
+    text: "Gateway credentials stay behind the Console server boundary."
+  },
+  {
+    icon: Activity,
+    title: "Operational clarity",
+    text: "Diagnostics, memory, providers, and status share one command surface."
+  },
+  {
+    icon: KeyRound,
+    title: "Single-admin control",
+    text: "A focused self-host workflow without exposing browser-side secrets."
+  }
+];
 
 export function LoginForm() {
   const router = useRouter();
@@ -56,102 +74,90 @@ export function LoginForm() {
   };
 
   return (
-    <div className="neural-panel w-full max-w-5xl overflow-hidden rounded-xl">
-      <div className="grid lg:grid-cols-[0.95fr_1.05fr]">
-        <section className="border-b border-white/[0.08] p-6 sm:p-7 lg:border-b-0 lg:border-r lg:p-8">
-          <div className="flex items-center justify-between gap-3">
-            <Image src="/NestyAI_Full.svg" alt="Nesty Console" width={220} height={44} className="h-auto w-[220px]" />
-            <Badge variant="live" withDot className="shrink-0">
-              Secure
-            </Badge>
+    <div className="glass-accent titanium-edge min-w-0 w-full max-w-6xl overflow-hidden rounded-[2rem] shadow-[0_36px_100px_rgb(0_0_0/0.45)]">
+      <div className="grid min-w-0 lg:grid-cols-[1.08fr_0.92fr]">
+        <section className="relative min-w-0 border-b border-white/[0.08] p-6 sm:p-9 lg:border-b-0 lg:border-r lg:p-12">
+          <div className="flex min-w-0 flex-wrap items-center justify-between gap-4">
+            <Image src="/NestyAI_Full.svg" alt="Nesty Console" width={240} height={48} className="h-auto w-[180px] max-w-full sm:w-[240px]" priority />
+            <StatusPill tone="live">Secure access</StatusPill>
           </div>
 
-          <div className="mt-8 flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-white/10 bg-neural-elevated/80">
-              <LockKeyhole className="h-5 w-5 text-neural-cyan" />
-            </div>
-            <div>
-              <p className="font-display text-[11px] uppercase tracking-[0.12em] text-neural-text-secondary">Admin Access</p>
-              <h1 className="mt-1 text-3xl font-semibold tracking-[-0.05em] text-neural-text-primary">Command center login</h1>
-            </div>
+          <div className="mt-10 min-w-0 max-w-xl sm:mt-12">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-neural-cyan">Titanium command deck</p>
+            <h1 className="mt-4 text-balance text-3xl font-semibold tracking-[-0.055em] text-neural-text-primary sm:text-5xl">
+              Operate your gateway with confidence.
+            </h1>
+            <p className="mt-5 max-w-lg text-pretty text-sm leading-7 text-neural-text-secondary sm:text-base sm:leading-8">
+              A focused control surface for provider health, runtime configuration, secure access, conversations, and memory.
+            </p>
           </div>
 
-          <p className="mt-5 max-w-md text-sm leading-relaxed text-neural-text-secondary">
-            Sign in to manage gateway credentials, inspect live memory, review diagnostics, and steer the console without
-            exposing browser-side keys.
-          </p>
-
-          <div className="mt-8 grid gap-3">
-            {[
-              {
-                title: "Gateway relay",
-                text: "Authenticated server-side access path for operational work."
-              },
-              {
-                title: "Memory tools",
-                text: "Inspect conversations, summaries, exports, and per-message memory controls."
-              },
-              {
-                title: "Diagnostics",
-                text: "Track provider health, readiness, and the latest internal checks."
-              }
-            ].map((item) => (
-              <div key={item.title} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                <div className="flex items-center gap-2">
-                  <StatusDot tone="live" />
-                  <p className="font-display text-[11px] uppercase tracking-[0.12em] text-neural-text-primary">{item.title}</p>
+          <div className="mt-10 grid gap-3">
+            {controlPoints.map((item) => {
+              const Icon = item.icon;
+              return (
+                <div key={item.title} className="glass-raised flex min-w-0 items-start gap-4 rounded-2xl p-4">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-neural-cyan/20 bg-neural-cyan/[0.07] text-neural-cyan">
+                    <Icon className="size-[18px]" aria-hidden="true" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-neural-text-primary">{item.title}</p>
+                    <p className="mt-1 text-pretty text-sm leading-6 text-neural-text-secondary">{item.text}</p>
+                  </div>
                 </div>
-                <p className="mt-2 text-sm leading-relaxed text-neural-text-secondary">{item.text}</p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
 
-        <section className="p-6 sm:p-7 lg:p-8">
-          <form onSubmit={onSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="username" className={SECTION_LABEL_CLASS}>
-                Username
-              </label>
-              <Input
-                id="username"
-                autoComplete="username"
-                value={username}
-                onChange={(event) => setUsername(event.target.value)}
-                className="font-mono"
-              />
+        <section className="flex min-w-0 items-center p-6 sm:p-9 lg:p-12">
+          <div className="w-full">
+            <div className="flex size-12 items-center justify-center rounded-2xl border border-white/[0.12] bg-white/[0.05] text-neural-cyan shadow-[inset_0_1px_0_rgb(255_255_255/0.08)]">
+              <LockKeyhole className="size-5" aria-hidden="true" />
             </div>
+            <h2 className="mt-6 text-3xl font-semibold tracking-[-0.045em] text-neural-text-primary">Admin sign in</h2>
+            <p className="mt-2 text-sm leading-6 text-neural-text-secondary">
+              Use the credentials configured for this Console environment.
+            </p>
 
-            <div className="space-y-2">
-              <label htmlFor="password" className={SECTION_LABEL_CLASS}>
-                Password
-              </label>
-              <Input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                className="font-mono"
-              />
-            </div>
+            <form onSubmit={onSubmit} className="mt-8 space-y-5" aria-busy={submitting}>
+              <FormField label="Username" htmlFor="username" required>
+                <Input
+                  id="username"
+                  autoComplete="username"
+                  value={username}
+                  onChange={(event) => setUsername(event.target.value)}
+                  className="font-mono"
+                  required
+                />
+              </FormField>
 
-            {error ? (
-              <div className="rounded-2xl border border-neural-red/35 bg-neural-red/10 px-4 py-3 text-sm text-rose-100">
-                <p className="font-mono text-[11px] uppercase tracking-[0.08em]">{error.code || "login_error"}</p>
-                <p className="mt-1 leading-relaxed">{error.message || "Invalid login."}</p>
-              </div>
-            ) : (
-              <p className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm leading-relaxed text-neural-text-secondary">
-                Use the credentials configured for your local console environment.
-              </p>
-            )}
+              <FormField label="Password" htmlFor="password" required>
+                <Input
+                  id="password"
+                  type="password"
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  className="font-mono"
+                  required
+                />
+              </FormField>
 
-            <Button type="submit" variant="primary" disabled={submitting} className="w-full py-2.5">
-              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Sign in
-            </Button>
-          </form>
+              {error ? (
+                <ErrorBanner code={error.code || "login_error"} message={error.message || "Invalid login."} />
+              ) : (
+                <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] px-4 py-3 text-sm leading-6 text-neural-text-secondary">
+                  Authentication is verified server-side and stored in a signed HTTP-only session.
+                </div>
+              )}
+
+              <Button type="submit" variant="primary" disabled={submitting} className="w-full py-3">
+                {submitting ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : null}
+                {submitting ? "Signing in" : "Sign in"}
+              </Button>
+            </form>
+          </div>
         </section>
       </div>
     </div>

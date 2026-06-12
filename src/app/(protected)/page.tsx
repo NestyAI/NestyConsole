@@ -1,250 +1,256 @@
 import Link from "next/link";
-import Image from "next/image";
-import { ArrowRight } from "lucide-react";
+import {
+  Activity,
+  ArrowUpRight,
+  Bot,
+  Braces,
+  KeyRound,
+  MemoryStick,
+  MessageSquareText,
+  Radar,
+  Settings2,
+  ShieldCheck,
+  SlidersHorizontal,
+  Waypoints
+} from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
-import { Panel } from "@/components/ui/panel";
+import { MotionPage } from "@/components/motion/motion-page";
+import { GlassCard } from "@/components/ui/glass-card";
 import { StatCard } from "@/components/ui/stat-card";
-import { StatusDot } from "@/components/ui/status-dot";
-import { TerminalBlock } from "@/components/ui/terminal-block";
+import { StatusPill } from "@/components/ui/status-pill";
+import { getServerEnvStatus } from "@/lib/env";
 
-const cards = [
+const modules = [
   {
     href: "/chat",
-    title: "NestyChat Web",
-    description: "Protected chat UI with server-side proxy requests and conversation continuity."
+    title: "NestyChat",
+    description: "Work with the gateway through the protected streaming chat surface.",
+    icon: MessageSquareText,
+    group: "Operate"
   },
   {
     href: "/workspaces",
     title: "Workspaces",
-    description: "Organize project context, preferred presets, notes, and link conversation logs."
+    description: "Organize project context, preferred presets, notes, and conversations.",
+    icon: Waypoints,
+    group: "Operate"
   },
   {
     href: "/memory",
     title: "Memory",
-    description: "Conversation search, summaries, export, and per-message memory controls."
-  },
-  {
-    href: "/diagnostics",
-    title: "Diagnostics",
-    description: "Provider health, reliability scoring, and latest internal diagnostics checks."
+    description: "Search, summarize, export, and control retained conversation context.",
+    icon: MemoryStick,
+    group: "Operate"
   },
   {
     href: "/status",
     title: "Gateway Status",
-    description: "Health, readiness, and runtime availability."
+    description: "Inspect live health, readiness, API version, and database availability.",
+    icon: Activity,
+    group: "Observe"
+  },
+  {
+    href: "/diagnostics",
+    title: "Diagnostics",
+    description: "Review provider health, reliability scores, and recent internal checks.",
+    icon: Radar,
+    group: "Observe"
   },
   {
     href: "/models",
     title: "Models",
-    description: "Inspect active model aliases from NestyAI."
+    description: "Inspect the active model aliases currently published by the gateway.",
+    icon: Bot,
+    group: "Configure"
   },
   {
     href: "/model-configs",
     title: "Model Configs",
-    description: "View effective runtime config and edit safe provider chain overrides."
+    description: "Govern effective runtime config and safe provider-chain overrides.",
+    icon: SlidersHorizontal,
+    group: "Configure"
   },
   {
     href: "/api-keys",
     title: "API Keys",
-    description: "Manage Gateway keys. Create and revoke client access tokens."
+    description: "Create, inspect, update, and revoke gateway client credentials.",
+    icon: KeyRound,
+    group: "Configure"
   },
   {
     href: "/settings",
-    title: "Settings",
-    description: "Verify local environment configuration safely."
-  },
-  {
-    href: "/settings/gateway",
-    title: "Gateway Credentials",
-    description: "Update encrypted gateway URL/API key/internal admin token."
-  },
-  {
-    href: "#",
-    title: "Future",
-    description: "Memory tools and broader provider marketplace workflows in upcoming versions."
+    title: "System Settings",
+    description: "Verify runtime posture and enter higher-trust administration surfaces.",
+    icon: Settings2,
+    group: "Configure"
   }
-];
+] as const;
 
 export default function HomePage() {
+  const env = getServerEnvStatus();
+  const gatewayConfigured = env.gatewayUrlConfigured && env.apiKeyConfigured;
+  const adminConfigured = env.internalAdminEnabled && env.internalAdminTokenConfigured;
+
   return (
-    <section className="space-y-6 animate-fade-in-up">
-      <div className="grid gap-6 xl:grid-cols-[1.45fr_0.95fr]">
-        <Panel accent="cyan" className="p-6 sm:p-7 lg:p-8">
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="live" withDot>
-              Operations
-            </Badge>
-            <Badge variant="inactive">Product UI</Badge>
-            <Badge variant="inactive">Single Admin</Badge>
-          </div>
-
-          <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_auto] lg:items-end">
-            <div>
-              <Image src="/NestyAI_Full.svg" alt="Nesty Console" width={300} height={58} className="h-auto w-[260px]" />
-              <h1 className="mt-6 max-w-2xl text-3xl font-semibold tracking-[-0.04em] text-neural-text-primary sm:text-4xl lg:text-5xl">
-                Nesty Console
-              </h1>
-              <p className="mt-4 max-w-2xl text-base leading-relaxed text-neural-text-secondary">
-                Premium control console for gateway operations, memory review, model governance, and diagnostics.
-              </p>
-
-              <div className="mt-6 flex flex-wrap gap-2">
-                <Link
-                  href="/status"
-                  className="inline-flex items-center gap-2 rounded-lg border border-neural-cyan/25 bg-neural-cyan/10 px-3.5 py-2 text-sm font-medium text-neural-cyan transition hover:bg-neural-cyan/16"
-                >
-                  Check gateway
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-                <Link
-                  href="/chat"
-                  className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-neural-elevated/60 px-3.5 py-2 text-sm font-medium text-neural-text-primary transition hover:bg-neural-overlay/50"
-                >
-                  Open chat
-                </Link>
-                <Link
-                  href="/memory"
-                  className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-neural-elevated/60 px-3.5 py-2 text-sm font-medium text-neural-text-secondary transition hover:text-neural-text-primary"
-                >
-                  Inspect memory
-                </Link>
-              </div>
+    <MotionPage>
+      <section className="glass-accent titanium-edge relative overflow-hidden rounded-[2rem] px-6 py-8 sm:px-8 sm:py-10 lg:px-10 lg:py-12">
+        <div className="relative grid gap-10 xl:grid-cols-[minmax(0,1.35fr)_minmax(19rem,0.65fr)] xl:items-end">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <StatusPill tone={gatewayConfigured ? "success" : "warning"}>
+                {gatewayConfigured ? "Gateway configured" : "Gateway setup required"}
+              </StatusPill>
+              <StatusPill tone={env.adminAuthConfigured ? "live" : "warning"}>
+                {env.adminAuthConfigured ? "Admin protected" : "Auth incomplete"}
+              </StatusPill>
+              <StatusPill tone="inactive">{env.nodeEnv}</StatusPill>
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:min-w-[280px]">
-              <p className="font-display text-[11px] uppercase tracking-[0.12em] text-neural-text-secondary">Command posture</p>
-              <div className="mt-4 space-y-3">
-                {[
-                  ["Gateway relay", "Ready"],
-                  ["Memory index", "Live"],
-                  ["Diagnostics", "Monitoring"]
-                ].map(([label, state]) => (
-                  <div key={label} className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <StatusDot tone="live" />
-                      <span className="text-sm text-neural-text-primary">{label}</span>
-                    </div>
-                    <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-neural-text-secondary">{state}</span>
-                  </div>
-                ))}
-              </div>
-
-              <TerminalBlock className="mt-4 border-white/10 text-[11px] text-neural-text-code">
-                {`> session: active
-> gateway: ready
-> memory: indexed
-> diagnostics: nominal`}
-              </TerminalBlock>
-            </div>
-          </div>
-        </Panel>
-
-        <Panel accent="violet" className="p-6 sm:p-7 lg:p-8">
-          <p className="font-display text-[11px] uppercase tracking-[0.12em] text-neural-text-secondary">Quick Notes</p>
-          <h2 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-neural-text-primary">
-            The whole console now reads as one system.
-          </h2>
-          <p className="mt-3 text-sm leading-relaxed text-neural-text-secondary">
-            The shell, login screen, and shared card primitives all share the same quieter radius, softer glow, and more
-            deliberate typography.
-          </p>
-
-          <div className="mt-6 grid gap-3">
-            {[
-              "Sharper hierarchy on key surfaces",
-              "Cleaner glass-like panels without overdoing the glow",
-              "More breathable spacing on shared primitives"
-            ].map((item) => (
-              <div key={item} className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm leading-relaxed text-neural-text-secondary">
-                {item}
-              </div>
-            ))}
-          </div>
-        </Panel>
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Control Surface" value="9" hint="Primary operator modules" accent="cyan" />
-        <StatCard label="Security Model" value="Server-side" hint="No browser key exposure" accent="green" />
-        <StatCard label="Mode" value="Single Admin" hint="Self-host operations" accent="amber" />
-        <StatCard label="Theme" value="Neural Dark" hint="High-density dark console" accent="violet" />
-      </div>
-
-      <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-        <Panel accent="cyan" className="p-6">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <p className="font-display text-[11px] uppercase tracking-[0.12em] text-neural-text-secondary">Primary Modules</p>
-              <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-neural-text-primary">
-                Everything you need is one click away.
-              </h2>
-            </div>
-            <p className="max-w-sm text-sm leading-relaxed text-neural-text-secondary">
-              The grid stays compact, but each module has enough breathing room to feel deliberate rather than crowded.
+            <p className="mt-8 font-display text-[11px] font-semibold uppercase tracking-[0.2em] text-neural-cyan">
+              NestyAI Operations
             </p>
+            <h1 className="mt-3 max-w-4xl text-4xl font-semibold tracking-[-0.06em] text-neural-text-primary sm:text-5xl lg:text-6xl">
+              Gateway command deck
+            </h1>
+            <p className="mt-5 max-w-2xl text-base leading-7 text-neural-text-secondary sm:text-lg">
+              One focused surface for gateway operations, model governance, provider health, memory, and protected
+              administration.
+            </p>
+
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link
+                href="/status"
+                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-neural-cyan/40 bg-neural-cyan/15 px-4 py-2.5 text-sm font-semibold text-neural-cyan transition-colors hover:bg-neural-cyan/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neural-cyan"
+              >
+                Open live status
+                <ArrowUpRight className="h-4 w-4" />
+              </Link>
+              <Link
+                href="/chat"
+                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.045] px-4 py-2.5 text-sm font-semibold text-neural-text-primary transition-colors hover:border-white/20 hover:bg-white/[0.075] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neural-cyan"
+              >
+                Start a conversation
+              </Link>
+            </div>
           </div>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
-            {cards.map((card) => {
-              const isDisabled = card.href === "#";
-              const className =
-                "group block rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition hover:border-neural-cyan/35 hover:bg-white/[0.05] hover:shadow-neural-glow";
-
-              if (isDisabled) {
-                return (
-                  <div key={card.title} className={className}>
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <h3 className="font-display text-base font-semibold tracking-[-0.03em] text-neural-text-primary">
-                          {card.title}
-                        </h3>
-                        <p className="mt-2 text-sm leading-relaxed text-neural-text-secondary">{card.description}</p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              }
-
-              return (
-                <Link key={card.title} href={card.href} className={className}>
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <h3 className="font-display text-base font-semibold tracking-[-0.03em] text-neural-text-primary">
-                        {card.title}
-                      </h3>
-                      <p className="mt-2 text-sm leading-relaxed text-neural-text-secondary">{card.description}</p>
-                    </div>
-                    <ArrowRight className="h-5 w-5 shrink-0 text-neural-cyan transition group-hover:translate-x-1" />
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        </Panel>
-
-        <Panel accent="amber" className="p-6">
-          <p className="font-display text-[11px] uppercase tracking-[0.12em] text-neural-text-secondary">Operator Flow</p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-neural-text-primary">
-            A cleaner daily runbook.
-          </h2>
-          <div className="mt-5 space-y-3">
-            {[
-              "Start with Status to verify readiness.",
-              "Use Chat for direct gateway conversations.",
-              "Check Memory before summarizing or exporting.",
-              "Keep Diagnostics open when you need to watch providers."
-            ].map((item, index) => (
-              <div key={item} className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-neural-amber/25 bg-neural-amber/10 font-mono text-[11px] text-neural-amber">
-                  {index + 1}
-                </span>
-                <p className="text-sm leading-relaxed text-neural-text-secondary">{item}</p>
+          <GlassCard className="p-5 sm:p-6">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="font-display text-[11px] font-semibold uppercase tracking-[0.16em] text-neural-text-muted">
+                  Command posture
+                </p>
+                <p className="mt-2 text-lg font-semibold text-neural-text-primary">Server-side readiness</p>
               </div>
-            ))}
+              <ShieldCheck className="h-7 w-7 text-neural-cyan" aria-hidden="true" />
+            </div>
+
+            <div className="mt-6 divide-y divide-white/[0.07] border-y border-white/[0.07]">
+              {[
+                ["Gateway relay", gatewayConfigured, "URL + API key"],
+                ["Console auth", env.adminAuthConfigured, "Admin session"],
+                ["Internal admin", adminConfigured, "Privileged routes"]
+              ].map(([label, ready, detail]) => (
+                <div key={String(label)} className="flex items-center justify-between gap-4 py-3.5">
+                  <div>
+                    <p className="text-sm font-medium text-neural-text-primary">{label}</p>
+                    <p className="mt-0.5 text-xs text-neural-text-muted">{detail}</p>
+                  </div>
+                  <StatusPill tone={ready ? "success" : "warning"}>{ready ? "configured" : "attention"}</StatusPill>
+                </div>
+              ))}
+            </div>
+
+            <p className="mt-4 text-xs leading-5 text-neural-text-muted">
+              Configuration posture only. Use Gateway Status for live service health and readiness.
+            </p>
+          </GlassCard>
+        </div>
+      </section>
+
+      <section aria-labelledby="posture-heading">
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="font-display text-[11px] font-semibold uppercase tracking-[0.16em] text-neural-text-muted">
+              Runtime posture
+            </p>
+            <h2 id="posture-heading" className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-neural-text-primary">
+              Configuration at a glance
+            </h2>
           </div>
-        </Panel>
-      </div>
-    </section>
+          <Link href="/settings" className="text-sm font-medium text-neural-cyan hover:text-neural-cyan/80">
+            Review all settings
+          </Link>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <StatCard
+            label="Gateway relay"
+            value={gatewayConfigured ? "Configured" : "Incomplete"}
+            hint="Server URL and client credential"
+            accent={gatewayConfigured ? "green" : "amber"}
+            icon={<Braces className="h-5 w-5" />}
+          />
+          <StatCard
+            label="Console access"
+            value={env.adminAuthConfigured ? "Protected" : "Incomplete"}
+            hint="Admin password and session secret"
+            accent={env.adminAuthConfigured ? "cyan" : "amber"}
+            icon={<ShieldCheck className="h-5 w-5" />}
+          />
+          <StatCard
+            label="Internal admin"
+            value={adminConfigured ? "Available" : "Restricted"}
+            hint="Diagnostics and config controls"
+            accent={adminConfigured ? "green" : "violet"}
+            icon={<KeyRound className="h-5 w-5" />}
+          />
+          <StatCard
+            label="Control surface"
+            value="9 modules"
+            hint="Operate, observe, and configure"
+            accent="cyan"
+            icon={<SlidersHorizontal className="h-5 w-5" />}
+          />
+        </div>
+      </section>
+
+      <section aria-labelledby="modules-heading">
+        <div className="mb-5 max-w-2xl">
+          <p className="font-display text-[11px] font-semibold uppercase tracking-[0.16em] text-neural-text-muted">
+            Control surface
+          </p>
+          <h2 id="modules-heading" className="mt-2 text-3xl font-semibold tracking-[-0.05em] text-neural-text-primary">
+            Move through the system with intent
+          </h2>
+          <p className="mt-3 text-sm leading-6 text-neural-text-secondary">
+            Large operator panels keep the console spacious while each destination remains immediately scannable.
+          </p>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {modules.map((module) => {
+            const Icon = module.icon;
+            return (
+              <Link key={module.href} href={module.href} className="group rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neural-cyan">
+                <GlassCard interactive className="h-full p-5 sm:p-6">
+                  <div className="flex items-start justify-between gap-5">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-neural-cyan/20 bg-neural-cyan/[0.08] text-neural-cyan">
+                      <Icon className="h-5 w-5" aria-hidden="true" />
+                    </div>
+                    <ArrowUpRight className="h-5 w-5 text-neural-text-muted transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-neural-cyan" />
+                  </div>
+                  <p className="mt-7 font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-neural-text-muted">
+                    {module.group}
+                  </p>
+                  <h3 className="mt-2 text-xl font-semibold tracking-[-0.035em] text-neural-text-primary">{module.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-neural-text-secondary">{module.description}</p>
+                </GlassCard>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+    </MotionPage>
   );
 }

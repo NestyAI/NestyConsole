@@ -4,11 +4,12 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Clipboard, RefreshCw } from "lucide-react";
 
+import { MotionPage } from "@/components/motion/motion-page";
+import { PageHeader } from "@/components/layout/page-header";
 import { ConfirmAction } from "@/components/ui/confirm-action";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorBanner } from "@/components/ui/error-banner";
 import { LoadingBlock } from "@/components/ui/loading-block";
-import { Badge } from "@/components/ui/badge";
 import { Panel } from "@/components/ui/panel";
 import { TerminalBlock } from "@/components/ui/terminal-block";
 import { TokenTag } from "@/components/ui/token-tag";
@@ -433,20 +434,11 @@ export default function MemoryPage() {
   };
 
   return (
-    <section className="space-y-6 animate-fade-in-up">
-      <Panel accent="violet" className="p-6 sm:p-7 lg:p-8">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="max-w-2xl">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-3xl font-semibold tracking-[-0.05em] text-neural-text-primary sm:text-4xl">Memory</h1>
-              <Badge variant="ai" withDot>
-                semantic
-              </Badge>
-            </div>
-            <p className="mt-3 text-sm leading-relaxed text-neural-text-secondary">
-              Inspect and manage Gateway conversations, summaries, and message memory controls.
-            </p>
-          </div>
+    <MotionPage>
+      <PageHeader
+        title="Memory"
+        description="Inspect Gateway conversations, summaries, message controls, exports, and semantic recall."
+        actions={
           <button
             type="button"
             onClick={() => void handleRefreshAll()}
@@ -456,8 +448,8 @@ export default function MemoryPage() {
             <RefreshCw className={`h-4 w-4 ${conversationsLoading || detailLoading || recallBusy ? "animate-spin" : ""}`} />
             Refresh
           </button>
-        </div>
-      </Panel>
+        }
+      />
 
       {notice ? (
         <div className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-4 text-sm text-emerald-100">{notice}</div>
@@ -807,6 +799,6 @@ export default function MemoryPage() {
           </article>
         </Panel>
       </div>
-    </section>
+    </MotionPage>
   );
 }

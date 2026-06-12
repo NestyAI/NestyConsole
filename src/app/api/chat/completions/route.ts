@@ -27,7 +27,12 @@ type ConsoleErrorCode =
   | "gateway_route_not_found"
   | "gateway_error"
   | "unknown_error"
-  | "invalid_request_body";
+  | "invalid_request_body"
+  | "gateway_policy_violation"
+  | "gateway_secret_exfiltration_blocked"
+  | "gateway_malicious_cyber_request"
+  | "gateway_unsafe_output_blocked"
+  | "gateway_prompt_injection_detected";
 
 function consoleError(code: ConsoleErrorCode, message: string, status = 400, details?: Record<string, unknown>) {
   return NextResponse.json(

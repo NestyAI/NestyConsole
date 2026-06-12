@@ -8,8 +8,8 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.9.1-blue" alt="Console v0.9.1" />
-  <img src="https://img.shields.io/badge/Gateway-v1.3.1-009688" alt="Gateway v1.3.1" />
+  <img src="https://img.shields.io/badge/version-0.10.0-blue" alt="Console v0.10.0" />
+  <img src="https://img.shields.io/badge/Gateway-v1.5.2-009688" alt="Gateway v1.5.2" />
   <img src="https://img.shields.io/badge/Next.js-16-black" alt="Next.js 16" />
   <img src="https://img.shields.io/badge/TypeScript-5.x-3178C6" alt="TypeScript" />
   <img src="https://img.shields.io/badge/Tailwind-CSS-06B6D4" alt="Tailwind CSS" />
@@ -49,28 +49,30 @@ Designed for self-host and panel-style deployments (local Node, VPS, Vercel with
 | **Model configs** | Safe runtime provider-chain overrides |
 | **Memory** | Conversation search, export, summarize, message memory controls |
 | **API keys** | Create, list, update, revoke Gateway keys (one-time raw key display) |
-| **Settings** | Gateway URL, API key, internal admin token, connection test |
+| **Settings** | Gateway URL, API key, internal admin token, runtime providers, connection test |
 | **Status / Models** | Health, readiness, published model aliases |
 
 Full release history: **[CHANGELOG.md](CHANGELOG.md)**
 
 ---
 
-## Current Release — v0.9.1
+## Current Release — v0.10.0
 
-**Gateway v1.3.1 Provider Sync**
+**Titanium Noir UX Refresh**
 
 | Feature | Detail |
 | --- | --- |
-| Provider errors | Shared code-first mapper aligned with Gateway v1.3.0/v1.3.1 |
-| Revoked keys | Distinct `api_key_revoked` UX (HTTP 403), not generic invalid key |
-| Quota / rate limit | `gateway_quota_exceeded`, `gateway_rate_limited` with safe `details` |
-| Model access | `gateway_model_not_allowed`, `gateway_invalid_model` guidance |
-| Request ID | Sanitized diagnostic chip in Chat + Gateway Credentials test |
-| Retry-After | Numeric seconds only; HTTP-date shows generic retry message |
-| Compatibility | Existing `{ error: { code, message, type: "console_error" } }` shape preserved |
+| Command deck | Floating shell, spacious page heroes, and high-contrast operational hierarchy |
+| Surface system | Blur-free titanium base/raised panels; blur reserved for overlays and sticky composer |
+| Motion | Restrained GSAP transitions with reduced-motion support and bounded staggering |
+| Overlays | Shared accessible Modal and Drawer contracts for sensitive administration flows |
+| Runtime sync | Includes the Gateway v1.5 provider and policy integration introduced in v0.9.3 |
 
-**v0.9.0** — Product UI rebuild (Neural Noir design system, refreshed shell and controls).
+**v0.9.3** — Gateway v1.5 runtime provider and policy sync. See [CHANGELOG.md](CHANGELOG.md).
+
+**v0.9.2** — Provider observability polish (rate-limit reset metadata, request ID copy). See [CHANGELOG.md](CHANGELOG.md).
+
+**v0.9.0** — Earlier product UI rebuild.
 
 ---
 
@@ -132,6 +134,12 @@ Open `http://localhost:3000`, sign in, then configure **Settings → Gateway Cre
 ```bash
 pnpm run lint
 pnpm run build
+```
+
+Optional supplementary validation (Node 22+ strip-types):
+
+```bash
+pnpm run validate:provider-parsers
 ```
 
 ---
@@ -306,7 +314,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
 | **NestyConsole** | Admin UI + server-side proxies |
 | DeskMart / others | Separate ecosystem apps — not bundled here |
 
-Console targets **Gateway v1.3.x** provider error envelopes (`api_key_revoked`, quota, rate limits, request IDs). Run a matching Gateway version for full error UX parity.
+Console targets **Gateway v1.5.2** runtime provider, policy, and provider error envelopes. Run a matching Gateway version for full error UX parity.
 
 ---
 
@@ -324,7 +332,9 @@ Single-admin, self-host focused. Use reverse-proxy and network controls; do not 
 | v0.7 | API Key Management UI |
 | v0.8 | Workspaces, deep links, GSAP motion, scroll stability |
 | v0.9.0 | Product UI rebuild |
-| **v0.9.1** | **Gateway v1.3.1 provider sync (current)** |
-| v0.9.2+ | Retry-After HTTP-date, rate-limit reset UI, health route mapper parity |
+| v0.9.1 | Gateway v1.3.1 provider sync |
+| v0.9.3 | Gateway v1.5 runtime provider and policy sync |
+| **v0.10.0** | **Titanium Noir command-deck UX refresh (current)** |
+| Later | X-RateLimit-Limit/Remaining UI; extended SSE metadata |
 
 Enterprise marketplace workflows remain out of scope unless explicitly planned later.

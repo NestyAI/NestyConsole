@@ -11,14 +11,16 @@ import {
   Plus,
   RefreshCw,
   Trash2,
-  TriangleAlert,
-  X
+  TriangleAlert
 } from "lucide-react";
 
+import { MotionPage } from "@/components/motion/motion-page";
+import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/ui/data-table";
 import { ErrorBanner } from "@/components/ui/error-banner";
 import { LoadingBlock } from "@/components/ui/loading-block";
+import { Modal } from "@/components/ui/modal";
 import { Panel } from "@/components/ui/panel";
 import { Select } from "@/components/ui/select";
 import { TokenTag } from "@/components/ui/token-tag";
@@ -430,7 +432,7 @@ export default function ApiKeysPage() {
 
   if (!adminConfigured) {
     mainContent = (
-      <div className="neural-panel rounded-2xl p-8 text-center space-y-4 border border-neural-red/25 bg-neural-red/5">
+      <div className="glass-base titanium-edge rounded-2xl border-neural-red/25 bg-neural-red/5 p-8 text-center space-y-4">
         <TriangleAlert className="h-10 w-10 text-neural-red mx-auto animate-pulse" />
         <h3 className="text-lg font-semibold text-neural-red font-display uppercase tracking-[0.05em]">
           Internal Admin Token Required
@@ -482,7 +484,7 @@ export default function ApiKeysPage() {
     }
 
     mainContent = (
-      <div className="neural-panel rounded-2xl p-8 text-center space-y-4 border border-neural-amber/25 bg-neural-amber/5">
+      <div className="glass-base titanium-edge rounded-2xl border-neural-amber/25 bg-neural-amber/5 p-8 text-center space-y-4">
         <TriangleAlert className="h-10 w-10 text-neural-amber mx-auto" />
         <h3 className="text-lg font-semibold text-neural-text-primary font-display uppercase tracking-[0.05em]">{errorTitle}</h3>
         <p className="text-sm text-neural-text-secondary max-w-md mx-auto">{errorDesc}</p>
@@ -528,7 +530,7 @@ export default function ApiKeysPage() {
   } else if (keys.length === 0) {
     if (hasActiveFilters) {
       mainContent = (
-        <div className="neural-panel rounded-2xl p-8 text-center space-y-4 border border-white/5 bg-white/[0.01]">
+        <div className="glass-base titanium-edge rounded-2xl border-white/5 bg-white/[0.01] p-8 text-center space-y-4">
           <h3 className="text-lg font-semibold text-neural-text-primary font-display uppercase tracking-[0.05em]">No Search Results</h3>
           <p className="text-sm text-neural-text-secondary max-w-md mx-auto">
             No API keys matched the active environment, status, or search filters.
@@ -546,7 +548,7 @@ export default function ApiKeysPage() {
       );
     } else {
       mainContent = (
-        <div className="neural-panel rounded-2xl p-8 text-center space-y-4 border border-white/5 bg-white/[0.01]">
+        <div className="glass-base titanium-edge rounded-2xl border-white/5 bg-white/[0.01] p-8 text-center space-y-4">
           <h3 className="text-lg font-semibold text-neural-text-primary font-display uppercase tracking-[0.05em]">No API Keys Created</h3>
           <p className="text-sm text-neural-text-secondary max-w-md mx-auto">
             No API keys have been generated yet for this Gateway instance. Create one to get started.
@@ -701,23 +703,12 @@ export default function ApiKeysPage() {
   }
 
   return (
-    <section className="space-y-6 animate-fade-in-up">
+    <MotionPage>
       {/* Header and Quick Summary */}
-      <Panel accent="cyan" className="p-6 sm:p-7 lg:p-8">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="max-w-2xl">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-3xl font-semibold tracking-[-0.05em] text-neural-text-primary sm:text-4xl">
-                API Keys
-              </h1>
-              <Badge variant="live" withDot>
-                management
-              </Badge>
-            </div>
-            <p className="mt-3 text-sm leading-relaxed text-neural-text-secondary">
-              Create and manage NestyAI Gateway API keys for script execution, Console credentials, and external client requests.
-            </p>
-          </div>
+      <PageHeader
+        title="API Keys"
+        description="Create and govern Gateway credentials for scripts, Console access, and external clients."
+        actions={
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
@@ -738,8 +729,8 @@ export default function ApiKeysPage() {
               Create API Key
             </button>
           </div>
-        </div>
-      </Panel>
+        }
+      />
 
       {/* Summary Cards Grid */}
       {adminConfigured && (
@@ -841,23 +832,18 @@ export default function ApiKeysPage() {
       {mainContent}
 
       {/* CREATE API KEY MODAL */}
-      {createOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <Panel accent="cyan" className="w-full max-w-lg p-6 bg-neural-bg border border-white/15 rounded-2xl shadow-xl space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <KeyRound className="h-5 w-5 text-neural-cyan" />
-                <h3 className="text-lg font-semibold tracking-[-0.03em] text-neural-text-primary font-display uppercase tracking-[0.05em]">Create API Key</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setCreateOpen(false)}
-                className="text-neural-text-secondary hover:text-neural-text-primary transition"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
+      <Modal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        title={
+          <span className="inline-flex items-center gap-2">
+            <KeyRound className="h-5 w-5 text-neural-cyan" />
+            Create API Key
+          </span>
+        }
+        description="Issue a new client credential with optional usage and model restrictions."
+        size="md"
+      >
             {formError && <ErrorBanner message={formError} />}
 
             <form onSubmit={submitCreate} className="space-y-4">
@@ -971,27 +957,17 @@ export default function ApiKeysPage() {
                 </button>
               </div>
             </form>
-          </Panel>
-        </div>
-      )}
+      </Modal>
 
       {/* ONE-TIME RAW KEY DISPLAY SUCCESS MODAL */}
-      {rawKeyOpen && createdRawKey && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
-          <Panel accent="green" className="w-full max-w-lg p-6 bg-neural-bg border border-white/15 rounded-2xl shadow-xl space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-neural-green">
-                <h3 className="text-lg font-semibold tracking-[-0.03em] font-display uppercase tracking-[0.05em]">API Key Created — Copy It Now</h3>
-              </div>
-              <button
-                type="button"
-                onClick={closeRawKeyModal}
-                className="text-neural-text-secondary hover:text-neural-text-primary transition"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
+      <Modal
+        open={rawKeyOpen && Boolean(createdRawKey)}
+        onClose={closeRawKeyModal}
+        title="API Key Created - Copy It Now"
+        description="This is the only time the raw credential will be visible."
+        size="md"
+        closeOnBackdrop={false}
+      >
             <div className="rounded-xl border border-neural-amber/20 bg-neural-amber/10 p-3.5 text-xs leading-relaxed text-neural-amber space-y-1">
               <p className="font-semibold">This raw key is shown only once. After closing this panel, it cannot be recovered.</p>
               <p className="text-[11px] text-neural-text-secondary">
@@ -1017,7 +993,7 @@ export default function ApiKeysPage() {
                 <input
                   type="text"
                   readOnly
-                  value={createdRawKey}
+                  value={createdRawKey || ""}
                   className="flex-1 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 font-mono text-xs text-neural-cyan select-all outline-none border-dashed"
                 />
                 <button
@@ -1054,28 +1030,23 @@ export default function ApiKeysPage() {
                 I have copied this key
               </button>
             </div>
-          </Panel>
-        </div>
-      )}
+      </Modal>
 
       {/* EDIT API KEY MODAL */}
-      {editOpen && editingKey && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <Panel accent="cyan" className="w-full max-w-lg p-6 bg-neural-bg border border-white/15 rounded-2xl shadow-xl space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Edit2 className="h-5 w-5 text-neural-cyan" />
-                <h3 className="text-lg font-semibold tracking-[-0.03em] text-neural-text-primary font-display uppercase tracking-[0.05em]">Edit API Key Metadata</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setEditOpen(false)}
-                className="text-neural-text-secondary hover:text-neural-text-primary transition"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
+      <Modal
+        open={editOpen && Boolean(editingKey)}
+        onClose={() => setEditOpen(false)}
+        title={
+          <span className="inline-flex items-center gap-2">
+            <Edit2 className="h-5 w-5 text-neural-cyan" />
+            Edit API Key Metadata
+          </span>
+        }
+        description="Update mutable metadata and usage policy. Prefixes and raw credentials remain immutable."
+        size="md"
+      >
+        {editingKey ? (
+          <>
             {formError && <ErrorBanner message={formError} />}
 
             <form onSubmit={submitEdit} className="space-y-4">
@@ -1190,18 +1161,21 @@ export default function ApiKeysPage() {
                 </button>
               </div>
             </form>
-          </Panel>
-        </div>
-      )}
+          </>
+        ) : null}
+      </Modal>
 
       {/* REVOKE KEY CONFIRMATION MODAL */}
-      {revokeOpen && revokingKey && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <Panel accent="red" className="w-full max-w-md p-6 bg-neural-bg border border-white/15 rounded-2xl shadow-xl space-y-4">
-            <div className="flex items-center gap-2 text-neural-red">
-              <h3 className="text-lg font-semibold tracking-[-0.03em] font-display uppercase tracking-[0.05em]">Revoke API Key</h3>
-            </div>
-
+      <Modal
+        open={revokeOpen && Boolean(revokingKey)}
+        onClose={() => setRevokeOpen(false)}
+        title="Revoke API Key"
+        description="This action immediately blocks the credential and cannot be undone."
+        size="sm"
+        closeOnBackdrop={false}
+      >
+        {revokingKey ? (
+          <>
             <div className="text-sm text-neural-text-secondary leading-relaxed space-y-2">
               <p>
                 You are about to revoke the key <strong className="text-neural-text-primary font-bold">&ldquo;{revokingKey.name}&rdquo;</strong> (Prefix: <span className="font-mono text-xs text-neural-cyan">{revokingKey.key_prefix || "—"}</span>).
@@ -1242,28 +1216,25 @@ export default function ApiKeysPage() {
                 Revoke key
               </button>
             </div>
-          </Panel>
-        </div>
-      )}
+          </>
+        ) : null}
+      </Modal>
 
       {/* DETAILED VIEW MODAL */}
-      {detailOpen && detailKey && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <Panel accent="violet" className="w-full max-w-lg p-6 bg-neural-bg border border-white/15 rounded-2xl shadow-xl space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Eye className="h-5 w-5 text-violet-200" />
-                <h3 className="text-lg font-semibold tracking-[-0.03em] text-neural-text-primary font-display uppercase tracking-[0.05em]">API Key Details</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setDetailOpen(false)}
-                className="text-neural-text-secondary hover:text-neural-text-primary transition"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
+      <Modal
+        open={detailOpen && Boolean(detailKey)}
+        onClose={() => setDetailOpen(false)}
+        title={
+          <span className="inline-flex items-center gap-2">
+            <Eye className="h-5 w-5 text-neural-cyan" />
+            API Key Details
+          </span>
+        }
+        description="Public metadata and policy only. Raw credentials are never recoverable after creation."
+        size="md"
+      >
+        {detailKey ? (
+          <>
             <div className="space-y-4 text-sm text-neural-text-secondary">
               <div className="grid gap-3 grid-cols-2 border-b border-white/5 pb-3">
                 <div>
@@ -1382,9 +1353,9 @@ export default function ApiKeysPage() {
                 Close
               </button>
             </div>
-          </Panel>
-        </div>
-      )}
-    </section>
+          </>
+        ) : null}
+      </Modal>
+    </MotionPage>
   );
 }

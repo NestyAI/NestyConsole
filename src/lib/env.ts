@@ -5,6 +5,8 @@ type ConsoleEnvStatus = {
   apiKeyConfigured: boolean;
   internalAdminEnabled: boolean;
   internalAdminTokenConfigured: boolean;
+  consoleClientIdConfigured: boolean;
+  consoleClientSecretConfigured: boolean;
   adminUsernameConfigured: boolean;
   adminPasswordConfigured: boolean;
   sessionSecretConfigured: boolean;
@@ -47,6 +49,8 @@ export function getServerEnvStatus(): ConsoleEnvStatus {
     apiKeyConfigured: Boolean(process.env.NESTY_API_KEY?.trim()),
     internalAdminEnabled: toBool(process.env.NESTY_CONSOLE_ENABLE_INTERNAL_ADMIN, false),
     internalAdminTokenConfigured: Boolean(process.env.NESTY_INTERNAL_ADMIN_TOKEN?.trim()),
+    consoleClientIdConfigured: Boolean(process.env.NESTY_CONSOLE_CLIENT_ID?.trim()),
+    consoleClientSecretConfigured: Boolean(process.env.NESTY_CONSOLE_CLIENT_SECRET?.trim()),
     adminUsernameConfigured: Boolean(adminUsername),
     adminPasswordConfigured: Boolean(adminPassword),
     sessionSecretConfigured: Boolean(sessionSecret),

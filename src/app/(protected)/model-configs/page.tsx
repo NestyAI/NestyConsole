@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2, Plus, RefreshCw, RotateCcw, Save, Trash2 } from "lucide-react";
 
+import { MotionPage } from "@/components/motion/motion-page";
+import { PageHeader } from "@/components/layout/page-header";
+import { Button } from "@/components/ui/button";
 import { ConfirmAction } from "@/components/ui/confirm-action";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorBanner } from "@/components/ui/error-banner";
@@ -23,6 +26,8 @@ import {
   type ModelConfigDetailView,
   type ModelConfigListItem
 } from "@/lib/model-configs/client";
+import { fetchRuntimeProviders } from "@/lib/runtime-providers/client";
+import type { GatewayProviderCapability } from "@/lib/runtime-providers/types";
 import type { GatewayProviderChainItem } from "@/lib/gateway/types";
 import { safeStringify } from "@/lib/security/redact";
 
@@ -172,6 +177,30 @@ function providerBadgeVariant(provider: string): "success" | "live" | "ai" | "wa
   return "inactive";
 }
 
+function findProviderCapability(
+  catalog: GatewayProviderCapability[],
+  providerId: string
+): GatewayProviderCapability | undefined {
+  const normalized = providerId.trim().toLowerCase();
+  if (!normalized) return undefined;
+  return catalog.find((item) => String(item.provider_id || "").trim().toLowerCase() === normalized);
+}
+
+function providerChainWarnings(catalog: GatewayProviderCapability[], providerId: string): string[] {
+  const match = findProviderCapability(catalog, providerId);
+  const warnings: string[] = [];
+  if (!match && providerId.trim()) {
+    warnings.push("Provider ID is not in the current Gateway catalog. Manual entry is allowed; Gateway validates on save.");
+  }
+  if (match?.enabled === false) {
+    warnings.push("Provider is disabled in Gateway runtime state.");
+  }
+  if (String(match?.secret_status || "").toLowerCase() === "missing") {
+    warnings.push("Provider secret is missing on Gateway.");
+  }
+  return warnings;
+}
+
 export default function ModelConfigsPage() {
   const [listItems, setListItems] = useState<ModelConfigListItem[]>([]);
   const [listLoading, setListLoading] = useState(true);
@@ -192,6 +221,16 @@ export default function ModelConfigsPage() {
 
   const [credentialsView, setCredentialsView] = useState<GatewayCredentialsView | null>(null);
   const [credentialsError, setCredentialsError] = useState<ModelConfigConsoleError | null>(null);
+  const [providerCatalog, setProviderCatalog] = useState<GatewayProviderCapability[]>([]);
+
+  const providerSuggestions = useMemo(
+    () =>
+      providerCatalog
+        .map((item) => String(item.provider_id || "").trim())
+        .filter(Boolean)
+        .sort((a, b) => a.localeCompare(b)),
+    [providerCatalog]
+  );
 
   const loadCredentialsView = useCallback(async () => {
     setCredentialsError(null);
@@ -210,6 +249,15 @@ export default function ModelConfigsPage() {
         message: "Failed to load gateway credential status."
       });
       setCredentialsView(null);
+    }
+  }, []);
+
+  const loadProviderCatalog = useCallback(async () => {
+    try {
+      const payload = await fetchRuntimeProviders();
+      setProviderCatalog(Array.isArray(payload.providers) ? payload.providers : []);
+    } catch {
+      setProviderCatalog([]);
     }
   }, []);
 
@@ -281,9 +329,9 @@ export default function ModelConfigsPage() {
 
   useEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect */
-    void Promise.all([loadCredentialsView(), loadList()]);
+    void Promise.all([loadCredentialsView(), loadList(), loadProviderCatalog()]);
     /* eslint-enable react-hooks/set-state-in-effect */
-  }, [loadCredentialsView, loadList]);
+  }, [loadCredentialsView, loadList, loadProviderCatalog]);
 
   useEffect(() => {
     if (!selectedAlias && listItems.length > 0) {
@@ -294,7 +342,7 @@ export default function ModelConfigsPage() {
   }, [listItems, loadDetail, selectedAlias]);
 
   const refreshAll = async () => {
-    await Promise.all([loadCredentialsView(), loadList()]);
+    await Promise.all([loadCredentialsView(), loadList(), loadProviderCatalog()]);
     if (selectedAlias) {
       await loadDetail(selectedAlias);
     }
@@ -433,22 +481,23 @@ export default function ModelConfigsPage() {
   };
 
   return (
-    <section className="space-y-6 animate-fade-in-up">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-display text-2xl uppercase tracking-[0.08em] text-neural-text-primary">Model Configs</h1>
-          <p className="text-sm text-neural-text-secondary">Runtime model alias configuration and provider chains.</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => void refreshAll()}
-          className="inline-flex items-center gap-2 rounded-lg border border-neural-cyan/35 bg-neural-cyan/12 px-3 py-2 font-display text-xs uppercase tracking-[0.06em] text-neural-cyan transition hover:bg-neural-cyan/22"
-          disabled={listLoading || detailLoading}
-        >
-          <RefreshCw className={`h-4 w-4 ${listLoading || detailLoading ? "animate-spin" : ""}`} />
-          Refresh
-        </button>
-      </div>
+    <MotionPage>
+      <PageHeader
+        title="Model Configs"
+        description="Runtime model aliases, effective configuration, and governed provider chains."
+        actions={
+          <Button
+            type="button"
+            onClick={() => void refreshAll()}
+            variant="secondary"
+            className="min-h-11"
+            disabled={listLoading || detailLoading}
+          >
+            <RefreshCw className={`h-4 w-4 ${listLoading || detailLoading ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
+        }
+      />
 
       {!adminConfigured ? (
         <div className="rounded-xl border border-amber-300/30 bg-amber-500/10 p-4 text-sm text-amber-100">
@@ -564,27 +613,45 @@ export default function ModelConfigsPage() {
                   <p className="text-xs text-slate-300">No provider chain items configured.</p>
                 ) : (
                   <div className="neural-scroll space-y-2 overflow-x-auto">
-                    {draftProviderChain.map((item, index) => (
+                    {draftProviderChain.map((item, index) => {
+                      const capability = findProviderCapability(providerCatalog, item.provider);
+                      const chainWarnings = providerChainWarnings(providerCatalog, item.provider);
+                      return (
                       <article key={`${item.provider}-${item.model}-${index}`} className="rounded border border-neural-text-muted/25 bg-neural-elevated/70 p-2">
                         <div className="mb-2 flex flex-wrap items-center gap-1.5">
                           <Badge variant={providerBadgeVariant(normalizeProvider(item.provider))}>
-                            {providerDisplayName(normalizeProvider(item.provider))}
+                            {capability?.display_name || providerDisplayName(normalizeProvider(item.provider))}
                           </Badge>
+                          {capability?.source === "runtime" ? <Badge variant="live">runtime</Badge> : null}
+                          {capability?.enabled === false ? <Badge variant="inactive">disabled</Badge> : null}
+                          {String(capability?.secret_status || "").toLowerCase() === "missing" ? (
+                            <Badge variant="warning">missing secret</Badge>
+                          ) : null}
                           {normalizeProvider(item.provider) === "ollama_cloud" ? (
                             <span className="text-[11px] text-neural-text-secondary">
                               Examples: {OLLAMA_CLOUD_MODEL_EXAMPLES.join(", ")}
                             </span>
                           ) : null}
                         </div>
+                        {chainWarnings.length > 0 ? (
+                          <div className="mb-2 space-y-1">
+                            {chainWarnings.map((warning) => (
+                              <p key={warning} className="text-[11px] text-amber-200">
+                                {warning}
+                              </p>
+                            ))}
+                          </div>
+                        ) : null}
                         <div className="grid gap-2 md:grid-cols-2">
                           <label className="space-y-1 text-xs text-neural-text-secondary">
                             <span>provider</span>
                             <input
+                              list="runtime-provider-suggestions"
                               value={item.provider}
                               onChange={(event) =>
                                 updateChainItem(index, (prev) => ({ ...prev, provider: event.target.value }))
                               }
-                              placeholder="groq | openrouter | nvidia | ollama_cloud"
+                              placeholder="groq | openrouter | nvidia | ollama_cloud | runtime-id"
                               className="w-full rounded border border-neural-text-muted/30 bg-neural-input px-2 py-1 font-mono text-xs text-neural-text-primary focus:border-neural-cyan/50 focus:outline-none"
                             />
                           </label>
@@ -669,11 +736,21 @@ export default function ModelConfigsPage() {
                           </button>
                         </div>
                       </article>
-                    ))}
+                    );
+                    })}
                   </div>
                 )}
+                <datalist id="runtime-provider-suggestions">
+                  {providerSuggestions.map((providerId) => (
+                    <option key={providerId} value={providerId} />
+                  ))}
+                </datalist>
                 <p className="text-[11px] text-neural-text-muted">
-                  `ollama_cloud` is supported here for runtime routing display and override payloads. `OLLAMA_API_KEY` is configured on Gateway only, not in Console.
+                  Runtime provider IDs from{" "}
+                  <Link href="/settings/providers" className="underline underline-offset-2 hover:text-neural-cyan">
+                    Settings {"->"} Runtime Providers
+                  </Link>{" "}
+                  appear as suggestions. Manual provider ID entry is still supported.
                 </p>
               </div>
 
@@ -758,6 +835,6 @@ export default function ModelConfigsPage() {
           ) : null}
         </Panel>
       </div>
-    </section>
+    </MotionPage>
   );
 }

@@ -11,7 +11,7 @@ export function TokenTag({ children, className }: TokenTagProps) {
   return (
     <span
       className={cn(
-        "inline-flex max-w-full items-center rounded-md border border-white/10 bg-neural-elevated/80 px-2 py-0.5 font-mono text-[11px] text-neural-text-code",
+        "inline-flex max-w-full items-center rounded-md border border-white/[0.12] bg-white/[0.045] px-2 py-0.5 font-mono text-[11px] text-neural-text-code",
         className
       )}
     >

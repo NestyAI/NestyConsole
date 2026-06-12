@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, KeyboardEvent, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Clipboard, Loader2, Menu, RefreshCcw, Send, Square, Trash2 } from "lucide-react";
 
+import { MotionPage } from "@/components/motion/motion-page";
+import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorBanner } from "@/components/ui/error-banner";
@@ -13,6 +15,7 @@ import { Panel } from "@/components/ui/panel";
 import { RequestIdTag } from "@/components/ui/request-id-tag";
 import { Select } from "@/components/ui/select";
 import { TokenTag } from "@/components/ui/token-tag";
+import { formatRateLimitHint, rateLimitFallbackMessage } from "@/lib/gateway/provider-error-parsers";
 import { ProOrchestrationDetails } from "@/components/chat/pro-orchestration-details";
 import { RetrievalDetails } from "@/components/chat/retrieval-details";
 import { PlannerDetails } from "@/components/chat/planner-details";
@@ -68,6 +71,8 @@ type ConsoleError = {
   details?: {
     request_id?: string;
     retry_after_seconds?: number;
+    rate_limit_reset_seconds?: number;
+    rate_limit_reset_at?: string;
     quota_type?: string;
     limit?: number;
     [key: string]: unknown;
@@ -1618,9 +1623,14 @@ function ChatPageContent() {
 
             if (json.error) {
               streamHadError = true;
+              const streamDetails =
+                json.error.details && typeof json.error.details === "object"
+                  ? (json.error.details as ConsoleError["details"])
+                  : undefined;
               setError({
                 code: String(json.error.code || "gateway_error"),
-                message: String(json.error.message || "Streaming response failed.")
+                message: String(json.error.message || "Streaming response failed."),
+                ...(streamDetails ? { details: streamDetails } : {})
               });
               return;
             }
@@ -1743,28 +1753,11 @@ function ChatPageContent() {
   );
 
   return (
-    <section className="space-y-5">
-      <Panel accent="cyan" className="p-6 sm:p-7 lg:p-8">
-        <div className="relative flex flex-wrap items-start justify-between gap-5">
-          <div className="max-w-2xl space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="live" withDot>
-                streaming
-              </Badge>
-              <Badge variant="inactive">server-side routes</Badge>
-              <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 font-display text-[10px] uppercase tracking-[0.12em] text-neural-text-secondary">
-                protected workspace
-              </span>
-            </div>
-            <h1 className="text-3xl font-semibold tracking-[-0.05em] text-neural-text-primary sm:text-4xl lg:text-5xl">
-              NestyChat Web
-            </h1>
-            <p className="max-w-xl text-sm leading-relaxed text-neural-text-secondary sm:text-base">
-              Protected chat UI that uses server-side Console routes only. The message stream, conversation rail, and
-              composer now share the same tighter shell language as the rest of the console.
-            </p>
-          </div>
-
+    <MotionPage className="space-y-5">
+      <PageHeader
+        title="NestyChat Web"
+        description="Protected gateway chat with streaming, conversation continuity, workspace context, and server-side credentials."
+        actions={
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
@@ -1809,8 +1802,8 @@ function ChatPageContent() {
               {copiedKey === "transcript" ? "Copied" : "Copy Transcript"}
             </button>
           </div>
-        </div>
-      </Panel>
+        }
+      />
 
       <div className="flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-neural-elevated/50 px-4 py-3 text-xs text-neural-text-secondary">
         {conversationId ? (
@@ -1936,9 +1929,7 @@ function ChatPageContent() {
             </p>
           ) : error.code === "gateway_rate_limited" ? (
             <p className="mt-2 text-xs text-neural-text-secondary">
-              {typeof error.details?.retry_after_seconds === "number"
-                ? `Rate limit exceeded. Try again in ${error.details.retry_after_seconds} seconds.`
-                : "Rate limit exceeded. Try again later."}
+              {formatRateLimitHint(error.details) || rateLimitFallbackMessage()}
             </p>
           ) : error.code === "gateway_model_not_allowed" ? (
             <p className="mt-2 text-xs text-neural-text-secondary">
@@ -1996,13 +1987,23 @@ function ChatPageContent() {
               </Link>
               .
             </p>
+          ) : error.code === "gateway_policy_violation" ||
+            error.code === "gateway_secret_exfiltration_blocked" ||
+            error.code === "gateway_malicious_cyber_request" ||
+            error.code === "gateway_unsafe_output_blocked" ||
+            error.code === "gateway_prompt_injection_detected" ? (
+            <p className="mt-2 text-xs text-neural-text-secondary">
+              Gateway safety policy blocked this request
+              {error.details?.reason_code ? ` (${String(error.details.reason_code)})` : ""}. Rephrase toward a safe or
+              defensive use case. Policy enforcement details stay on Gateway; only safe metadata is shown here.
+            </p>
           ) : null}
           <RequestIdTag requestId={error.details?.request_id} />
         </ErrorBanner>
       ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[minmax(260px,320px)_minmax(520px,1fr)_minmax(280px,340px)] 2xl:grid-cols-[minmax(280px,340px)_minmax(720px,1fr)_minmax(300px,360px)]">
-        <aside className={`${sidebarOpen ? "block" : "hidden"} neural-panel w-full min-w-0 space-y-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4 shadow-neural-soft lg:block`}>
+        <aside className={`${sidebarOpen ? "block" : "hidden"} glass-base titanium-edge w-full min-w-0 space-y-4 rounded-2xl p-4 lg:block`}>
           <div className="flex items-center justify-between gap-3">
             <h2 className="font-display text-sm uppercase tracking-[0.07em] text-neural-text-primary">Conversations</h2>
             <button
@@ -2115,7 +2116,7 @@ function ChatPageContent() {
           </div>
         </aside>
 
-        <Panel className="flex w-full min-w-0 flex-col overflow-hidden p-0">
+        <Panel tier="raised" className="flex w-full min-w-0 flex-col overflow-hidden p-0">
           <div className="flex min-h-[50vh] max-h-[72vh] 2xl:max-h-[78vh] flex-col overflow-hidden rounded-xl border border-white/10 bg-neural-elevated/70 w-full min-w-0">
             <div
               ref={messagesContainerRef}
@@ -2223,7 +2224,7 @@ function ChatPageContent() {
               )}
             </div>
 
-            <form onSubmit={handleSubmit} className="sticky bottom-0 space-y-3 border-t border-white/10 bg-neural-elevated/90 p-4 backdrop-blur">
+            <form onSubmit={handleSubmit} className="glass-overlay sticky bottom-0 space-y-3 border-t border-white/10 p-4">
               <textarea
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
@@ -2319,7 +2320,7 @@ function ChatPageContent() {
           })() : null}
         </Panel>
 
-        <aside className="neural-panel w-full min-w-0 space-y-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4 shadow-neural-soft">
+        <aside className="glass-base titanium-edge w-full min-w-0 space-y-4 rounded-2xl p-4">
           <h2 className="font-display text-sm uppercase tracking-[0.07em] text-neural-text-primary">Chat Options</h2>
 
           {/* Preset Selector */}
@@ -2520,7 +2521,7 @@ function ChatPageContent() {
           </div>
         </aside>
       </div>
-    </section>
+    </MotionPage>
   );
 }
 

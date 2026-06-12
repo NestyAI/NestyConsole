@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { StatusDot } from "@/components/ui/status-dot";
 
-type BadgeVariant = "success" | "warning" | "error" | "inactive" | "ai" | "live";
+export type BadgeVariant = "success" | "warning" | "error" | "inactive" | "ai" | "live";
 
 type BadgeProps = {
   children: ReactNode;
@@ -13,12 +13,12 @@ type BadgeProps = {
 };
 
 const VARIANT_CLASS: Record<BadgeVariant, string> = {
-  success: "border-neural-green/25 bg-neural-green/10 text-neural-green",
-  warning: "border-neural-amber/25 bg-neural-amber/10 text-neural-amber",
-  error: "border-neural-red/25 bg-neural-red/10 text-rose-200",
-  inactive: "border-white/10 bg-neural-elevated/80 text-neural-text-secondary",
-  ai: "border-neural-violet/25 bg-neural-violet/10 text-violet-200",
-  live: "border-neural-cyan/25 bg-neural-cyan/10 text-neural-cyan"
+  success: "border-neural-green/30 bg-neural-green/10 text-emerald-100",
+  warning: "border-neural-amber/30 bg-neural-amber/10 text-amber-100",
+  error: "border-neural-red/30 bg-neural-red/10 text-rose-100",
+  inactive: "border-white/[0.12] bg-white/[0.045] text-neural-text-secondary",
+  ai: "border-neural-violet/30 bg-neural-violet/10 text-violet-100",
+  live: "border-neural-cyan/30 bg-neural-cyan/10 text-cyan-100"
 };
 
 const DOT_TONE: Record<BadgeVariant, "success" | "warning" | "error" | "neutral" | "live" | "ai"> = {

@@ -9,6 +9,13 @@ import type {
 export type DiagnosticsConsoleError = {
   code: string;
   message: string;
+  details?: {
+    request_id?: string;
+    retry_after_seconds?: number;
+    rate_limit_reset_seconds?: number;
+    rate_limit_reset_at?: string;
+    [key: string]: unknown;
+  };
 };
 
 type DiagnosticsRequestResult<T> =
@@ -68,10 +75,14 @@ export type ClearProviderHealthView = {
 };
 
 function normalizeError(payload: unknown, fallback: string): DiagnosticsConsoleError {
-  const data = payload as { error?: { code?: unknown; message?: unknown } } | null;
+  const data = payload as {
+    error?: { code?: unknown; message?: unknown; details?: Record<string, unknown> };
+  } | null;
+  const details = data?.error?.details;
   return {
     code: String(data?.error?.code || "unknown_error"),
-    message: String(data?.error?.message || fallback)
+    message: String(data?.error?.message || fallback),
+    ...(details && typeof details === "object" ? { details } : {})
   };
 }
 

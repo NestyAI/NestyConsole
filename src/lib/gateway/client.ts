@@ -24,6 +24,7 @@ import {
   mapUpstreamToGatewayClientCode,
   type UpstreamGatewayError
 } from "@/lib/gateway/provider-errors";
+import { getConsoleClientAuthHeaders, isConsoleRuntimePath } from "@/lib/gateway/console-client-auth";
 
 function toGatewayError(
   code: string,
@@ -125,13 +126,24 @@ function normalizeGatewayErrorCode(
   if (status === 404) {
     return "not_found";
   }
+  if (
+    lowered === "safety_violation" ||
+    lowered === "secret_exfiltration_blocked" ||
+    lowered === "malicious_cyber_request" ||
+    lowered === "unsafe_output_blocked" ||
+    lowered === "prompt_injection_detected" ||
+    lowered.startsWith("runtime_provider_") ||
+    lowered === "console_client_auth_failed"
+  ) {
+    return lowered as GatewayErrorCode;
+  }
   return "gateway_request_failed";
 }
 
 export async function gatewayFetch<T>(
   path: string,
   init: RequestInit = {},
-  options?: { internalAdmin?: boolean; credentials?: EffectiveGatewayCredentials }
+  options?: { internalAdmin?: boolean; credentials?: EffectiveGatewayCredentials; consoleRuntime?: boolean }
 ): Promise<GatewayResult<T>> {
   const effective = options?.credentials || (await resolveEffectiveGatewayCredentials());
   const baseUrl = effective.gatewayUrl;
@@ -158,6 +170,13 @@ export async function gatewayFetch<T>(
     }
   } else if (effective.gatewayApiKey) {
     headers.set("Authorization", `Bearer ${effective.gatewayApiKey}`);
+  }
+
+  if (options?.consoleRuntime || isConsoleRuntimePath(path)) {
+    const consoleHeaders = getConsoleClientAuthHeaders();
+    for (const [key, value] of Object.entries(consoleHeaders)) {
+      headers.set(key, value);
+    }
   }
 
   if (init.headers) {

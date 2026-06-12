@@ -12,12 +12,12 @@ type PageHeaderProps = {
 
 export function PageHeader({ title, description, actions, className }: PageHeaderProps) {
   return (
-    <div className={cn("flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between", className)}>
+    <div className={cn("glass-accent titanium-edge flex flex-col gap-5 rounded-3xl p-6 sm:p-8 lg:flex-row lg:items-end lg:justify-between", className)}>
       <div className="min-w-0">
         <h1 className={PAGE_HEADER_TITLE_CLASS}>{title}</h1>
         {description ? <p className={PAGE_HEADER_DESC_CLASS}>{description}</p> : null}
       </div>
-      {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div> : null}
+      {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2 lg:justify-end">{actions}</div> : null}
     </div>
   );
 }

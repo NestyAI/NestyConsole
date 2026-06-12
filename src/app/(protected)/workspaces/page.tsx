@@ -17,6 +17,9 @@ import {
   AlertTriangle 
 } from "lucide-react";
 
+import { MotionPage } from "@/components/motion/motion-page";
+import { PageHeader } from "@/components/layout/page-header";
+import { Modal } from "@/components/ui/modal";
 import { Panel } from "@/components/ui/panel";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -491,24 +494,17 @@ export default function WorkspacesPage() {
   );
 
   return (
-    <section className="min-w-0 space-y-6 animate-fade-in-up">
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-4">
-        <div className="min-w-0 space-y-2">
-          <p className="font-display text-[10px] uppercase tracking-[0.14em] text-neural-cyan">Operator Console</p>
-          <h1 className="text-3xl font-semibold tracking-[-0.05em] text-neural-text-primary sm:text-4xl">
-            Workspace Memory Hub
-          </h1>
-          <p className="max-w-2xl text-sm text-neural-text-secondary">
-            Organize local notes, system prompts, presets, and linked conversations by project. All data remains in
-            browser localStorage only.
-          </p>
+    <MotionPage className="min-w-0">
+      <PageHeader
+        title="Workspace Memory Hub"
+        description="Organize local notes, prompts, presets, and linked conversations. Workspace data remains in this browser."
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
           <WorkspaceStatStrip>
             <WorkspaceStatItem>
               {workspaces.length} workspace{workspaces.length === 1 ? "" : "s"}
             </WorkspaceStatItem>
           </WorkspaceStatStrip>
-        </div>
-        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={openNewWorkspaceForm}
@@ -517,8 +513,9 @@ export default function WorkspacesPage() {
             <Plus className="h-4 w-4" aria-hidden="true" />
             New Workspace
           </button>
-        </div>
-      </div>
+          </div>
+        }
+      />
 
       <WorkspaceNotice>Do not put secrets in workspace notes or prompts.</WorkspaceNotice>
 
@@ -947,23 +944,13 @@ export default function WorkspacesPage() {
       </div>
 
       {/* Editor Modal/Form overlay for Workspace Config */}
-      {showEditor && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-neural-void/80 p-4 backdrop-blur-sm">
-          <Panel className="w-full max-w-xl p-6 space-y-4 border border-white/10 bg-neural-elevated shadow-neural-soft max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between gap-4 border-b border-white/10 pb-3">
-              <h3 className="font-display text-base font-semibold text-neural-text-primary">
-                {editingWorkspace ? "Edit Workspace Settings" : "Configure New Workspace"}
-              </h3>
-              <button
-                type="button"
-                onClick={() => setShowEditor(false)}
-                aria-label="Close workspace editor"
-                className={`text-neural-text-secondary transition-colors hover:text-neural-cyan ${WORKSPACE_FOCUS_RING} rounded-sm`}
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
+      <Modal
+        open={showEditor}
+        onClose={() => setShowEditor(false)}
+        title={editingWorkspace ? "Edit Workspace Settings" : "Configure New Workspace"}
+        description="Workspace configuration stays local to this browser."
+        size="lg"
+      >
             <form onSubmit={handleSaveWorkspace} className="space-y-4 text-xs">
               <WorkspaceNotice>
                 Do not put secrets in workspace notes or prompts. Workspace configurations remain local to this browser
@@ -1142,27 +1129,16 @@ export default function WorkspacesPage() {
                 </button>
               </div>
             </form>
-          </Panel>
-        </div>
-      )}
+      </Modal>
 
       {/* Editor Modal for Project Notes */}
-      {showNoteEditor && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-neural-void/80 p-4 backdrop-blur-sm">
-          <Panel className="w-full max-w-md p-6 space-y-4 border border-white/10 bg-neural-elevated shadow-neural-soft">
-            <div className="flex items-center justify-between gap-4 border-b border-white/10 pb-3">
-              <h3 className="font-display text-base font-semibold text-neural-text-primary">
-                {editingNote ? "Edit Project Note" : "Create New Note"}
-              </h3>
-              <button
-                type="button"
-                onClick={() => setShowNoteEditor(false)}
-                className="text-neural-text-secondary hover:text-neural-cyan transition"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
+      <Modal
+        open={showNoteEditor}
+        onClose={() => setShowNoteEditor(false)}
+        title={editingNote ? "Edit Project Note" : "Create New Note"}
+        description="Pinned notes can be sent transiently as workspace chat context."
+        size="sm"
+      >
             <form onSubmit={handleSaveNote} className="space-y-4 text-xs">
               <div className="flex items-center gap-2 rounded-2xl border border-neural-amber/20 bg-neural-amber/5 p-3 text-neural-amber">
                 <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
@@ -1229,9 +1205,7 @@ export default function WorkspacesPage() {
                 </button>
               </div>
             </form>
-          </Panel>
-        </div>
-      )}
-    </section>
+      </Modal>
+    </MotionPage>
   );
 }

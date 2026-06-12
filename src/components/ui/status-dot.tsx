@@ -15,5 +15,5 @@ const TONE_CLASS: Record<NonNullable<StatusDotProps["tone"]>, string> = {
 };
 
 export function StatusDot({ tone = "neutral", className }: StatusDotProps) {
-  return <span className={cn("inline-flex h-2.5 w-2.5 rounded-full", TONE_CLASS[tone], className)} aria-hidden />;
+  return <span className={cn("inline-flex size-2.5 rounded-full ring-2 ring-current/10", TONE_CLASS[tone], className)} aria-hidden="true" />;
 }

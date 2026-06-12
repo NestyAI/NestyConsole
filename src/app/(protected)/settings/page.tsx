@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import Link from "next/link";
 
+import { MotionPage } from "@/components/motion/motion-page";
 import { Badge } from "@/components/ui/badge";
 import { Panel } from "@/components/ui/panel";
 import { StatCard } from "@/components/ui/stat-card";
@@ -41,7 +42,7 @@ export default async function SettingsPage() {
   const memoryReady = Boolean(env.internalAdminEnabled && env.internalAdminTokenConfigured);
 
   return (
-    <section className="space-y-6 animate-fade-in-up">
+    <MotionPage>
       <Panel accent="cyan" className="p-6 sm:p-7 lg:p-8">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant={gatewayReady ? "success" : "warning"} withDot>
@@ -98,7 +99,7 @@ export default async function SettingsPage() {
           label="Admin access"
           value={env.internalAdminEnabled ? "Enabled" : "Off"}
           hint="Required for diagnostics and configs"
-          accent={env.internalAdminEnabled ? "green" : "violet"}
+          accent={env.internalAdminEnabled ? "green" : "amber"}
         />
         <StatCard
           label="Session"
@@ -109,7 +110,7 @@ export default async function SettingsPage() {
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
-        <Panel accent="violet" className="p-6">
+        <Panel accent="cyan" className="p-6">
           <p className="font-display text-[11px] uppercase tracking-[0.12em] text-neural-text-secondary">Runtime Status</p>
           <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-neural-text-primary">Local console configuration</h2>
 
@@ -118,10 +119,11 @@ export default async function SettingsPage() {
             <ConfigRow label="API key configured" enabled={env.apiKeyConfigured} />
             <ConfigRow label="Internal admin enabled" enabled={env.internalAdminEnabled} />
             <ConfigRow label="Internal admin token configured" enabled={env.internalAdminTokenConfigured} />
+            <ConfigRow label="Console client secret configured" enabled={env.consoleClientSecretConfigured} />
           </div>
         </Panel>
 
-        <Panel accent="amber" className="p-6">
+        <Panel accent="cyan" className="p-6">
           <p className="font-display text-[11px] uppercase tracking-[0.12em] text-neural-text-secondary">Authentication</p>
           <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-neural-text-primary">Access readiness</h2>
 
@@ -164,10 +166,20 @@ export default async function SettingsPage() {
             </Link>
 
             <Link
-              href="/api-keys"
-              className="rounded-2xl border border-neural-green/35 bg-neural-green/12 p-4 transition hover:bg-neural-green/20"
+              href="/settings/providers"
+              className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition hover:border-neural-cyan/30 hover:bg-neural-cyan/[0.06]"
             >
-              <p className="font-display text-[11px] uppercase tracking-[0.12em] text-neural-green">API Keys</p>
+              <p className="font-display text-[11px] uppercase tracking-[0.12em] text-neural-cyan">Runtime Providers</p>
+              <p className="mt-2 text-sm leading-relaxed text-neural-text-secondary">
+                Add OpenAI-compatible runtime providers and manage enable/disable state through Console server routes.
+              </p>
+            </Link>
+
+            <Link
+              href="/api-keys"
+              className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition hover:border-neural-cyan/30 hover:bg-neural-cyan/[0.06]"
+            >
+              <p className="font-display text-[11px] uppercase tracking-[0.12em] text-neural-cyan">API Keys</p>
               <p className="mt-2 text-sm leading-relaxed text-neural-text-secondary">
                 Create, revoke, and manage environment-specific Gateway API keys. Requires Internal Admin Token.
               </p>
@@ -175,9 +187,9 @@ export default async function SettingsPage() {
 
             <Link
               href="/diagnostics"
-              className="rounded-2xl border border-neural-amber/35 bg-neural-amber/12 p-4 transition hover:bg-neural-amber/20"
+              className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition hover:border-neural-cyan/30 hover:bg-neural-cyan/[0.06]"
             >
-              <p className="font-display text-[11px] uppercase tracking-[0.12em] text-neural-amber">Diagnostics</p>
+              <p className="font-display text-[11px] uppercase tracking-[0.12em] text-neural-cyan">Diagnostics</p>
               <p className="mt-2 text-sm leading-relaxed text-neural-text-secondary">
                 Review provider health, reliability scores, and the latest checks.
               </p>
@@ -185,9 +197,9 @@ export default async function SettingsPage() {
 
             <Link
               href="/model-configs"
-              className="rounded-2xl border border-neural-violet/35 bg-neural-violet/12 p-4 transition hover:bg-neural-violet/20"
+              className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition hover:border-neural-cyan/30 hover:bg-neural-cyan/[0.06]"
             >
-              <p className="font-display text-[11px] uppercase tracking-[0.12em] text-violet-200">Model Configs</p>
+              <p className="font-display text-[11px] uppercase tracking-[0.12em] text-neural-cyan">Model Configs</p>
               <p className="mt-2 text-sm leading-relaxed text-neural-text-secondary">
                 Inspect and edit safe provider chain overrides.
               </p>
@@ -205,7 +217,7 @@ export default async function SettingsPage() {
           </div>
         </Panel>
 
-        <Panel accent="green" className="p-6">
+        <Panel accent="cyan" className="p-6">
           <p className="font-display text-[11px] uppercase tracking-[0.12em] text-neural-text-secondary">Safety Notes</p>
           <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-neural-text-primary">
             What this page intentionally does not show.
@@ -224,6 +236,6 @@ export default async function SettingsPage() {
           </div>
         </Panel>
       </div>
-    </section>
+    </MotionPage>
   );
 }

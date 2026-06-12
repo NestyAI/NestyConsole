@@ -1,5 +1,7 @@
 import type { Config } from "tailwindcss";
 
+const variableColor = (name: string) => `rgb(var(${name}) / <alpha-value>)`;
+
 const config: Config = {
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
@@ -10,37 +12,37 @@ const config: Config = {
     extend: {
       colors: {
         neural: {
-          app: "#07090f",
-          shell: "#0b0f17",
-          void: "#07090f",
-          base: "#0b0f17",
-          elevated: "#10151f",
-          panel: "#131a26",
-          overlay: "#1c2535",
-          input: "#0f141d",
-          cyan: "#3b9eff",
-          amber: "#e5a84a",
-          violet: "#7c6fe6",
-          green: "#34c38a",
-          red: "#e85d75",
+          app: variableColor("--color-bg-app"),
+          shell: variableColor("--color-bg-shell"),
+          void: variableColor("--color-bg-void"),
+          base: variableColor("--color-bg-base"),
+          elevated: variableColor("--color-bg-elevated"),
+          panel: variableColor("--color-bg-panel"),
+          overlay: variableColor("--color-bg-overlay"),
+          input: variableColor("--color-bg-input"),
+          cyan: variableColor("--color-accent-cyan"),
+          amber: variableColor("--color-accent-amber"),
+          violet: variableColor("--color-accent-violet"),
+          green: variableColor("--color-accent-green"),
+          red: variableColor("--color-accent-red"),
           text: {
-            primary: "#e8edf5",
-            secondary: "#9aa6b8",
-            muted: "#667385",
-            code: "#a8b8cc"
+            primary: variableColor("--color-text-primary"),
+            secondary: variableColor("--color-text-secondary"),
+            muted: variableColor("--color-text-muted"),
+            code: variableColor("--color-text-code")
           }
         },
         console: {
-          app: "#07090f",
-          shell: "#0b0f17",
-          surface: "#131a26",
-          raised: "#171f2d",
-          input: "#0f141d"
+          app: variableColor("--color-bg-app"),
+          shell: variableColor("--color-bg-shell"),
+          surface: variableColor("--color-bg-panel"),
+          raised: variableColor("--color-bg-raised"),
+          input: variableColor("--color-bg-input")
         },
         surface: {
-          950: "#07090f",
-          900: "#0b0f17",
-          800: "#131a26"
+          950: variableColor("--color-bg-void"),
+          900: variableColor("--color-bg-shell"),
+          800: variableColor("--color-bg-panel")
         }
       },
       fontFamily: {
@@ -49,17 +51,22 @@ const config: Config = {
         mono: ["var(--font-geist-mono)", "ui-monospace", "SFMono-Regular", "monospace"]
       },
       boxShadow: {
-        "neural-panel": "0 0 0 1px rgba(148, 163, 184, 0.1), 0 4px 16px rgba(0, 0, 0, 0.28)",
-        "neural-glow": "0 0 0 1px rgba(59, 158, 255, 0.18), inset 0 0 0 1px rgba(59, 158, 255, 0.06)"
+        "neural-panel": "0 0 0 1px rgb(188 211 238 / 0.1), 0 18px 42px rgb(0 0 0 / 0.28)",
+        "neural-soft": "0 14px 36px rgb(0 0 0 / 0.24), inset 0 1px 0 rgb(236 247 255 / 0.06)",
+        "neural-glow": "0 0 0 1px rgb(var(--color-accent-cyan) / 0.2), inset 0 1px 0 rgb(255 255 255 / 0.06)"
       },
       keyframes: {
+        "fade-in": {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" }
+        },
         "fade-in-up": {
           "0%": { opacity: "0", transform: "translateY(8px)" },
           "100%": { opacity: "1", transform: "translateY(0)" }
         },
         "status-pulse": {
           "0%,100%": { opacity: "1", transform: "scale(1)" },
-          "50%": { opacity: "0.55", transform: "scale(1.08)" }
+          "50%": { opacity: "0.62", transform: "scale(1.08)" }
         },
         shimmer: {
           "0%": { backgroundPosition: "-200% 0" },
@@ -71,10 +78,18 @@ const config: Config = {
         }
       },
       animation: {
-        "fade-in-up": "fade-in-up 220ms ease-out both",
-        "status-pulse": "status-pulse 1.4s ease-in-out infinite",
+        "fade-in": "fade-in 180ms ease-out both",
+        "fade-in-up": "fade-in-up 280ms ease-out both",
+        "status-pulse": "status-pulse 1.6s ease-in-out infinite",
         shimmer: "shimmer 1.8s linear infinite",
         "message-enter": "message-enter 180ms ease-out both"
+      },
+      zIndex: {
+        shell: "20",
+        topbar: "30",
+        overlay: "40",
+        modal: "50",
+        toast: "60"
       }
     }
   },

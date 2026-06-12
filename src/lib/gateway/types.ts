@@ -68,7 +68,19 @@ export type GatewayErrorCode =
   | "semantic_recall_unavailable"
   | "not_found"
   | "unknown_error"
-  | "gateway_request_failed";
+  | "gateway_request_failed"
+  | "safety_violation"
+  | "secret_exfiltration_blocked"
+  | "malicious_cyber_request"
+  | "unsafe_output_blocked"
+  | "prompt_injection_detected"
+  | "runtime_provider_not_found"
+  | "runtime_provider_invalid"
+  | "runtime_provider_conflict"
+  | "runtime_provider_secret_missing"
+  | "runtime_provider_test_failed"
+  | "runtime_provider_builtin_readonly"
+  | "console_client_auth_failed";
 
 export type ChatRole = "system" | "user" | "assistant";
 
@@ -269,6 +281,7 @@ export type ChatStreamEvent = {
   error?: {
     code?: string;
     message?: string;
+    details?: Record<string, unknown>;
   };
 };
 

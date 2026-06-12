@@ -1,35 +1,59 @@
+"use client";
+
+import { useState } from "react";
+import { Copy } from "lucide-react";
+
 import { TokenTag } from "@/components/ui/token-tag";
-
-const SAFE_REQUEST_ID = /^[A-Za-z0-9._-]{1,64}$/;
-
-function sanitizeRequestId(raw: string | undefined | null): string | undefined {
-  if (typeof raw !== "string") {
-    return undefined;
-  }
-  const candidate = raw.trim();
-  if (!candidate || candidate.length > 64) {
-    return undefined;
-  }
-  if (!SAFE_REQUEST_ID.test(candidate)) {
-    return undefined;
-  }
-  return candidate;
-}
+import { sanitizeRequestId } from "@/lib/gateway/provider-error-parsers";
 
 type RequestIdTagProps = {
   requestId: string | undefined | null;
   className?: string;
+  showLogHint?: boolean;
 };
 
-export function RequestIdTag({ requestId, className }: RequestIdTagProps) {
+export function RequestIdTag({ requestId, className, showLogHint = false }: RequestIdTagProps) {
+  const [copied, setCopied] = useState(false);
   const safeId = sanitizeRequestId(requestId);
   if (!safeId) {
     return null;
   }
 
+  const handleCopy = async () => {
+    if (typeof navigator === "undefined" || !navigator.clipboard?.writeText) {
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(safeId);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Clipboard unavailable — display-only fallback.
+    }
+  };
+
   return (
-    <p className={`mt-2 text-xs text-neural-text-secondary ${className || ""}`.trim()}>
-      Request ID: <TokenTag>{safeId}</TokenTag>
-    </p>
+    <div className={`mt-2 text-xs text-neural-text-secondary ${className || ""}`.trim()}>
+      <p className="inline-flex flex-wrap items-center gap-2">
+        <span>Request ID:</span>
+        <TokenTag>{safeId}</TokenTag>
+        {typeof navigator !== "undefined" && "clipboard" in navigator ? (
+          <button
+            type="button"
+            onClick={() => void handleCopy()}
+            className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/[0.04] px-2 py-0.5 font-display text-[10px] uppercase tracking-[0.06em] text-neural-text-secondary hover:border-neural-cyan/35 hover:text-neural-cyan"
+            aria-label="Copy request ID"
+          >
+            <Copy className="h-3 w-3" />
+            {copied ? "Copied" : "Copy"}
+          </button>
+        ) : null}
+      </p>
+      {showLogHint ? (
+        <p className="mt-1 text-[11px] text-neural-text-muted">
+          Use this Request ID to correlate Gateway logs.
+        </p>
+      ) : null}
+    </div>
   );
 }

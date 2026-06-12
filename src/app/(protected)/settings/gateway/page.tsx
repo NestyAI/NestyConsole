@@ -3,12 +3,15 @@
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2, Trash2 } from "lucide-react";
+import { MotionPage } from "@/components/motion/motion-page";
+import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { ErrorBanner } from "@/components/ui/error-banner";
 import { LoadingBlock } from "@/components/ui/loading-block";
 import { Panel } from "@/components/ui/panel";
 import { RequestIdTag } from "@/components/ui/request-id-tag";
 import { StateCard } from "@/components/ui/state-card";
+import { rateLimitFallbackMessage } from "@/lib/gateway/provider-error-parsers";
 
 type CredentialSource = "stored" | "env" | "missing";
 
@@ -248,24 +251,16 @@ export default function GatewaySettingsPage() {
         : "SQLite";
 
   return (
-    <section className="space-y-6 animate-fade-in-up">
-      <Panel accent="cyan" className="p-6 sm:p-7 lg:p-8">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="max-w-2xl">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-3xl font-semibold tracking-[-0.05em] text-neural-text-primary sm:text-4xl">
-                Gateway Credentials
-              </h1>
-              <Badge variant="warning" withDot>
-                protected
-              </Badge>
-            </div>
-            <p className="mt-3 text-sm leading-relaxed text-neural-text-secondary">
-              Credentials are stored server-side with encryption. Secret values are never shown in the browser.
-            </p>
-          </div>
-        </div>
-      </Panel>
+    <MotionPage>
+      <PageHeader
+        title="Gateway Credentials"
+        description="Manage encrypted server-side gateway access. Secret values are never rendered back into the browser."
+        actions={
+          <Badge variant="warning" withDot>
+            protected
+          </Badge>
+        }
+      />
 
       {view?.storage_mode === "redis_kv" && view.storage_available ? (
         <div className="rounded-2xl border border-emerald-400/30 bg-emerald-500/10 p-4 text-sm leading-relaxed text-emerald-100 space-y-2">
@@ -447,6 +442,9 @@ export default function GatewaySettingsPage() {
             Test summary: {testResult.status}
           </p>
           <p className="mt-2 leading-relaxed">{testResult.message}</p>
+          {testResult.status === "gateway_rate_limited" ? (
+            <p className="mt-2 text-xs text-neural-text-secondary">{rateLimitFallbackMessage()}</p>
+          ) : null}
           <RequestIdTag requestId={testResult.request_id} />
           {testResult.warning ? (
             <p className="mt-3 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs leading-relaxed text-amber-300">
@@ -485,6 +483,6 @@ export default function GatewaySettingsPage() {
       ) : null}
 
       {loading ? <LoadingBlock label="Loading credentials..." /> : null}
-    </section>
+    </MotionPage>
   );
 }

@@ -4,11 +4,14 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2, RefreshCw, TriangleAlert } from "lucide-react";
 
+import { MotionPage } from "@/components/motion/motion-page";
+import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorBanner } from "@/components/ui/error-banner";
 import { Panel } from "@/components/ui/panel";
+import { RequestIdTag } from "@/components/ui/request-id-tag";
 import { StatCard } from "@/components/ui/stat-card";
 import { TokenTag } from "@/components/ui/token-tag";
 import {
@@ -23,6 +26,8 @@ import type {
   ProviderHealthSummary,
   ProviderReliabilityRecord
 } from "@/lib/gateway/types";
+import { fetchRuntimeStatus } from "@/lib/runtime-providers/client";
+import type { GatewayProviderCapability, RuntimeStatusResponse } from "@/lib/runtime-providers/types";
 
 type GatewayCredentialsView = {
   internal_admin_enabled: boolean;
@@ -167,6 +172,8 @@ export default function DiagnosticsPage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [credentialsView, setCredentialsView] = useState<GatewayCredentialsView | null>(null);
   const [credentialsError, setCredentialsError] = useState<DiagnosticsConsoleError | null>(null);
+  const [runtimeStatus, setRuntimeStatus] = useState<RuntimeStatusResponse | null>(null);
+  const [runtimeStatusError, setRuntimeStatusError] = useState<DiagnosticsConsoleError | null>(null);
 
   const loadDiagnostics = useCallback(async () => {
     setLoading(true);
@@ -218,14 +225,29 @@ export default function DiagnosticsPage() {
     }
   }, []);
 
+  const loadRuntimeStatus = useCallback(async () => {
+    setRuntimeStatusError(null);
+    try {
+      const payload = await fetchRuntimeStatus();
+      setRuntimeStatus(payload);
+    } catch (caught) {
+      const err = caught as Error & { code?: string; message?: string };
+      setRuntimeStatusError({
+        code: String(err.code || "unknown_error"),
+        message: err.message || "Failed to load Gateway runtime status."
+      });
+      setRuntimeStatus(null);
+    }
+  }, []);
+
   useEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect */
-    void Promise.all([loadDiagnostics(), loadCredentialsView()]);
+    void Promise.all([loadDiagnostics(), loadCredentialsView(), loadRuntimeStatus()]);
     /* eslint-enable react-hooks/set-state-in-effect */
-  }, [loadCredentialsView, loadDiagnostics]);
+  }, [loadCredentialsView, loadDiagnostics, loadRuntimeStatus]);
 
   const refresh = async () => {
-    await Promise.all([loadDiagnostics(), loadCredentialsView()]);
+    await Promise.all([loadDiagnostics(), loadCredentialsView(), loadRuntimeStatus()]);
   };
 
   const runHealthCheckNow = async () => {
@@ -295,23 +317,11 @@ export default function DiagnosticsPage() {
   const summaryStats = useMemo(() => readHealthSummary(summary), [summary]);
 
   return (
-    <section className="space-y-6 animate-fade-in-up">
-      <Panel accent="amber" className="p-6 sm:p-7 lg:p-8">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="max-w-2xl">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-3xl font-semibold tracking-[-0.05em] text-neural-text-primary sm:text-4xl">
-                Diagnostics
-              </h1>
-              <Badge variant="warning" withDot>
-                quota-aware
-              </Badge>
-            </div>
-            <p className="mt-3 text-sm leading-relaxed text-neural-text-secondary">
-              Gateway provider health, reliability, and latest diagnostic checks. This page is intentionally quota-aware and
-              keeps the high-risk operations in one place.
-            </p>
-          </div>
+    <MotionPage>
+      <PageHeader
+        title="Diagnostics"
+        description="Provider health, reliability, and recent checks with quota-consuming actions kept explicit."
+        actions={
           <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
@@ -331,8 +341,77 @@ export default function DiagnosticsPage() {
             {runningCheck ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             Run health check
           </button>
+          </div>
+        }
+      />
+
+      <Panel accent="cyan" className="p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="font-display text-[11px] uppercase tracking-[0.12em] text-neural-text-primary">Gateway Runtime Status</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-neural-text-secondary">
+              Synced from Gateway v1.5 runtime APIs. Shows disabled providers and capability metadata without secrets.
+            </p>
+          </div>
+          <Link
+            href="/settings/providers"
+            className="rounded-2xl border border-neural-cyan/35 bg-neural-cyan/12 px-4 py-3 font-display text-[11px] uppercase tracking-[0.12em] text-neural-cyan transition hover:bg-neural-cyan/22"
+          >
+            Manage providers
+          </Link>
         </div>
-        </div>
+
+        {runtimeStatusError ? (
+          <div className="mt-4">
+            <ErrorBanner code={runtimeStatusError.code} message={runtimeStatusError.message} />
+          </div>
+        ) : null}
+
+        {runtimeStatus ? (
+          <div className="mt-5 grid gap-4 xl:grid-cols-[1fr_1.2fr]">
+            <div className="space-y-3">
+              <StatCard
+                label="Disabled providers"
+                value={String((runtimeStatus.disabled_providers || []).length)}
+                hint="Routing-disabled provider IDs"
+                accent="amber"
+              />
+              <p className="font-mono text-xs text-neural-text-muted">
+                Updated: {formatTimestamp(runtimeStatus.runtime_state_updated_at)}
+              </p>
+              {(runtimeStatus.disabled_providers || []).length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {(runtimeStatus.disabled_providers || []).map((providerId) => (
+                    <TokenTag key={providerId}>{providerId}</TokenTag>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-neural-text-secondary">No providers are currently disabled.</p>
+              )}
+              <RequestIdTag requestId={runtimeStatus.request_id || undefined} />
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+              <h3 className="font-display text-[11px] uppercase tracking-[0.12em] text-neural-text-primary">Provider capabilities</h3>
+              <div className="mt-3 space-y-2">
+                {(runtimeStatus.provider_capabilities || []).slice(0, 12).map((provider: GatewayProviderCapability) => (
+                  <div
+                    key={String(provider.provider_id)}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-xs"
+                  >
+                    <span className="font-mono text-neural-text-primary">{provider.provider_id}</span>
+                    <div className="flex flex-wrap gap-1">
+                      <Badge variant={provider.source === "runtime" ? "live" : "ai"}>{provider.source || "builtin"}</Badge>
+                      <Badge variant={provider.enabled === false ? "inactive" : "success"}>
+                        {provider.enabled === false ? "disabled" : "enabled"}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : null}
       </Panel>
 
       <Panel accent="amber" className="p-6">
@@ -449,6 +528,7 @@ export default function DiagnosticsPage() {
               Diagnostics may be disabled on Gateway (`DIAGNOSTICS_ENABLED=false`).
             </p>
           ) : null}
+          <RequestIdTag requestId={combinedError.details?.request_id} showLogHint />
         </ErrorBanner>
       ) : null}
 
@@ -461,7 +541,7 @@ export default function DiagnosticsPage() {
           <StatCard label="Healthy / OK" value={summaryStats.ok} accent="green" />
           <StatCard label="Failed / timeout" value={summaryStats.failed} accent="red" />
           <StatCard label="Stale" value={summaryStats.stale} accent="amber" />
-          <StatCard label="Last check time" value={<TokenTag>{formatTimestamp(summaryStats.lastCheckAt)}</TokenTag>} accent="violet" />
+          <StatCard label="Last check time" value={<TokenTag>{formatTimestamp(summaryStats.lastCheckAt)}</TokenTag>} accent="cyan" />
         </div>
       </section>
 
@@ -593,6 +673,6 @@ export default function DiagnosticsPage() {
           </DataTable>
         )}
       </section>
-    </section>
+    </MotionPage>
   );
 }

@@ -1,6 +1,24 @@
 import "server-only";
 
-const SAFE_REQUEST_ID = /^[A-Za-z0-9._-]{1,64}$/;
+import {
+  formatRateLimitHint,
+  parseRateLimitReset,
+  parseRetryAfter,
+  rateLimitFallbackMessage,
+  sanitizeRequestId,
+  type RateLimitHintDetails
+} from "@/lib/gateway/provider-error-parsers";
+import { policyMessageForCode, type ConsolePolicyErrorCode } from "@/lib/gateway/policy-errors";
+
+export {
+  formatRateLimitHint,
+  parseRateLimitReset,
+  parseRetryAfter,
+  parseRetryAfterSeconds,
+  parseRetryAfterHttpDate,
+  rateLimitFallbackMessage,
+  sanitizeRequestId
+} from "@/lib/gateway/provider-error-parsers";
 
 export type UpstreamGatewayError = {
   message?: string;
@@ -10,15 +28,15 @@ export type UpstreamGatewayError = {
   details?: Record<string, unknown>;
 };
 
-export type SafeErrorDetails = {
+export type SafeErrorDetails = RateLimitHintDetails & {
   upstream_status?: number;
   upstream_code?: string | null;
   upstream_type?: string | null;
   request_id?: string;
+  reason_code?: string | null;
   quota_type?: string;
   limit?: number;
   openai_code_alias?: string;
-  retry_after_seconds?: number;
   path?: string;
   gateway_code?: string | null;
 };
@@ -36,7 +54,15 @@ export type ConsoleProviderErrorCode =
   | "gateway_route_not_found"
   | "credentials_not_configured"
   | "gateway_error"
-  | "unknown_error";
+  | "unknown_error"
+  | ConsolePolicyErrorCode
+  | "runtime_provider_not_found"
+  | "runtime_provider_invalid"
+  | "runtime_provider_conflict"
+  | "runtime_provider_secret_missing"
+  | "runtime_provider_test_failed"
+  | "runtime_provider_builtin_readonly"
+  | "console_client_auth_failed";
 
 const UPSTREAM_CODE_MAP: Record<string, ConsoleProviderErrorCode> = {
   api_key_revoked: "api_key_revoked",
@@ -56,37 +82,20 @@ const UPSTREAM_CODE_MAP: Record<string, ConsoleProviderErrorCode> = {
   provider_failed: "gateway_upstream_failed",
   model_unavailable: "gateway_upstream_failed",
   openrouter_model_unavailable: "gateway_upstream_failed",
-  credentials_not_configured: "credentials_not_configured"
+  credentials_not_configured: "credentials_not_configured",
+  safety_violation: "gateway_policy_violation",
+  secret_exfiltration_blocked: "gateway_secret_exfiltration_blocked",
+  malicious_cyber_request: "gateway_malicious_cyber_request",
+  unsafe_output_blocked: "gateway_unsafe_output_blocked",
+  prompt_injection_detected: "gateway_prompt_injection_detected",
+  runtime_provider_not_found: "runtime_provider_not_found",
+  runtime_provider_invalid: "runtime_provider_invalid",
+  runtime_provider_conflict: "runtime_provider_conflict",
+  runtime_provider_secret_missing: "runtime_provider_secret_missing",
+  runtime_provider_test_failed: "runtime_provider_test_failed",
+  runtime_provider_builtin_readonly: "runtime_provider_builtin_readonly",
+  console_client_auth_failed: "console_client_auth_failed"
 };
-
-export function sanitizeRequestId(raw: string | undefined | null): string | undefined {
-  if (typeof raw !== "string") {
-    return undefined;
-  }
-  const candidate = raw.trim();
-  if (!candidate || candidate.length > 64) {
-    return undefined;
-  }
-  if (!SAFE_REQUEST_ID.test(candidate)) {
-    return undefined;
-  }
-  return candidate;
-}
-
-export function parseRetryAfterSeconds(header: string | null | undefined): number | undefined {
-  if (typeof header !== "string") {
-    return undefined;
-  }
-  const trimmed = header.trim();
-  if (!/^\d+$/.test(trimmed)) {
-    return undefined;
-  }
-  const seconds = Number.parseInt(trimmed, 10);
-  if (!Number.isFinite(seconds) || seconds < 0) {
-    return undefined;
-  }
-  return seconds;
-}
 
 export function extractRequestId(
   response: Response,
@@ -161,9 +170,22 @@ export function buildSafeErrorDetails(input: {
     details.openai_code_alias = openaiAlias;
   }
 
-  const retryAfter = parseRetryAfterSeconds(input.response.headers.get("retry-after"));
+  const reasonCode = readSafeString(upstreamDetails?.reason_code);
+  if (reasonCode) {
+    details.reason_code = reasonCode;
+  }
+
+  const retryAfter = parseRetryAfter(input.response.headers.get("retry-after"));
   if (retryAfter !== undefined) {
     details.retry_after_seconds = retryAfter;
+  }
+
+  const resetMeta = parseRateLimitReset(input.response.headers.get("x-ratelimit-reset"));
+  if (resetMeta.rate_limit_reset_seconds !== undefined) {
+    details.rate_limit_reset_seconds = resetMeta.rate_limit_reset_seconds;
+  }
+  if (resetMeta.rate_limit_reset_at) {
+    details.rate_limit_reset_at = resetMeta.rate_limit_reset_at;
   }
 
   return details;
@@ -209,11 +231,8 @@ export function fallbackMessageForProviderCode(
     case "invalid_gateway_api_key":
       return "Gateway API key is invalid or expired. Update it in Settings -> Gateway Credentials.";
     case "gateway_rate_limited": {
-      const seconds = details?.retry_after_seconds;
-      if (typeof seconds === "number") {
-        return `Rate limit exceeded. Try again in ${seconds} seconds.`;
-      }
-      return "Rate limit exceeded. Try again later.";
+      const hint = formatRateLimitHint(details);
+      return hint ? `Rate limit exceeded. ${hint}` : rateLimitFallbackMessage();
     }
     case "gateway_quota_exceeded": {
       const quotaType = details?.quota_type;
@@ -240,6 +259,26 @@ export function fallbackMessageForProviderCode(
       return "Gateway chat endpoint was not found. Check Gateway URL and API version.";
     case "credentials_not_configured":
       return "Gateway credentials are not configured. Add them in Settings -> Gateway Credentials.";
+    case "gateway_policy_violation":
+    case "gateway_secret_exfiltration_blocked":
+    case "gateway_malicious_cyber_request":
+    case "gateway_unsafe_output_blocked":
+    case "gateway_prompt_injection_detected":
+      return policyMessageForCode(code, details?.reason_code);
+    case "runtime_provider_not_found":
+      return "Runtime provider was not found on Gateway.";
+    case "runtime_provider_invalid":
+      return "Runtime provider payload is invalid. Check required fields and try again.";
+    case "runtime_provider_conflict":
+      return "A provider with this ID already exists.";
+    case "runtime_provider_secret_missing":
+      return "Runtime provider is missing a configured secret. Add an API key or env reference.";
+    case "runtime_provider_test_failed":
+      return "Runtime provider test failed. Check base URL, model, and credentials.";
+    case "runtime_provider_builtin_readonly":
+      return "Built-in providers are read-only. Disable routing instead of deleting.";
+    case "console_client_auth_failed":
+      return "Console client authentication failed. Check NESTY_CONSOLE_CLIENT_ID and NESTY_CONSOLE_CLIENT_SECRET.";
     case "gateway_error":
       return "Gateway request failed.";
     default:

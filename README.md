@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.10.1-blue" alt="Console v0.10.1" />
+  <img src="https://img.shields.io/badge/version-0.10.2-blue" alt="Console v0.10.2" />
   <img src="https://img.shields.io/badge/Gateway-v1.5.2-009688" alt="Gateway v1.5.2" />
   <img src="https://img.shields.io/badge/Next.js-16-black" alt="Next.js 16" />
   <img src="https://img.shields.io/badge/TypeScript-5.x-3178C6" alt="TypeScript" />
@@ -56,19 +56,19 @@ Full release history: **[CHANGELOG.md](CHANGELOG.md)**
 
 ---
 
-## Current Release — v0.10.1
+## Current Release — v0.10.2
 
-**Runtime Provider Management Sync Patch**
+**Gateway v1.6 Built-in Provider Credentials Sync**
 
 | Feature | Detail |
 | --- | --- |
-| Runtime providers | Full OpenAI-compatible CRUD at `/settings/providers` via `/api/console/runtime/*` |
-| Provider form | Conditional secret fields, capability toggles, GET-detail edit flow |
-| Test UX | Structured test results with safe preview and request ID |
-| Navigation | Configure sidebar link to Runtime Providers |
-| Error sync | `runtime_providers_disabled` and `console_client_unauthorized` mapping |
+| Built-in providers | Credential save/rotate/delete/test on `/settings/providers` (immutable definitions) |
+| Admin token | Gateway-side rotate panel with disconnect warning; Console token not auto-updated |
+| Console APIs | Proxies for `/internal/console/runtime/builtin-providers/*` and `/internal/console/security/admin-token/*` |
+| Catalog sync | Model Configs merges built-in + runtime providers with credential warnings |
+| Error sync | v1.6 `provider_credentials_*`, `builtin_provider_not_found`, `admin_token_rotation_unsupported` |
 
-**v0.10.0** — Titanium Noir command-deck UX refresh. See [CHANGELOG.md](CHANGELOG.md).
+**v0.10.1** — Runtime provider management sync patch. See [CHANGELOG.md](CHANGELOG.md).
 
 **v0.9.3** — Gateway v1.5 runtime provider and policy sync. See [CHANGELOG.md](CHANGELOG.md).
 
@@ -336,8 +336,8 @@ Single-admin, self-host focused. Use reverse-proxy and network controls; do not 
 | v0.9.0 | Product UI rebuild |
 | v0.9.1 | Gateway v1.3.1 provider sync |
 | v0.9.3 | Gateway v1.5 runtime provider and policy sync |
-| **v0.10.1** | **Runtime provider management sync patch (current)** |
-| v0.10.0 | Titanium Noir command-deck UX refresh |
+| **v0.10.2** | **Gateway v1.6 built-in provider credentials sync (current)** |
+| v0.10.1 | Runtime provider management sync patch |
 | Later | X-RateLimit-Limit/Remaining UI; extended SSE metadata |
 
 Enterprise marketplace workflows remain out of scope unless explicitly planned later.

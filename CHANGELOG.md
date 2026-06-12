@@ -2,6 +2,27 @@
 
 All notable changes to Nesty Console will be documented in this file.
 
+## [0.10.2] - Unreleased
+
+### Added
+- Built-in provider credential management UI on `/settings/providers` (password-only API key, save/rotate/delete/test).
+- Console API proxies for Gateway v1.6 `/internal/console/runtime/builtin-providers/*` and `/internal/console/security/admin-token/*`.
+- Gateway settings panel for Gateway-side internal admin token status and rotation (no token display; post-rotate operator instructions).
+- v1.6 error mappings: `builtin_provider_not_found`, `provider_credentials_*`, `admin_token_rotation_unsupported`.
+- Model Configs provider catalog merges built-in and runtime providers with credential status warnings.
+- Diagnostics provider capabilities show `provider_type`, `credential_source`, and `secret_status`.
+
+### Changed
+- Settings → Providers separates immutable built-in providers from runtime OpenAI-compatible providers.
+- Sidebar label updated to **Providers** (route unchanged).
+- Console client auth path matching extended to `/internal/console/security/*`.
+
+### Security
+- Response sanitization remains post-Gateway (`stripSecretFields` on Console API responses only).
+- Built-in provider API keys are never prefilled or returned to the browser; fields cleared after save/rotate and on drawer close.
+- Admin token rotation does not auto-update Console stored credentials; no follow-up protected calls after rotate.
+- PUT/rotate routes do not log request bodies.
+
 ## [0.10.1] - Unreleased
 
 ### Added

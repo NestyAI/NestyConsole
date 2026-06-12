@@ -71,4 +71,21 @@ assert.match(RUNTIME_ERROR_MESSAGES.runtime_providers_disabled, /disabled/i);
 assert.match(RUNTIME_ERROR_MESSAGES.console_client_unauthorized, /NESTY_CONSOLE_CLIENT/i);
 assert.match(RUNTIME_ERROR_MESSAGES.console_client_auth_failed, /NESTY_CONSOLE_CLIENT/i);
 
+const V16_ERROR_MESSAGES: Record<string, string> = {
+  builtin_provider_not_found: "Built-in provider was not found on Gateway.",
+  provider_credentials_disabled:
+    "Built-in provider credential management is disabled on Gateway. Set NESTY_PROVIDER_CREDENTIALS_ENABLED=true.",
+  provider_credential_invalid: "Built-in provider credential payload is invalid.",
+  provider_credential_error: "Built-in provider credential operation failed on Gateway.",
+  admin_token_rotation_unsupported: "Gateway admin token rotation is not supported for the current token mode.",
+  runtime_provider_not_found: "Runtime provider was not found on Gateway."
+};
+
+assert.match(V16_ERROR_MESSAGES.builtin_provider_not_found, /Built-in provider/i);
+assert.match(V16_ERROR_MESSAGES.provider_credentials_disabled, /NESTY_PROVIDER_CREDENTIALS_ENABLED/i);
+assert.match(V16_ERROR_MESSAGES.provider_credential_invalid, /credential payload/i);
+assert.match(V16_ERROR_MESSAGES.provider_credential_error, /credential operation/i);
+assert.match(V16_ERROR_MESSAGES.admin_token_rotation_unsupported, /rotation is not supported/i);
+assert.match(V16_ERROR_MESSAGES.runtime_provider_not_found, /Runtime provider/i);
+
 console.log("validate-provider-parsers: all fixtures passed");

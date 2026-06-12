@@ -12,7 +12,12 @@ const PROVIDER_LABELS: Record<string, string> = {
   nvidia: "NVIDIA",
   nvidia_nim: "NVIDIA",
   ollama_cloud: "Ollama Cloud",
-  deepseek: "DeepSeek"
+  deepseek: "DeepSeek",
+  openai: "OpenAI",
+  mistral: "Mistral",
+  z_ai: "Z AI",
+  google_gemini: "Google Gemini",
+  anthropic_claude: "Anthropic Claude"
 };
 
 export function ProviderBadge({ provider, source, className }: ProviderBadgeProps) {

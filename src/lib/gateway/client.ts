@@ -24,7 +24,7 @@ import {
   mapUpstreamToGatewayClientCode,
   type UpstreamGatewayError
 } from "@/lib/gateway/provider-errors";
-import { getConsoleClientAuthHeaders, isConsoleRuntimePath } from "@/lib/gateway/console-client-auth";
+import { getConsoleClientAuthHeaders, isConsoleInternalPath } from "@/lib/gateway/console-client-auth";
 
 function toGatewayError(
   code: string,
@@ -133,6 +133,10 @@ function normalizeGatewayErrorCode(
     lowered === "unsafe_output_blocked" ||
     lowered === "prompt_injection_detected" ||
     lowered.startsWith("runtime_provider_") ||
+    lowered.startsWith("provider_credential") ||
+    lowered.startsWith("admin_token_") ||
+    lowered === "builtin_provider_not_found" ||
+    lowered === "provider_credentials_disabled" ||
     lowered === "runtime_providers_disabled" ||
     lowered === "console_client_unauthorized" ||
     lowered === "console_client_auth_failed"
@@ -145,7 +149,12 @@ function normalizeGatewayErrorCode(
 export async function gatewayFetch<T>(
   path: string,
   init: RequestInit = {},
-  options?: { internalAdmin?: boolean; credentials?: EffectiveGatewayCredentials; consoleRuntime?: boolean }
+  options?: {
+    internalAdmin?: boolean;
+    credentials?: EffectiveGatewayCredentials;
+    consoleRuntime?: boolean;
+    consoleInternal?: boolean;
+  }
 ): Promise<GatewayResult<T>> {
   const effective = options?.credentials || (await resolveEffectiveGatewayCredentials());
   const baseUrl = effective.gatewayUrl;
@@ -174,7 +183,7 @@ export async function gatewayFetch<T>(
     headers.set("Authorization", `Bearer ${effective.gatewayApiKey}`);
   }
 
-  if (options?.consoleRuntime || isConsoleRuntimePath(path)) {
+  if (options?.consoleRuntime || options?.consoleInternal || isConsoleInternalPath(path)) {
     const consoleHeaders = getConsoleClientAuthHeaders();
     for (const [key, value] of Object.entries(consoleHeaders)) {
       headers.set(key, value);

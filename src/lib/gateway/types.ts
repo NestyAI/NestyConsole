@@ -82,7 +82,12 @@ export type GatewayErrorCode =
   | "runtime_provider_builtin_readonly"
   | "runtime_providers_disabled"
   | "console_client_unauthorized"
-  | "console_client_auth_failed";
+  | "console_client_auth_failed"
+  | "builtin_provider_not_found"
+  | "provider_credentials_disabled"
+  | "provider_credential_invalid"
+  | "provider_credential_error"
+  | "admin_token_rotation_unsupported";
 
 export type ChatRole = "system" | "user" | "assistant";
 

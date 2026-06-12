@@ -399,7 +399,14 @@ export default function DiagnosticsPage() {
                     key={String(provider.provider_id)}
                     className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-xs"
                   >
-                    <span className="font-mono text-neural-text-primary">{provider.provider_id}</span>
+                    <div className="space-y-1">
+                      <span className="font-mono text-neural-text-primary">{provider.provider_id}</span>
+                      <div className="flex flex-wrap gap-2 font-mono text-[10px] text-neural-text-muted">
+                        {provider.provider_type ? <span>type: {provider.provider_type}</span> : null}
+                        {provider.credential_source ? <span>credential: {provider.credential_source}</span> : null}
+                        {provider.secret_status ? <span>secret: {provider.secret_status}</span> : null}
+                      </div>
+                    </div>
                     <div className="flex flex-wrap gap-1">
                       <Badge variant={provider.source === "runtime" ? "live" : "ai"}>{provider.source || "builtin"}</Badge>
                       <Badge variant={provider.enabled === false ? "inactive" : "success"}>

@@ -53,7 +53,12 @@ type ConsoleProxyErrorCode =
   | "runtime_provider_builtin_readonly"
   | "runtime_providers_disabled"
   | "console_client_unauthorized"
-  | "console_client_auth_failed";
+  | "console_client_auth_failed"
+  | "builtin_provider_not_found"
+  | "provider_credentials_disabled"
+  | "provider_credential_invalid"
+  | "provider_credential_error"
+  | "admin_token_rotation_unsupported";
 
 function normalizeGatewayErrorCode(code: string, upstreamCode?: string | null, status?: number): ConsoleProxyErrorCode {
   const upstreamMapped = upstreamCode
@@ -84,7 +89,12 @@ function normalizeGatewayErrorCode(code: string, upstreamCode?: string | null, s
       "runtime_provider_builtin_readonly",
       "runtime_providers_disabled",
       "console_client_unauthorized",
-      "console_client_auth_failed"
+      "console_client_auth_failed",
+      "builtin_provider_not_found",
+      "provider_credentials_disabled",
+      "provider_credential_invalid",
+      "provider_credential_error",
+      "admin_token_rotation_unsupported"
     ].includes(upstreamMapped)
   ) {
     return upstreamMapped;
@@ -226,6 +236,25 @@ function normalizeGatewayErrorCode(code: string, upstreamCode?: string | null, s
   if (lowered === "console_client_auth_failed") {
     return "console_client_auth_failed";
   }
+  if (lowered === "builtin_provider_not_found") {
+    return "builtin_provider_not_found";
+  }
+  if (lowered === "provider_credentials_disabled") {
+    return "provider_credentials_disabled";
+  }
+  if (lowered === "provider_credential_invalid") {
+    return "provider_credential_invalid";
+  }
+  if (lowered === "provider_credential_error") {
+    return "provider_credential_error";
+  }
+  if (
+    lowered === "admin_token_rotation_unsupported" ||
+    lowered === "admin_token_rotation_unsupported_env" ||
+    lowered === "admin_token_rotation_unsupported_ephemeral"
+  ) {
+    return "admin_token_rotation_unsupported";
+  }
   return "unknown_error";
 }
 
@@ -309,6 +338,16 @@ function fallbackMessage(code: ConsoleProxyErrorCode, details?: Record<string, u
     case "console_client_unauthorized":
     case "console_client_auth_failed":
       return "Console client authentication failed. Check NESTY_CONSOLE_CLIENT_ID and NESTY_CONSOLE_CLIENT_SECRET.";
+    case "builtin_provider_not_found":
+      return "Built-in provider was not found on Gateway.";
+    case "provider_credentials_disabled":
+      return "Built-in provider credential management is disabled on Gateway. Set NESTY_PROVIDER_CREDENTIALS_ENABLED=true.";
+    case "provider_credential_invalid":
+      return "Built-in provider credential payload is invalid.";
+    case "provider_credential_error":
+      return "Built-in provider credential operation failed on Gateway.";
+    case "admin_token_rotation_unsupported":
+      return "Gateway admin token rotation is not supported for the current token mode.";
     default:
       return "Unknown gateway error.";
   }

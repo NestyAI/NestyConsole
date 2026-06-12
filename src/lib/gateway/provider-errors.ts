@@ -34,6 +34,8 @@ export type SafeErrorDetails = RateLimitHintDetails & {
   upstream_type?: string | null;
   request_id?: string;
   reason_code?: string | null;
+  provider_id?: string;
+  credential_name?: string;
   quota_type?: string;
   limit?: number;
   openai_code_alias?: string;
@@ -64,7 +66,19 @@ export type ConsoleProviderErrorCode =
   | "runtime_provider_builtin_readonly"
   | "runtime_providers_disabled"
   | "console_client_unauthorized"
-  | "console_client_auth_failed";
+  | "console_client_auth_failed"
+  | "builtin_provider_not_found"
+  | "provider_credentials_disabled"
+  | "provider_credential_invalid"
+  | "provider_credential_error"
+  | "admin_token_rotation_unsupported"
+  | "admin_token_rotation_unsupported_env"
+  | "admin_token_rotation_unsupported_ephemeral";
+
+export type NormalizedConsoleProviderErrorCode = Exclude<
+  ConsoleProviderErrorCode,
+  "admin_token_rotation_unsupported_env" | "admin_token_rotation_unsupported_ephemeral"
+>;
 
 const UPSTREAM_CODE_MAP: Record<string, ConsoleProviderErrorCode> = {
   api_key_revoked: "api_key_revoked",
@@ -98,7 +112,14 @@ const UPSTREAM_CODE_MAP: Record<string, ConsoleProviderErrorCode> = {
   runtime_provider_builtin_readonly: "runtime_provider_builtin_readonly",
   runtime_providers_disabled: "runtime_providers_disabled",
   console_client_unauthorized: "console_client_unauthorized",
-  console_client_auth_failed: "console_client_auth_failed"
+  console_client_auth_failed: "console_client_auth_failed",
+  builtin_provider_not_found: "builtin_provider_not_found",
+  provider_credentials_disabled: "provider_credentials_disabled",
+  provider_credential_invalid: "provider_credential_invalid",
+  provider_credential_error: "provider_credential_error",
+  admin_token_rotation_unsupported: "admin_token_rotation_unsupported",
+  admin_token_rotation_unsupported_env: "admin_token_rotation_unsupported",
+  admin_token_rotation_unsupported_ephemeral: "admin_token_rotation_unsupported"
 };
 
 export function extractRequestId(
@@ -179,6 +200,16 @@ export function buildSafeErrorDetails(input: {
     details.reason_code = reasonCode;
   }
 
+  const providerId = readSafeString(upstreamDetails?.provider_id);
+  if (providerId) {
+    details.provider_id = providerId;
+  }
+
+  const credentialName = readSafeString(upstreamDetails?.credential_name);
+  if (credentialName) {
+    details.credential_name = credentialName;
+  }
+
   const retryAfter = parseRetryAfter(input.response.headers.get("retry-after"));
   if (retryAfter !== undefined) {
     details.retry_after_seconds = retryAfter;
@@ -198,10 +229,10 @@ export function buildSafeErrorDetails(input: {
 export function mapUpstreamToConsoleCode(
   upstreamCode: string,
   status: number
-): ConsoleProviderErrorCode {
+): NormalizedConsoleProviderErrorCode {
   const lowered = upstreamCode.trim().toLowerCase();
   if (lowered && UPSTREAM_CODE_MAP[lowered]) {
-    return UPSTREAM_CODE_MAP[lowered];
+    return UPSTREAM_CODE_MAP[lowered] as NormalizedConsoleProviderErrorCode;
   }
 
   if (status === 404) {
@@ -286,6 +317,16 @@ export function fallbackMessageForProviderCode(
     case "console_client_unauthorized":
     case "console_client_auth_failed":
       return "Console client authentication failed. Check NESTY_CONSOLE_CLIENT_ID and NESTY_CONSOLE_CLIENT_SECRET.";
+    case "builtin_provider_not_found":
+      return "Built-in provider was not found on Gateway.";
+    case "provider_credentials_disabled":
+      return "Built-in provider credential management is disabled on Gateway. Set NESTY_PROVIDER_CREDENTIALS_ENABLED=true.";
+    case "provider_credential_invalid":
+      return "Built-in provider credential payload is invalid.";
+    case "provider_credential_error":
+      return "Built-in provider credential operation failed on Gateway.";
+    case "admin_token_rotation_unsupported":
+      return "Gateway admin token rotation is not supported for the current token mode.";
     case "gateway_error":
       return "Gateway request failed.";
     default:

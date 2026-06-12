@@ -13,5 +13,9 @@ export function getConsoleClientAuthHeaders(): Record<string, string> {
 }
 
 export function isConsoleRuntimePath(path: string): boolean {
-  return path.startsWith("/internal/console/runtime");
+  return isConsoleInternalPath(path);
+}
+
+export function isConsoleInternalPath(path: string): boolean {
+  return path.startsWith("/internal/console/runtime") || path.startsWith("/internal/console/security");
 }

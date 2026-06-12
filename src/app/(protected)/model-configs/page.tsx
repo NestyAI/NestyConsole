@@ -27,6 +27,7 @@ import {
   type ModelConfigListItem
 } from "@/lib/model-configs/client";
 import { fetchRuntimeProviders } from "@/lib/runtime-providers/client";
+import { fetchBuiltinProviders } from "@/lib/builtin-providers/client";
 import type { GatewayProviderCapability } from "@/lib/runtime-providers/types";
 import type { GatewayProviderChainItem } from "@/lib/gateway/types";
 import { safeStringify } from "@/lib/security/redact";
@@ -198,6 +199,19 @@ function providerChainWarnings(catalog: GatewayProviderCapability[], providerId:
   if (String(match?.secret_status || "").toLowerCase() === "missing") {
     warnings.push("Provider secret is missing on Gateway.");
   }
+  if (String(match?.secret_status || "").toLowerCase() === "managed") {
+    warnings.push("Built-in provider uses managed credentials. Configure the API key in Settings → Providers.");
+  }
+  if (String(match?.credential_source || "").toLowerCase() === "missing") {
+    warnings.push("Built-in provider credential source is missing. Add credentials on Gateway or in Console.");
+  }
+  if (
+    match?.source === "builtin" &&
+    String(match?.secret_status || "").toLowerCase() === "none" &&
+    String(match?.credential_source || "").toLowerCase() !== "env"
+  ) {
+    warnings.push("Built-in provider does not require an API key.");
+  }
   return warnings;
 }
 
@@ -254,8 +268,38 @@ export default function ModelConfigsPage() {
 
   const loadProviderCatalog = useCallback(async () => {
     try {
-      const payload = await fetchRuntimeProviders();
-      setProviderCatalog(Array.isArray(payload.providers) ? payload.providers : []);
+      const [runtimePayload, builtinPayload] = await Promise.all([
+        fetchRuntimeProviders().catch(() => ({ providers: [] as GatewayProviderCapability[] })),
+        fetchBuiltinProviders().catch(() => ({ providers: [] as GatewayProviderCapability[] }))
+      ]);
+      const runtimeList = Array.isArray(runtimePayload.providers) ? runtimePayload.providers : [];
+      const builtinList = (Array.isArray(builtinPayload.providers) ? builtinPayload.providers : []).map(
+        (provider) =>
+          ({
+            provider_id: provider.provider_id,
+            display_name: provider.display_name,
+            source: "builtin" as const,
+            provider_type: provider.provider_type,
+            enabled: provider.enabled,
+            secret_status: provider.secret_status,
+            credential_source: provider.credential_source,
+            supports_streaming: provider.supports_streaming,
+            supports_chat_completions: provider.supports_chat_completions,
+            supports_json_mode: provider.supports_json_mode,
+            supports_tools: provider.supports_tools,
+            supports_reasoning_effort: provider.supports_reasoning_effort,
+            health_check_model: provider.health_check_model,
+            default_timeout_seconds: provider.default_timeout_seconds,
+            api_key_env_name: provider.api_key_env_name
+          }) satisfies GatewayProviderCapability
+      );
+      const merged = new Map<string, GatewayProviderCapability>();
+      for (const provider of [...builtinList, ...runtimeList]) {
+        const id = String(provider.provider_id || "").trim().toLowerCase();
+        if (!id) continue;
+        merged.set(id, { ...merged.get(id), ...provider, provider_id: provider.provider_id });
+      }
+      setProviderCatalog(Array.from(merged.values()));
     } catch {
       setProviderCatalog([]);
     }
@@ -623,9 +667,13 @@ export default function ModelConfigsPage() {
                             {capability?.display_name || providerDisplayName(normalizeProvider(item.provider))}
                           </Badge>
                           {capability?.source === "runtime" ? <Badge variant="live">runtime</Badge> : null}
+                          {capability?.source === "builtin" ? <Badge variant="ai">builtin</Badge> : null}
                           {capability?.enabled === false ? <Badge variant="inactive">disabled</Badge> : null}
                           {String(capability?.secret_status || "").toLowerCase() === "missing" ? (
                             <Badge variant="warning">missing secret</Badge>
+                          ) : null}
+                          {String(capability?.secret_status || "").toLowerCase() === "managed" ? (
+                            <Badge variant="warning">managed credential</Badge>
                           ) : null}
                           {normalizeProvider(item.provider) === "ollama_cloud" ? (
                             <span className="text-[11px] text-neural-text-secondary">

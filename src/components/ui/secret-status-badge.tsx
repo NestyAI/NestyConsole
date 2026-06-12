@@ -10,6 +10,7 @@ const STATUS_VARIANT: Record<string, BadgeVariant> = {
   env: "success",
   env_ref: "success",
   configured: "success",
+  managed: "success",
   none: "inactive",
   missing: "warning"
 };
@@ -19,6 +20,7 @@ const STATUS_LABEL: Record<string, string> = {
   env: "Environment secret",
   env_ref: "Environment secret",
   configured: "Secret configured",
+  managed: "Managed secret",
   none: "No secret required",
   missing: "Secret missing"
 };

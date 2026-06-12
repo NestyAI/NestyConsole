@@ -1,6 +1,8 @@
 export type RuntimeProviderSource = "builtin" | "runtime";
 
-export type RuntimeSecretStatus = "env_ref" | "stored" | "none" | "missing" | string;
+export type RuntimeSecretStatus = "env_ref" | "stored" | "none" | "missing" | "managed" | "configured" | string;
+
+export type RuntimeCredentialSource = "env" | "secret_file" | "managed_store" | "missing" | string;
 
 export type GatewayProviderCapability = {
   provider_id: string;
@@ -16,6 +18,7 @@ export type GatewayProviderCapability = {
   default_timeout_seconds?: number;
   health_check_model?: string | null;
   secret_status?: RuntimeSecretStatus | null;
+  credential_source?: RuntimeCredentialSource | null;
   api_key_env_name?: string | null;
   api_key_mode?: string | null;
 };

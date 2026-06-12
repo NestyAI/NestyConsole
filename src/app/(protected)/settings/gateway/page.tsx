@@ -12,6 +12,9 @@ import { Panel } from "@/components/ui/panel";
 import { RequestIdTag } from "@/components/ui/request-id-tag";
 import { StateCard } from "@/components/ui/state-card";
 import { rateLimitFallbackMessage } from "@/lib/gateway/provider-error-parsers";
+import { fetchAdminTokenStatus, rotateAdminToken } from "@/lib/security/admin-token/client";
+import type { AdminAuthMetadata } from "@/lib/security/admin-token/types";
+import { Button } from "@/components/ui/button";
 
 type CredentialSource = "stored" | "env" | "missing";
 
@@ -75,6 +78,12 @@ export default function GatewaySettingsPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [testResult, setTestResult] = useState<TestResponse | null>(null);
   const [view, setView] = useState<GatewayCredentialsView | null>(null);
+  const [gatewayAdminStatus, setGatewayAdminStatus] = useState<AdminAuthMetadata | null>(null);
+  const [gatewayAdminRequestId, setGatewayAdminRequestId] = useState<string | null>(null);
+  const [gatewayAdminLoading, setGatewayAdminLoading] = useState(false);
+  const [gatewayAdminRotating, setGatewayAdminRotating] = useState(false);
+  const [gatewayAdminRotateNotice, setGatewayAdminRotateNotice] = useState<string | null>(null);
+  const [gatewayAdminError, setGatewayAdminError] = useState<string | null>(null);
 
   const [gatewayUrl, setGatewayUrl] = useState("");
   const [gatewayApiKey, setGatewayApiKey] = useState("");
@@ -105,12 +114,55 @@ export default function GatewaySettingsPage() {
     }
   }, []);
 
+  const loadGatewayAdminStatus = useCallback(async () => {
+    setGatewayAdminLoading(true);
+    setGatewayAdminError(null);
+    try {
+      const payload = await fetchAdminTokenStatus();
+      setGatewayAdminStatus(payload.admin_auth_metadata || null);
+      setGatewayAdminRequestId(typeof payload.request_id === "string" ? payload.request_id : null);
+    } catch (caught) {
+      const err = caught as Error & { message?: string };
+      setGatewayAdminStatus(null);
+      setGatewayAdminError(err.message || "Failed to load Gateway admin token status.");
+    } finally {
+      setGatewayAdminLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     const run = async () => {
       await load();
+      await loadGatewayAdminStatus();
     };
     void run();
-  }, [load]);
+  }, [load, loadGatewayAdminStatus]);
+
+  const handleRotateGatewayAdminToken = async () => {
+    const confirmed = window.confirm(
+      "Rotating the Gateway Internal Admin Token can disconnect Console from protected Gateway routes until you update Console's stored admin token.\n\nContinue with rotation?"
+    );
+    if (!confirmed) {
+      return;
+    }
+    setGatewayAdminRotating(true);
+    setGatewayAdminError(null);
+    setGatewayAdminRotateNotice(null);
+    try {
+      const payload = await rotateAdminToken();
+      setGatewayAdminStatus(payload.admin_auth_metadata || null);
+      setGatewayAdminRequestId(typeof payload.request_id === "string" ? payload.request_id : null);
+      setGatewayAdminRotateNotice(
+        "Gateway admin token rotated. Update Console's stored Internal Admin Token in the form below (or via your operator path). " +
+          "Do not reuse the previous token. Console will not auto-update this value."
+      );
+    } catch (caught) {
+      const err = caught as Error & { message?: string };
+      setGatewayAdminError(err.message || "Failed to rotate Gateway admin token.");
+    } finally {
+      setGatewayAdminRotating(false);
+    }
+  };
 
   const handleSave = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -318,6 +370,45 @@ export default function GatewaySettingsPage() {
           <p className="pt-1 text-xs text-cyan-200">
             Diagnostics dashboard requires internal admin enabled + internal admin token configured.
           </p>
+        </div>
+      </StateCard>
+
+      <StateCard title="Gateway internal admin token (Gateway-side)">
+        <div className="space-y-3 text-sm text-neural-text-secondary">
+          <p className="text-xs leading-relaxed text-amber-200/90">
+            Rotating the Gateway Internal Admin Token can disconnect Console from protected routes until you update
+            Console&apos;s stored token below. Token values are never shown in the browser.
+          </p>
+          {gatewayAdminLoading ? <LoadingBlock label="Loading Gateway admin status..." /> : null}
+          {gatewayAdminError ? <ErrorBanner message={gatewayAdminError} /> : null}
+          {gatewayAdminStatus ? (
+            <div className="space-y-1 font-mono text-xs">
+              <p>Configured: {gatewayAdminStatus.configured ? "yes" : "no"}</p>
+              <p>Source: {gatewayAdminStatus.source || "unknown"}</p>
+              <p>Mode: {gatewayAdminStatus.mode || "unknown"}</p>
+              <p>Rotation supported: {gatewayAdminStatus.rotation_supported ? "yes" : "no"}</p>
+              <RequestIdTag requestId={gatewayAdminRequestId || undefined} />
+            </div>
+          ) : null}
+          {gatewayAdminRotateNotice ? (
+            <div className="rounded-2xl border border-amber-400/30 bg-amber-500/10 p-4 text-xs leading-relaxed text-amber-100">
+              {gatewayAdminRotateNotice}
+            </div>
+          ) : null}
+          <Button
+            type="button"
+            variant="danger"
+            disabled={
+              gatewayAdminRotating ||
+              gatewayAdminLoading ||
+              !view?.internal_admin_token_configured ||
+              gatewayAdminStatus?.rotation_supported === false
+            }
+            onClick={() => void handleRotateGatewayAdminToken()}
+          >
+            {gatewayAdminRotating ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            Rotate Gateway admin token
+          </Button>
         </div>
       </StateCard>
 

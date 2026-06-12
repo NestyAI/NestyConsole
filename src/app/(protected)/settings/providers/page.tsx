@@ -6,22 +6,35 @@ import { Loader2, Plus, RefreshCw, Trash2 } from "lucide-react";
 
 import { MotionPage } from "@/components/motion/motion-page";
 import { PageHeader } from "@/components/layout/page-header";
-import { Badge } from "@/components/ui/badge";
+import {
+  RuntimeProviderForm,
+  buildCreatePayload,
+  buildUpdatePayload,
+  EMPTY_PROVIDER_FORM,
+  formStateFromDetail,
+  type ProviderFormState
+} from "@/components/providers/runtime-provider-form";
+import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
 import { ErrorBanner } from "@/components/ui/error-banner";
+import { GlassCard } from "@/components/ui/glass-card";
 import { LoadingBlock } from "@/components/ui/loading-block";
+import { ProviderBadge } from "@/components/ui/provider-badge";
 import { RequestIdTag } from "@/components/ui/request-id-tag";
+import { SecretStatusBadge } from "@/components/ui/secret-status-badge";
 import { StateCard } from "@/components/ui/state-card";
+import { StatusPill } from "@/components/ui/status-pill";
 import {
   createRuntimeOpenAIProvider,
   deleteRuntimeProvider,
   disableRuntimeProvider,
   enableRuntimeProvider,
+  fetchRuntimeProvider,
   fetchRuntimeProviders,
   testRuntimeProvider,
   updateRuntimeProvider
 } from "@/lib/runtime-providers/client";
-import type { GatewayProviderCapability } from "@/lib/runtime-providers/types";
+import type { GatewayProviderCapability, RuntimeProviderTestResponse } from "@/lib/runtime-providers/types";
 
 type ConsoleError = {
   code: string;
@@ -34,49 +47,20 @@ type GatewayCredentialsView = {
   internal_admin_token_configured: boolean;
 };
 
+type TestResultView = {
+  providerId: string;
+  status: string;
+  outputPreview?: string;
+  outputChars?: number;
+  warnings: string[];
+  requestId?: string;
+};
+
 const BUILTIN_IDS = new Set(["groq", "openrouter", "nvidia", "nvidia_nim", "deepseek", "ollama_cloud"]);
 
-function secretStatusLabel(status: string | null | undefined): string {
-  const value = String(status || "").trim().toLowerCase();
-  if (!value || value === "none") return "none";
-  if (value === "missing") return "missing";
-  if (value === "env_ref") return "env";
-  if (value === "stored") return "stored";
-  return value;
+function isRuntimeProvider(provider: GatewayProviderCapability): boolean {
+  return String(provider.source || "").trim().toLowerCase() === "runtime";
 }
-
-function secretBadgeVariant(status: string | null | undefined): "success" | "warning" | "error" | "inactive" {
-  const value = String(status || "").trim().toLowerCase();
-  if (value === "stored" || value === "env_ref") return "success";
-  if (value === "missing") return "error";
-  return "inactive";
-}
-
-type ProviderFormState = {
-  provider_id: string;
-  display_name: string;
-  base_url: string;
-  chat_completions_path: string;
-  api_key_mode: "env" | "secret_file" | "none";
-  api_key_env_name: string;
-  api_key: string;
-  default_timeout_seconds: string;
-  health_check_model: string;
-  enabled: boolean;
-};
-
-const EMPTY_FORM: ProviderFormState = {
-  provider_id: "",
-  display_name: "",
-  base_url: "",
-  chat_completions_path: "/v1/chat/completions",
-  api_key_mode: "env",
-  api_key_env_name: "",
-  api_key: "",
-  default_timeout_seconds: "60",
-  health_check_model: "",
-  enabled: true
-};
 
 export default function RuntimeProvidersSettingsPage() {
   const [loading, setLoading] = useState(true);
@@ -86,24 +70,21 @@ export default function RuntimeProvidersSettingsPage() {
   const [requestId, setRequestId] = useState<string | null>(null);
   const [credentialsView, setCredentialsView] = useState<GatewayCredentialsView | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [createForm, setCreateForm] = useState<ProviderFormState>(EMPTY_FORM);
+  const [createForm, setCreateForm] = useState<ProviderFormState>(EMPTY_PROVIDER_FORM);
   const [editId, setEditId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState<ProviderFormState>(EMPTY_FORM);
+  const [editForm, setEditForm] = useState<ProviderFormState>(EMPTY_PROVIDER_FORM);
+  const [editLoading, setEditLoading] = useState(false);
+  const [editLoadError, setEditLoadError] = useState<ConsoleError | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [testResult, setTestResult] = useState<TestResultView | null>(null);
 
   const adminConfigured = Boolean(
     credentialsView?.internal_admin_enabled && credentialsView?.internal_admin_token_configured
   );
 
-  const runtimeProviders = useMemo(
-    () => providers.filter((item) => String(item.source || "").toLowerCase() === "runtime"),
-    [providers]
-  );
-  const builtinProviders = useMemo(
-    () => providers.filter((item) => String(item.source || "").toLowerCase() !== "runtime"),
-    [providers]
-  );
+  const runtimeProviders = useMemo(() => providers.filter(isRuntimeProvider), [providers]);
+  const builtinProviders = useMemo(() => providers.filter((item) => !isRuntimeProvider(item)), [providers]);
 
   const loadProviders = useCallback(async () => {
     setLoading(true);
@@ -144,29 +125,30 @@ export default function RuntimeProvidersSettingsPage() {
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [loadCredentialsView, loadProviders]);
 
+  const closeCreateDrawer = () => {
+    setShowCreateForm(false);
+    setCreateForm(EMPTY_PROVIDER_FORM);
+  };
+
+  const closeEditDrawer = () => {
+    setEditId(null);
+    setEditForm(EMPTY_PROVIDER_FORM);
+    setEditLoadError(null);
+    setEditLoading(false);
+  };
+
   const handleCreate = async (event: FormEvent) => {
     event.preventDefault();
     setSaving(true);
     setError(null);
     setNotice(null);
     setRequestId(null);
+    setTestResult(null);
     try {
-      const payload = await createRuntimeOpenAIProvider({
-        provider_id: createForm.provider_id.trim(),
-        display_name: createForm.display_name.trim(),
-        base_url: createForm.base_url.trim(),
-        chat_completions_path: createForm.chat_completions_path.trim() || "/v1/chat/completions",
-        api_key_mode: createForm.api_key_mode,
-        api_key_env_name: createForm.api_key_env_name.trim() || null,
-        api_key: createForm.api_key.trim() || null,
-        default_timeout_seconds: Number(createForm.default_timeout_seconds) || 60,
-        health_check_model: createForm.health_check_model.trim() || null,
-        enabled: createForm.enabled
-      });
+      const payload = await createRuntimeOpenAIProvider(buildCreatePayload(createForm));
       setRequestId(typeof payload.request_id === "string" ? payload.request_id : null);
       setNotice(`Runtime provider "${payload.provider_id || createForm.provider_id}" created.`);
-      setShowCreateForm(false);
-      setCreateForm(EMPTY_FORM);
+      closeCreateDrawer();
       await loadProviders();
     } catch (caught) {
       const err = caught as Error & { code?: string; details?: { request_id?: string } };
@@ -180,21 +162,28 @@ export default function RuntimeProvidersSettingsPage() {
     }
   };
 
-  const startEdit = (provider: GatewayProviderCapability) => {
-    const id = String(provider.provider_id || "");
-    setEditId(id);
-    setEditForm({
-      provider_id: id,
-      display_name: String(provider.display_name || id),
-      base_url: String((provider as Record<string, unknown>).base_url || ""),
-      chat_completions_path: String((provider as Record<string, unknown>).chat_completions_path || "/v1/chat/completions"),
-      api_key_mode: (String(provider.api_key_mode || "env") as ProviderFormState["api_key_mode"]) || "env",
-      api_key_env_name: String(provider.api_key_env_name || ""),
-      api_key: "",
-      default_timeout_seconds: String(provider.default_timeout_seconds || 60),
-      health_check_model: String(provider.health_check_model || ""),
-      enabled: provider.enabled !== false
-    });
+  const startEdit = async (providerId: string) => {
+    setEditId(providerId);
+    setEditLoading(true);
+    setEditLoadError(null);
+    setEditForm(EMPTY_PROVIDER_FORM);
+    try {
+      const detail = await fetchRuntimeProvider(providerId);
+      const provider = (detail.provider || detail) as Record<string, unknown>;
+      setEditForm(formStateFromDetail(provider, providerId));
+      if (typeof detail.request_id === "string") {
+        setRequestId(detail.request_id);
+      }
+    } catch (caught) {
+      const err = caught as Error & { code?: string; details?: { request_id?: string } };
+      setEditLoadError({
+        code: String(err.code || "unknown_error"),
+        message: err.message || "Failed to load provider details.",
+        details: err.details
+      });
+    } finally {
+      setEditLoading(false);
+    }
   };
 
   const handleUpdate = async (event: FormEvent) => {
@@ -204,24 +193,12 @@ export default function RuntimeProvidersSettingsPage() {
     setError(null);
     setNotice(null);
     setRequestId(null);
+    setTestResult(null);
     try {
-      const body: Record<string, unknown> = {
-        display_name: editForm.display_name.trim(),
-        base_url: editForm.base_url.trim(),
-        chat_completions_path: editForm.chat_completions_path.trim() || "/v1/chat/completions",
-        api_key_mode: editForm.api_key_mode,
-        api_key_env_name: editForm.api_key_env_name.trim() || null,
-        default_timeout_seconds: Number(editForm.default_timeout_seconds) || 60,
-        health_check_model: editForm.health_check_model.trim() || null,
-        enabled: editForm.enabled
-      };
-      if (editForm.api_key.trim()) {
-        body.api_key = editForm.api_key.trim();
-      }
-      const payload = await updateRuntimeProvider(editId, body);
+      const payload = await updateRuntimeProvider(editId, buildUpdatePayload(editForm));
       setRequestId(typeof payload.request_id === "string" ? payload.request_id : null);
       setNotice(`Runtime provider "${editId}" updated.`);
-      setEditId(null);
+      closeEditDrawer();
       await loadProviders();
     } catch (caught) {
       const err = caught as Error & { code?: string; details?: { request_id?: string } };
@@ -240,20 +217,35 @@ export default function RuntimeProvidersSettingsPage() {
     setError(null);
     setNotice(null);
     setRequestId(null);
+    if (action !== "test") {
+      setTestResult(null);
+    }
     try {
-      let payload;
+      let payload: RuntimeProviderTestResponse | Awaited<ReturnType<typeof deleteRuntimeProvider>>;
       if (action === "test") payload = await testRuntimeProvider(providerId);
       else if (action === "enable") payload = await enableRuntimeProvider(providerId);
       else if (action === "disable") payload = await disableRuntimeProvider(providerId);
       else payload = await deleteRuntimeProvider(providerId);
 
-      setRequestId(typeof payload.request_id === "string" ? payload.request_id : null);
+      const nextRequestId = typeof payload.request_id === "string" ? payload.request_id : null;
+      setRequestId(nextRequestId);
+
       if (action === "test") {
-        const status = String(payload.extra?.status || (payload.ok ? "ok" : "failed"));
-        setNotice(`Test for "${providerId}": ${status}.`);
+        const testPayload = payload as RuntimeProviderTestResponse;
+        setTestResult({
+          providerId,
+          status: String(testPayload.extra?.status || (testPayload.ok ? "ok" : "failed")),
+          outputPreview:
+            typeof testPayload.extra?.output_preview === "string" ? testPayload.extra.output_preview : undefined,
+          outputChars:
+            typeof testPayload.extra?.output_chars === "number" ? testPayload.extra.output_chars : undefined,
+          warnings: Array.isArray(testPayload.warnings) ? testPayload.warnings.map(String) : [],
+          requestId: nextRequestId || undefined
+        });
+        setNotice(`Test completed for "${providerId}".`);
       } else if (action === "delete") {
         setNotice(`Runtime provider "${providerId}" deleted.`);
-        if (editId === providerId) setEditId(null);
+        if (editId === providerId) closeEditDrawer();
       } else {
         setNotice(`Runtime provider "${providerId}" ${action}d.`);
       }
@@ -270,6 +262,88 @@ export default function RuntimeProvidersSettingsPage() {
     }
   };
 
+  const renderProviderRow = (provider: GatewayProviderCapability, runtime: boolean) => {
+    const id = String(provider.provider_id || "");
+    const busy = busyId === id;
+
+    return (
+      <GlassCard key={id} className="p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-mono text-sm text-neural-text-primary">{id}</span>
+            <ProviderBadge provider={id} source={runtime ? "runtime" : "builtin"} />
+            <StatusPill tone={provider.enabled === false ? "inactive" : "success"}>
+              {provider.enabled === false ? "disabled" : "enabled"}
+            </StatusPill>
+            <SecretStatusBadge status={provider.secret_status} />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {runtime ? (
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={busy || !adminConfigured}
+                onClick={() => void startEdit(id)}
+                className="px-3 py-1.5 text-[11px]"
+              >
+                Edit
+              </Button>
+            ) : null}
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={busy || !adminConfigured}
+              onClick={() => void runAction(id, "test")}
+              className="px-3 py-1.5 text-[11px]"
+            >
+              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Test"}
+            </Button>
+            {provider.enabled === false ? (
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={busy || !adminConfigured}
+                onClick={() => void runAction(id, "enable")}
+                className="px-3 py-1.5 text-[11px]"
+              >
+                Enable
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={busy || !adminConfigured}
+                onClick={() => void runAction(id, "disable")}
+                className="px-3 py-1.5 text-[11px]"
+              >
+                Disable
+              </Button>
+            )}
+            {runtime ? (
+              <Button
+                type="button"
+                variant="danger"
+                disabled={busy || !adminConfigured}
+                onClick={() => {
+                  if (window.confirm(`Delete runtime provider "${id}"?`)) {
+                    void runAction(id, "delete");
+                  }
+                }}
+                className="inline-flex items-center gap-1 px-3 py-1.5 text-[11px]"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Delete
+              </Button>
+            ) : null}
+          </div>
+        </div>
+        {provider.display_name ? (
+          <p className="mt-2 text-xs text-neural-text-muted">{provider.display_name}</p>
+        ) : null}
+      </GlassCard>
+    );
+  };
+
   return (
     <MotionPage>
       <PageHeader
@@ -277,24 +351,22 @@ export default function RuntimeProvidersSettingsPage() {
         description="Manage OpenAI-compatible runtime providers through protected server routes. Submitted API keys are never echoed back."
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => void loadProviders()}
-              disabled={loading}
-              className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3 font-display text-[11px] uppercase tracking-[0.12em] text-neural-text-primary transition hover:border-neural-cyan/40 disabled:opacity-60"
-            >
+            <Button type="button" variant="secondary" disabled={loading} onClick={() => void loadProviders()}>
               <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
               Refresh
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
-              onClick={() => setShowCreateForm((value) => !value)}
+              variant="primary"
               disabled={!adminConfigured}
-              className="inline-flex items-center gap-2 rounded-2xl border border-neural-cyan/35 bg-neural-cyan/14 px-4 py-3 font-display text-[11px] uppercase tracking-[0.12em] text-neural-cyan transition hover:bg-neural-cyan/24 disabled:opacity-60"
+              onClick={() => {
+                setCreateForm(EMPTY_PROVIDER_FORM);
+                setShowCreateForm(true);
+              }}
             >
               <Plus className="h-4 w-4" />
               Add runtime provider
-            </button>
+            </Button>
           </div>
         }
       />
@@ -311,13 +383,22 @@ export default function RuntimeProvidersSettingsPage() {
 
       {error ? (
         <ErrorBanner code={error.code} message={error.message}>
-          {error.code === "internal_admin_not_configured" || error.code === "internal_admin_invalid" ? (
+          {error.code === "internal_admin_not_configured" ||
+          error.code === "internal_admin_invalid" ||
+          error.code === "console_client_unauthorized" ||
+          error.code === "console_client_auth_failed" ? (
             <p className="mt-2 text-xs text-neural-text-secondary">
-              Update internal admin settings in{" "}
+              Update internal admin or console client settings in{" "}
               <Link href="/settings/gateway" className="underline underline-offset-2 hover:text-neural-cyan">
                 Gateway Credentials
               </Link>
               .
+            </p>
+          ) : null}
+          {error.code === "runtime_providers_disabled" ? (
+            <p className="mt-2 text-xs text-neural-text-secondary">
+              Runtime provider CRUD may still work for preconfiguration, but routing/tests can fail while disabled on
+              Gateway.
             </p>
           ) : null}
           <RequestIdTag requestId={error.details?.request_id} />
@@ -329,6 +410,32 @@ export default function RuntimeProvidersSettingsPage() {
           {notice}
           <RequestIdTag requestId={requestId || undefined} />
         </div>
+      ) : null}
+
+      {testResult ? (
+        <StateCard title={`Test result: ${testResult.providerId}`}>
+          <div className="space-y-2 text-sm text-neural-text-secondary">
+            <p>
+              Status: <span className="font-mono text-neural-text-primary">{testResult.status}</span>
+            </p>
+            {testResult.outputPreview ? (
+              <p className="rounded-xl border border-white/10 bg-white/[0.03] p-3 font-mono text-xs text-neural-text-primary">
+                {testResult.outputPreview}
+              </p>
+            ) : null}
+            {typeof testResult.outputChars === "number" ? (
+              <p className="text-xs text-neural-text-muted">Output chars: {testResult.outputChars}</p>
+            ) : null}
+            {testResult.warnings.length > 0 ? (
+              <ul className="list-disc space-y-1 pl-5 text-xs text-amber-100">
+                {testResult.warnings.map((warning) => (
+                  <li key={warning}>{warning}</li>
+                ))}
+              </ul>
+            ) : null}
+            <RequestIdTag requestId={testResult.requestId} />
+          </div>
+        </StateCard>
       ) : null}
 
       {loading ? <LoadingBlock label="Loading runtime providers..." /> : null}
@@ -343,61 +450,7 @@ export default function RuntimeProvidersSettingsPage() {
               {builtinProviders.length === 0 ? (
                 <p className="text-sm text-neural-text-muted">No built-in providers returned.</p>
               ) : (
-                builtinProviders.map((provider) => {
-                  const id = String(provider.provider_id || "");
-                  const busy = busyId === id;
-                  return (
-                    <article
-                      key={id}
-                      className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-neural-text-secondary"
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-mono text-neural-text-primary">{id}</span>
-                          <Badge variant="ai">builtin</Badge>
-                          <Badge variant={provider.enabled === false ? "inactive" : "success"}>
-                            {provider.enabled === false ? "disabled" : "enabled"}
-                          </Badge>
-                          <Badge variant={secretBadgeVariant(provider.secret_status)}>
-                            secret: {secretStatusLabel(provider.secret_status)}
-                          </Badge>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            disabled={busy || !adminConfigured}
-                            onClick={() => void runAction(id, "test")}
-                            className="rounded border border-neural-cyan/35 bg-neural-cyan/10 px-2 py-1 font-display text-[11px] uppercase tracking-[0.06em] text-neural-cyan disabled:opacity-50"
-                          >
-                            {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Test"}
-                          </button>
-                          {provider.enabled === false ? (
-                            <button
-                              type="button"
-                              disabled={busy || !adminConfigured}
-                              onClick={() => void runAction(id, "enable")}
-                              className="rounded border border-emerald-400/35 bg-emerald-500/10 px-2 py-1 font-display text-[11px] uppercase tracking-[0.06em] text-emerald-100 disabled:opacity-50"
-                            >
-                              Enable
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              disabled={busy || !adminConfigured}
-                              onClick={() => void runAction(id, "disable")}
-                              className="rounded border border-amber-300/35 bg-amber-500/10 px-2 py-1 font-display text-[11px] uppercase tracking-[0.06em] text-amber-100 disabled:opacity-50"
-                            >
-                              Disable
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                      {provider.display_name ? (
-                        <p className="mt-1 text-xs text-neural-text-muted">{provider.display_name}</p>
-                      ) : null}
-                    </article>
-                  );
-                })
+                builtinProviders.map((provider) => renderProviderRow(provider, false))
               )}
             </div>
           </StateCard>
@@ -407,82 +460,7 @@ export default function RuntimeProvidersSettingsPage() {
               {runtimeProviders.length === 0 ? (
                 <p className="text-sm text-neural-text-muted">No runtime providers configured yet.</p>
               ) : (
-                runtimeProviders.map((provider) => {
-                  const id = String(provider.provider_id || "");
-                  const busy = busyId === id;
-                  return (
-                    <article
-                      key={id}
-                      className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-neural-text-secondary"
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-mono text-neural-text-primary">{id}</span>
-                          <Badge variant="live">runtime</Badge>
-                          <Badge variant={provider.enabled === false ? "inactive" : "success"}>
-                            {provider.enabled === false ? "disabled" : "enabled"}
-                          </Badge>
-                          <Badge variant={secretBadgeVariant(provider.secret_status)}>
-                            secret: {secretStatusLabel(provider.secret_status)}
-                          </Badge>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            disabled={busy || !adminConfigured}
-                            onClick={() => startEdit(provider)}
-                            className="rounded border border-white/10 bg-white/[0.04] px-2 py-1 font-display text-[11px] uppercase tracking-[0.06em] text-neural-text-primary disabled:opacity-50"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            disabled={busy || !adminConfigured}
-                            onClick={() => void runAction(id, "test")}
-                            className="rounded border border-neural-cyan/35 bg-neural-cyan/10 px-2 py-1 font-display text-[11px] uppercase tracking-[0.06em] text-neural-cyan disabled:opacity-50"
-                          >
-                            Test
-                          </button>
-                          {provider.enabled === false ? (
-                            <button
-                              type="button"
-                              disabled={busy || !adminConfigured}
-                              onClick={() => void runAction(id, "enable")}
-                              className="rounded border border-emerald-400/35 bg-emerald-500/10 px-2 py-1 font-display text-[11px] uppercase tracking-[0.06em] text-emerald-100 disabled:opacity-50"
-                            >
-                              Enable
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              disabled={busy || !adminConfigured}
-                              onClick={() => void runAction(id, "disable")}
-                              className="rounded border border-amber-300/35 bg-amber-500/10 px-2 py-1 font-display text-[11px] uppercase tracking-[0.06em] text-amber-100 disabled:opacity-50"
-                            >
-                              Disable
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            disabled={busy || !adminConfigured}
-                            onClick={() => {
-                              if (window.confirm(`Delete runtime provider "${id}"?`)) {
-                                void runAction(id, "delete");
-                              }
-                            }}
-                            className="inline-flex items-center gap-1 rounded border border-neural-red/35 bg-neural-red/12 px-2 py-1 font-display text-[11px] uppercase tracking-[0.06em] text-rose-100 disabled:opacity-50"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                            Delete
-                          </button>
-                        </div>
-                      </div>
-                      {provider.display_name ? (
-                        <p className="mt-1 text-xs text-neural-text-muted">{provider.display_name}</p>
-                      ) : null}
-                    </article>
-                  );
-                })
+                runtimeProviders.map((provider) => renderProviderRow(provider, true))
               )}
             </div>
           </StateCard>
@@ -491,181 +469,56 @@ export default function RuntimeProvidersSettingsPage() {
 
       <Drawer
         open={showCreateForm}
-        onClose={() => setShowCreateForm(false)}
+        onClose={closeCreateDrawer}
         title="Add runtime provider"
         description="Create an OpenAI-compatible provider. Credentials remain transient in the browser."
         size="xl"
       >
-          <form onSubmit={(event) => void handleCreate(event)} className="grid gap-4 md:grid-cols-2">
-            <label className="space-y-1 text-xs text-neural-text-secondary">
-              <span>provider_id</span>
-              <input
-                required
-                value={createForm.provider_id}
-                onChange={(event) => setCreateForm((prev) => ({ ...prev, provider_id: event.target.value }))}
-                placeholder="my-openai-proxy"
-                className="w-full rounded border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-xs text-neural-text-primary focus:border-neural-cyan/50 focus:outline-none"
-              />
-            </label>
-            <label className="space-y-1 text-xs text-neural-text-secondary">
-              <span>display_name</span>
-              <input
-                required
-                value={createForm.display_name}
-                onChange={(event) => setCreateForm((prev) => ({ ...prev, display_name: event.target.value }))}
-                className="w-full rounded border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-neural-text-primary focus:border-neural-cyan/50 focus:outline-none"
-              />
-            </label>
-            <label className="space-y-1 text-xs text-neural-text-secondary md:col-span-2">
-              <span>base_url</span>
-              <input
-                required
-                value={createForm.base_url}
-                onChange={(event) => setCreateForm((prev) => ({ ...prev, base_url: event.target.value }))}
-                placeholder="https://api.example.com"
-                className="w-full rounded border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-xs text-neural-text-primary focus:border-neural-cyan/50 focus:outline-none"
-              />
-            </label>
-            <label className="space-y-1 text-xs text-neural-text-secondary">
-              <span>api_key_mode</span>
-              <select
-                value={createForm.api_key_mode}
-                onChange={(event) =>
-                  setCreateForm((prev) => ({
-                    ...prev,
-                    api_key_mode: event.target.value as ProviderFormState["api_key_mode"]
-                  }))
-                }
-                className="w-full rounded border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-xs text-neural-text-primary focus:border-neural-cyan/50 focus:outline-none"
-              >
-                <option value="env">env</option>
-                <option value="secret_file">secret_file</option>
-                <option value="none">none</option>
-              </select>
-            </label>
-            <label className="space-y-1 text-xs text-neural-text-secondary">
-              <span>api_key_env_name</span>
-              <input
-                value={createForm.api_key_env_name}
-                onChange={(event) => setCreateForm((prev) => ({ ...prev, api_key_env_name: event.target.value }))}
-                placeholder="MY_PROVIDER_API_KEY"
-                className="w-full rounded border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-xs text-neural-text-primary focus:border-neural-cyan/50 focus:outline-none"
-              />
-            </label>
-            <label className="space-y-1 text-xs text-neural-text-secondary md:col-span-2">
-              <span>api_key (optional, transient — not stored in browser)</span>
-              <input
-                type="password"
-                value={createForm.api_key}
-                onChange={(event) => setCreateForm((prev) => ({ ...prev, api_key: event.target.value }))}
-                className="w-full rounded border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-xs text-neural-text-primary focus:border-neural-cyan/50 focus:outline-none"
-              />
-            </label>
-            <label className="space-y-1 text-xs text-neural-text-secondary">
-              <span>health_check_model</span>
-              <input
-                value={createForm.health_check_model}
-                onChange={(event) => setCreateForm((prev) => ({ ...prev, health_check_model: event.target.value }))}
-                className="w-full rounded border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-xs text-neural-text-primary focus:border-neural-cyan/50 focus:outline-none"
-              />
-            </label>
-            <label className="space-y-1 text-xs text-neural-text-secondary">
-              <span>default_timeout_seconds</span>
-              <input
-                value={createForm.default_timeout_seconds}
-                onChange={(event) => setCreateForm((prev) => ({ ...prev, default_timeout_seconds: event.target.value }))}
-                className="w-full rounded border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-xs text-neural-text-primary focus:border-neural-cyan/50 focus:outline-none"
-              />
-            </label>
-            <div className="md:col-span-2 flex flex-wrap gap-2">
-              <button
-                type="submit"
-                disabled={saving || !adminConfigured || BUILTIN_IDS.has(createForm.provider_id.trim().toLowerCase())}
-                className="rounded-2xl border border-neural-cyan/35 bg-neural-cyan/14 px-4 py-2 font-display text-[11px] uppercase tracking-[0.12em] text-neural-cyan disabled:opacity-60"
-              >
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create provider"}
-              </button>
-            </div>
-          </form>
+        <form onSubmit={(event) => void handleCreate(event)} className="space-y-4">
+          <RuntimeProviderForm mode="create" form={createForm} onChange={setCreateForm} disabled={saving} />
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={
+                saving || !adminConfigured || BUILTIN_IDS.has(createForm.provider_id.trim().toLowerCase())
+              }
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create provider"}
+            </Button>
+            <Button type="button" variant="secondary" onClick={closeCreateDrawer}>
+              Cancel
+            </Button>
+          </div>
+        </form>
       </Drawer>
 
       <Drawer
         open={Boolean(editId)}
-        onClose={() => setEditId(null)}
+        onClose={closeEditDrawer}
         title={`Edit runtime provider${editId ? `: ${editId}` : ""}`}
         description="Update routing metadata or submit a replacement credential."
         size="xl"
       >
-          <form onSubmit={(event) => void handleUpdate(event)} className="grid gap-4 md:grid-cols-2">
-            <label className="space-y-1 text-xs text-neural-text-secondary md:col-span-2">
-              <span>display_name</span>
-              <input
-                required
-                value={editForm.display_name}
-                onChange={(event) => setEditForm((prev) => ({ ...prev, display_name: event.target.value }))}
-                className="w-full rounded border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-neural-text-primary focus:border-neural-cyan/50 focus:outline-none"
-              />
-            </label>
-            <label className="space-y-1 text-xs text-neural-text-secondary md:col-span-2">
-              <span>base_url</span>
-              <input
-                required
-                value={editForm.base_url}
-                onChange={(event) => setEditForm((prev) => ({ ...prev, base_url: event.target.value }))}
-                className="w-full rounded border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-xs text-neural-text-primary focus:border-neural-cyan/50 focus:outline-none"
-              />
-            </label>
-            <label className="space-y-1 text-xs text-neural-text-secondary">
-              <span>api_key_mode</span>
-              <select
-                value={editForm.api_key_mode}
-                onChange={(event) =>
-                  setEditForm((prev) => ({
-                    ...prev,
-                    api_key_mode: event.target.value as ProviderFormState["api_key_mode"]
-                  }))
-                }
-                className="w-full rounded border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-xs text-neural-text-primary focus:border-neural-cyan/50 focus:outline-none"
-              >
-                <option value="env">env</option>
-                <option value="secret_file">secret_file</option>
-                <option value="none">none</option>
-              </select>
-            </label>
-            <label className="space-y-1 text-xs text-neural-text-secondary">
-              <span>api_key_env_name</span>
-              <input
-                value={editForm.api_key_env_name}
-                onChange={(event) => setEditForm((prev) => ({ ...prev, api_key_env_name: event.target.value }))}
-                className="w-full rounded border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-xs text-neural-text-primary focus:border-neural-cyan/50 focus:outline-none"
-              />
-            </label>
-            <label className="space-y-1 text-xs text-neural-text-secondary md:col-span-2">
-              <span>Replace api_key (optional)</span>
-              <input
-                type="password"
-                value={editForm.api_key}
-                onChange={(event) => setEditForm((prev) => ({ ...prev, api_key: event.target.value }))}
-                className="w-full rounded border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-xs text-neural-text-primary focus:border-neural-cyan/50 focus:outline-none"
-              />
-            </label>
-            <div className="md:col-span-2 flex flex-wrap gap-2">
-              <button
-                type="submit"
-                disabled={saving || !adminConfigured}
-                className="rounded-2xl border border-neural-cyan/35 bg-neural-cyan/14 px-4 py-2 font-display text-[11px] uppercase tracking-[0.12em] text-neural-cyan disabled:opacity-60"
-              >
+        {editLoading ? <LoadingBlock label="Loading provider details..." /> : null}
+        {editLoadError ? (
+          <ErrorBanner code={editLoadError.code} message={editLoadError.message}>
+            <RequestIdTag requestId={editLoadError.details?.request_id} />
+          </ErrorBanner>
+        ) : null}
+        {!editLoading && !editLoadError ? (
+          <form onSubmit={(event) => void handleUpdate(event)} className="space-y-4">
+            <RuntimeProviderForm mode="edit" form={editForm} onChange={setEditForm} disabled={saving} />
+            <div className="flex flex-wrap gap-2">
+              <Button type="submit" variant="primary" disabled={saving || !adminConfigured}>
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save changes"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setEditId(null)}
-                className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2 font-display text-[11px] uppercase tracking-[0.12em] text-neural-text-primary"
-              >
+              </Button>
+              <Button type="button" variant="secondary" onClick={closeEditDrawer}>
                 Cancel
-              </button>
+              </Button>
             </div>
           </form>
+        ) : null}
       </Drawer>
     </MotionPage>
   );

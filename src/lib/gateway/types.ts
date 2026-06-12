@@ -80,6 +80,8 @@ export type GatewayErrorCode =
   | "runtime_provider_secret_missing"
   | "runtime_provider_test_failed"
   | "runtime_provider_builtin_readonly"
+  | "runtime_providers_disabled"
+  | "console_client_unauthorized"
   | "console_client_auth_failed";
 
 export type ChatRole = "system" | "user" | "assistant";

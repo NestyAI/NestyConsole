@@ -1,8 +1,8 @@
 {
   "name": "nesty-console",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "private": true,
-  "description": "Nesty Console v0.10.0 - Titanium Noir UX Refresh",
+  "description": "Nesty Console v0.10.1 - Runtime Provider Management Sync Patch",
   "packageManager": "pnpm@11.5.0",
   "scripts": {
     "dev": "next dev",

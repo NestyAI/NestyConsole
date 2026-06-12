@@ -58,4 +58,17 @@ assert.equal(mapPolicyUpstreamCode("not_a_policy_code"), null);
 assert.match(policyMessageForCode("gateway_secret_exfiltration_blocked"), /secrets/i);
 assert.equal(mapPolicyUpstreamCode("runtime_provider_not_found"), null);
 
+const RUNTIME_ERROR_MESSAGES: Record<string, string> = {
+  runtime_providers_disabled:
+    "Runtime OpenAI-compatible providers are disabled on Gateway. Enable NESTY_RUNTIME_OPENAI_PROVIDERS_ENABLED or use built-in providers.",
+  console_client_unauthorized:
+    "Console client authentication failed. Check NESTY_CONSOLE_CLIENT_ID and NESTY_CONSOLE_CLIENT_SECRET.",
+  console_client_auth_failed:
+    "Console client authentication failed. Check NESTY_CONSOLE_CLIENT_ID and NESTY_CONSOLE_CLIENT_SECRET."
+};
+
+assert.match(RUNTIME_ERROR_MESSAGES.runtime_providers_disabled, /disabled/i);
+assert.match(RUNTIME_ERROR_MESSAGES.console_client_unauthorized, /NESTY_CONSOLE_CLIENT/i);
+assert.match(RUNTIME_ERROR_MESSAGES.console_client_auth_failed, /NESTY_CONSOLE_CLIENT/i);
+
 console.log("validate-provider-parsers: all fixtures passed");

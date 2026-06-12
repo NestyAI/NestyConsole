@@ -43,6 +43,7 @@ const navGroups = [
     label: "Configure",
     items: [
       { href: "/model-configs", label: "Model Configs", icon: Waypoints },
+      { href: "/settings/providers", label: "Runtime Providers", icon: Boxes },
       { href: "/api-keys", label: "API Keys", icon: KeyRound },
       { href: "/settings", label: "Settings", icon: Settings }
     ]

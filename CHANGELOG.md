@@ -2,6 +2,24 @@
 
 All notable changes to Nesty Console will be documented in this file.
 
+## [0.10.1] - Unreleased
+
+### Added
+- Complete runtime OpenAI-compatible provider form fields (`models_path`, capability toggles, conditional secret fields).
+- Shared `RuntimeProviderForm` component using Titanium Noir `FormField`, `Input`, and `Select`.
+- Edit flow loads full provider detail via `GET /api/console/runtime/providers/[providerId]` before populating the Drawer.
+- Structured provider test result panel with safe preview, warnings, and `RequestIdTag`.
+- Sidebar Configure link for `/settings/providers`.
+- Error mappings for `runtime_providers_disabled` and `console_client_unauthorized` (with `console_client_auth_failed` alias preserved).
+
+### Changed
+- Runtime Providers page uses `GlassCard`, `ProviderBadge`, `SecretStatusBadge`, `Button`, and Drawer-based create/edit flows.
+- Provider `api_key` field renders only for `secret_file` mode; `api_key_env_name` only for `env` mode; secrets cleared on drawer close and after successful save.
+
+### Security
+- PATCH includes `api_key` only when the user typed a new value in `secret_file` mode.
+- Server responses continue to strip secret fields; no request-body logging on runtime routes.
+
 ## [0.10.0] - Unreleased
 
 ### Added

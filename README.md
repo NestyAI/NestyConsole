@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.10.0-blue" alt="Console v0.10.0" />
+  <img src="https://img.shields.io/badge/version-0.10.1-blue" alt="Console v0.10.1" />
   <img src="https://img.shields.io/badge/Gateway-v1.5.2-009688" alt="Gateway v1.5.2" />
   <img src="https://img.shields.io/badge/Next.js-16-black" alt="Next.js 16" />
   <img src="https://img.shields.io/badge/TypeScript-5.x-3178C6" alt="TypeScript" />
@@ -56,17 +56,19 @@ Full release history: **[CHANGELOG.md](CHANGELOG.md)**
 
 ---
 
-## Current Release — v0.10.0
+## Current Release — v0.10.1
 
-**Titanium Noir UX Refresh**
+**Runtime Provider Management Sync Patch**
 
 | Feature | Detail |
 | --- | --- |
-| Command deck | Floating shell, spacious page heroes, and high-contrast operational hierarchy |
-| Surface system | Blur-free titanium base/raised panels; blur reserved for overlays and sticky composer |
-| Motion | Restrained GSAP transitions with reduced-motion support and bounded staggering |
-| Overlays | Shared accessible Modal and Drawer contracts for sensitive administration flows |
-| Runtime sync | Includes the Gateway v1.5 provider and policy integration introduced in v0.9.3 |
+| Runtime providers | Full OpenAI-compatible CRUD at `/settings/providers` via `/api/console/runtime/*` |
+| Provider form | Conditional secret fields, capability toggles, GET-detail edit flow |
+| Test UX | Structured test results with safe preview and request ID |
+| Navigation | Configure sidebar link to Runtime Providers |
+| Error sync | `runtime_providers_disabled` and `console_client_unauthorized` mapping |
+
+**v0.10.0** — Titanium Noir command-deck UX refresh. See [CHANGELOG.md](CHANGELOG.md).
 
 **v0.9.3** — Gateway v1.5 runtime provider and policy sync. See [CHANGELOG.md](CHANGELOG.md).
 
@@ -334,7 +336,8 @@ Single-admin, self-host focused. Use reverse-proxy and network controls; do not 
 | v0.9.0 | Product UI rebuild |
 | v0.9.1 | Gateway v1.3.1 provider sync |
 | v0.9.3 | Gateway v1.5 runtime provider and policy sync |
-| **v0.10.0** | **Titanium Noir command-deck UX refresh (current)** |
+| **v0.10.1** | **Runtime provider management sync patch (current)** |
+| v0.10.0 | Titanium Noir command-deck UX refresh |
 | Later | X-RateLimit-Limit/Remaining UI; extended SSE metadata |
 
 Enterprise marketplace workflows remain out of scope unless explicitly planned later.

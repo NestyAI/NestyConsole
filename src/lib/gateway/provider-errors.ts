@@ -62,6 +62,8 @@ export type ConsoleProviderErrorCode =
   | "runtime_provider_secret_missing"
   | "runtime_provider_test_failed"
   | "runtime_provider_builtin_readonly"
+  | "runtime_providers_disabled"
+  | "console_client_unauthorized"
   | "console_client_auth_failed";
 
 const UPSTREAM_CODE_MAP: Record<string, ConsoleProviderErrorCode> = {
@@ -94,6 +96,8 @@ const UPSTREAM_CODE_MAP: Record<string, ConsoleProviderErrorCode> = {
   runtime_provider_secret_missing: "runtime_provider_secret_missing",
   runtime_provider_test_failed: "runtime_provider_test_failed",
   runtime_provider_builtin_readonly: "runtime_provider_builtin_readonly",
+  runtime_providers_disabled: "runtime_providers_disabled",
+  console_client_unauthorized: "console_client_unauthorized",
   console_client_auth_failed: "console_client_auth_failed"
 };
 
@@ -277,6 +281,9 @@ export function fallbackMessageForProviderCode(
       return "Runtime provider test failed. Check base URL, model, and credentials.";
     case "runtime_provider_builtin_readonly":
       return "Built-in providers are read-only. Disable routing instead of deleting.";
+    case "runtime_providers_disabled":
+      return "Runtime OpenAI-compatible providers are disabled on Gateway. Enable NESTY_RUNTIME_OPENAI_PROVIDERS_ENABLED or use built-in providers.";
+    case "console_client_unauthorized":
     case "console_client_auth_failed":
       return "Console client authentication failed. Check NESTY_CONSOLE_CLIENT_ID and NESTY_CONSOLE_CLIENT_SECRET.";
     case "gateway_error":

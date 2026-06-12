@@ -133,6 +133,8 @@ function normalizeGatewayErrorCode(
     lowered === "unsafe_output_blocked" ||
     lowered === "prompt_injection_detected" ||
     lowered.startsWith("runtime_provider_") ||
+    lowered === "runtime_providers_disabled" ||
+    lowered === "console_client_unauthorized" ||
     lowered === "console_client_auth_failed"
   ) {
     return lowered as GatewayErrorCode;

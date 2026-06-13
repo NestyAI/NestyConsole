@@ -2,6 +2,21 @@
 
 All notable changes to Nesty Console will be documented in this file.
 
+## [0.10.3] - Unreleased
+
+### Added
+- Orchestration role editor on Model Configs for Gateway v1.6.2 (`planner`, `researcher`, `critic`, `finalizer`).
+- Dedicated BFF routes: `GET/PATCH /api/console/runtime/model-configs/[modelId]/orchestration`.
+- Shared chain utilities (`chain-utils`, `provider-catalog-utils`) and defensive orchestration response parsing.
+
+### Changed
+- Alias Save remains limited to `provider_chain`, `display_name`, and `notes`; role saves send `{ roles: {...} }` only.
+- Replaced read-only orchestration JSON block with editable per-role chain and settings UI.
+
+### Security
+- Orchestration responses allowlist safe fields only; prompts, intermediate answers, and secret-like payloads are dropped.
+- PATCH request bodies are validated server-side and never logged on orchestration routes.
+
 ## [0.10.2] - Unreleased
 
 ### Added

@@ -1,8 +1,8 @@
 {
   "name": "nesty-console",
-  "version": "0.10.2",
+  "version": "0.10.3",
   "private": true,
-  "description": "Nesty Console v0.10.2 - Gateway v1.6 Built-in Provider Credentials Sync",
+  "description": "Nesty Console v0.10.3 - Gateway v1.6.2 Orchestration Role Editor Sync",
   "packageManager": "pnpm@11.5.0",
   "scripts": {
     "dev": "next dev",

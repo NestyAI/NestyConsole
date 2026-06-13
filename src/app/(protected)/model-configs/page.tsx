@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2, Plus, RefreshCw, RotateCcw, Save, Trash2 } from "lucide-react";
 
+import { OrchestrationRoleEditor } from "@/components/model-configs/orchestration-role-editor";
 import { MotionPage } from "@/components/motion/motion-page";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
@@ -28,8 +29,21 @@ import {
 } from "@/lib/model-configs/client";
 import { fetchRuntimeProviders } from "@/lib/runtime-providers/client";
 import { fetchBuiltinProviders } from "@/lib/builtin-providers/client";
+import {
+  sanitizeChainItems,
+  toEditableItem,
+  providerChainSummary,
+  type EditableChainItem
+} from "@/lib/model-configs/chain-utils";
+import {
+  findProviderCapability,
+  normalizeProvider,
+  OLLAMA_CLOUD_MODEL_EXAMPLES,
+  providerBadgeVariant,
+  providerChainWarnings,
+  providerDisplayName
+} from "@/lib/model-configs/provider-catalog-utils";
 import type { GatewayProviderCapability } from "@/lib/runtime-providers/types";
-import type { GatewayProviderChainItem } from "@/lib/gateway/types";
 import { safeStringify } from "@/lib/security/redact";
 
 type GatewayCredentialsView = {
@@ -40,27 +54,6 @@ type GatewayCredentialsView = {
 };
 
 const DEFAULT_ALIASES = ["nesty-flash-1.0", "nesty-combined-1.0", "nesty-pro-1.0"] as const;
-const SECRET_LIKE_PATTERN = /(key|token|secret|password|auth|credential)/i;
-const OLLAMA_CLOUD_MODEL_EXAMPLES = [
-  "gemma3:12b",
-  "nemotron-3-nano:30b",
-  "gpt-oss:20b",
-  "gpt-oss:120b",
-  "minimax-m3",
-  "kimi-k2.6"
-] as const;
-
-type EditableChainItem = {
-  provider: string;
-  model: string;
-  enabled?: boolean;
-  timeout_seconds?: string;
-  max_tokens?: string;
-  temperature?: string;
-  base_url?: string;
-  label?: string;
-  name?: string;
-};
 
 function normalizeError(payload: unknown, fallback: string): ModelConfigConsoleError {
   const data = payload as { error?: { code?: unknown; message?: unknown } } | null;
@@ -68,151 +61,6 @@ function normalizeError(payload: unknown, fallback: string): ModelConfigConsoleE
     code: String(data?.error?.code || "unknown_error"),
     message: String(data?.error?.message || fallback)
   };
-}
-
-function parseOptionalNumber(value: string | undefined): number | undefined {
-  if (!value || !value.trim()) {
-    return undefined;
-  }
-  const parsed = Number(value.trim());
-  if (Number.isNaN(parsed) || !Number.isFinite(parsed)) {
-    return undefined;
-  }
-  return parsed;
-}
-
-function toEditableItem(raw: GatewayProviderChainItem): EditableChainItem {
-  return {
-    provider: String(raw.provider || ""),
-    model: String(raw.model || ""),
-    enabled: typeof raw.enabled === "boolean" ? raw.enabled : undefined,
-    timeout_seconds: raw.timeout_seconds !== undefined ? String(raw.timeout_seconds) : undefined,
-    max_tokens: raw.max_tokens !== undefined ? String(raw.max_tokens) : undefined,
-    temperature: raw.temperature !== undefined ? String(raw.temperature) : undefined,
-    base_url: typeof raw.base_url === "string" ? raw.base_url : undefined,
-    label: typeof raw.label === "string" ? raw.label : undefined,
-    name: typeof raw.name === "string" ? raw.name : undefined
-  };
-}
-
-function sanitizeChainItems(items: EditableChainItem[]): GatewayProviderChainItem[] | null {
-  const output: GatewayProviderChainItem[] = [];
-
-  for (const item of items) {
-    const provider = item.provider.trim();
-    const model = item.model.trim();
-    if (!provider || !model) {
-      return null;
-    }
-    if (SECRET_LIKE_PATTERN.test(provider) || SECRET_LIKE_PATTERN.test(model)) {
-      return null;
-    }
-
-    const next: GatewayProviderChainItem = {
-      provider,
-      model
-    };
-
-    if (typeof item.enabled === "boolean") {
-      next.enabled = item.enabled;
-    }
-
-    const timeout = parseOptionalNumber(item.timeout_seconds);
-    if (timeout !== undefined) {
-      next.timeout_seconds = timeout;
-    }
-    const maxTokens = parseOptionalNumber(item.max_tokens);
-    if (maxTokens !== undefined) {
-      next.max_tokens = maxTokens;
-    }
-    const temperature = parseOptionalNumber(item.temperature);
-    if (temperature !== undefined) {
-      next.temperature = temperature;
-    }
-    const baseUrl = item.base_url?.trim();
-    if (baseUrl) {
-      next.base_url = baseUrl;
-    }
-    const label = item.label?.trim();
-    if (label) {
-      next.label = label;
-    }
-    const name = item.name?.trim();
-    if (name) {
-      next.name = name;
-    }
-    output.push(next);
-  }
-
-  return output;
-}
-
-function providerChainSummary(chain: GatewayProviderChainItem[]): string {
-  if (!chain.length) {
-    return "No provider chain";
-  }
-  return chain.map((item) => `${String(item.provider || "-")}:${String(item.model || "-")}`).join(" -> ");
-}
-
-function normalizeProvider(value: unknown): string {
-  const provider = String(value || "").trim().toLowerCase();
-  if (!provider) return "unknown";
-  if (provider === "nvidia_nim") return "nvidia";
-  return provider;
-}
-
-function providerDisplayName(value: string): string {
-  if (value === "ollama_cloud") return "Ollama Cloud";
-  if (value === "openrouter") return "OpenRouter";
-  if (value === "nvidia") return "NVIDIA NIM";
-  if (value === "groq") return "Groq";
-  if (value === "unknown") return "Unknown";
-  return value;
-}
-
-function providerBadgeVariant(provider: string): "success" | "live" | "ai" | "warning" | "inactive" {
-  if (provider === "groq") return "live";
-  if (provider === "openrouter") return "ai";
-  if (provider === "nvidia") return "warning";
-  if (provider === "ollama_cloud") return "success";
-  return "inactive";
-}
-
-function findProviderCapability(
-  catalog: GatewayProviderCapability[],
-  providerId: string
-): GatewayProviderCapability | undefined {
-  const normalized = providerId.trim().toLowerCase();
-  if (!normalized) return undefined;
-  return catalog.find((item) => String(item.provider_id || "").trim().toLowerCase() === normalized);
-}
-
-function providerChainWarnings(catalog: GatewayProviderCapability[], providerId: string): string[] {
-  const match = findProviderCapability(catalog, providerId);
-  const warnings: string[] = [];
-  if (!match && providerId.trim()) {
-    warnings.push("Provider ID is not in the current Gateway catalog. Manual entry is allowed; Gateway validates on save.");
-  }
-  if (match?.enabled === false) {
-    warnings.push("Provider is disabled in Gateway runtime state.");
-  }
-  if (String(match?.secret_status || "").toLowerCase() === "missing") {
-    warnings.push("Provider secret is missing on Gateway.");
-  }
-  if (String(match?.secret_status || "").toLowerCase() === "managed") {
-    warnings.push("Built-in provider uses managed credentials. Configure the API key in Settings → Providers.");
-  }
-  if (String(match?.credential_source || "").toLowerCase() === "missing") {
-    warnings.push("Built-in provider credential source is missing. Add credentials on Gateway or in Console.");
-  }
-  if (
-    match?.source === "builtin" &&
-    String(match?.secret_status || "").toLowerCase() === "none" &&
-    String(match?.credential_source || "").toLowerCase() !== "env"
-  ) {
-    warnings.push("Built-in provider does not require an API key.");
-  }
-  return warnings;
 }
 
 export default function ModelConfigsPage() {
@@ -821,24 +669,12 @@ export default function ModelConfigsPage() {
                 </label>
               </div>
 
-              <article className="rounded-lg border border-neural-text-muted/25 bg-neural-overlay/35 p-3">
-                <h3 className="font-display text-sm uppercase tracking-[0.07em] text-neural-text-primary">Nesty Pro Orchestration Roles</h3>
-                {Object.keys(detail.orchestrationRoles || {}).length === 0 ? (
-                  <p className="mt-2 text-xs text-slate-300">No orchestration roles found.</p>
-                ) : (
-                  <div className="mt-2 space-y-2">
-                    {Object.entries(detail.orchestrationRoles).map(([roleName, roleValue]) => (
-                      <div key={roleName} className="rounded border border-neural-text-muted/25 bg-neural-elevated/70 p-2 text-xs text-slate-200">
-                        <p className="font-mono text-neural-text-primary">{roleName}</p>
-                        <TerminalBlock className="mt-1 max-h-36 text-[11px]">{safeStringify(redactSensitiveModelConfig(roleValue))}</TerminalBlock>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <p className="mt-2 text-[11px] text-slate-400">
-                  Role configs are read-only in v0.5.0 for safety. Main alias provider_chain editor is supported.
-                </p>
-              </article>
+              <OrchestrationRoleEditor
+                modelId={detail.modelAlias}
+                providerCatalog={providerCatalog}
+                providerSuggestions={providerSuggestions}
+                disabled={saving || resetting || !adminConfigured}
+              />
 
               <div className="flex flex-wrap items-center gap-2">
                 <button type="button" onClick={() => void handleSave()} disabled={saving || resetting || !dirty} className="inline-flex items-center gap-2 rounded-lg border border-neural-cyan/40 bg-neural-cyan/15 px-3 py-2 font-display text-xs uppercase tracking-[0.06em] text-neural-cyan transition hover:bg-neural-cyan/25 disabled:opacity-60">

@@ -88,4 +88,14 @@ assert.match(V16_ERROR_MESSAGES.provider_credential_error, /credential operation
 assert.match(V16_ERROR_MESSAGES.admin_token_rotation_unsupported, /rotation is not supported/i);
 assert.match(V16_ERROR_MESSAGES.runtime_provider_not_found, /Runtime provider/i);
 
+const V162_ORCHESTRATION_MESSAGES: Record<string, string> = {
+  model_config_not_found: "Model config was not found on Gateway.",
+  invalid_model_config: "Orchestration role override payload is invalid.",
+  gateway_error: "Gateway returned an invalid orchestration config payload."
+};
+
+assert.match(V162_ORCHESTRATION_MESSAGES.model_config_not_found, /Model config/i);
+assert.match(V162_ORCHESTRATION_MESSAGES.invalid_model_config, /invalid/i);
+assert.match(V162_ORCHESTRATION_MESSAGES.gateway_error, /orchestration/i);
+
 console.log("validate-provider-parsers: all fixtures passed");

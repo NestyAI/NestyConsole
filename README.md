@@ -16,6 +16,7 @@
   <img src="https://img.shields.io/badge/auth-Single%20Admin-8B5CF6" alt="Single Admin" />
   <img src="https://img.shields.io/badge/credentials-Server--side%20only-red" alt="Credentials Server-side" />
   <img src="https://img.shields.io/badge/streaming-SSE-ff9800" alt="SSE Streaming" />
+  <img src="https://img.shields.io/badge/license-Apache%202.0-blue" alt="License: Apache-2.0" />
 </p>
 
 <p align="center">
@@ -342,3 +343,13 @@ Single-admin, self-host focused. Use reverse-proxy and network controls; do not 
 | Later | X-RateLimit-Limit/Remaining UI; extended SSE metadata |
 
 Enterprise marketplace workflows remain out of scope unless explicitly planned later.
+
+---
+
+## License
+
+Nesty Console is licensed under **Apache License 2.0**.
+
+Copyright 2026 [pr0w4.dev](https://pr0w4.dev)
+
+See [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE).

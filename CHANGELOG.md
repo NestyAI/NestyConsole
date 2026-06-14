@@ -4,6 +4,9 @@ All notable changes to Nesty Console will be documented in this file.
 
 ## [0.10.31] - 2026-06-14
 
+### Added
+- Apache License 2.0 (`LICENSE`, `NOTICE`); copyright pr0w4.dev.
+
 ### Fixed
 - Model Configs provider chain and orchestration role inputs losing focus after the first keystroke (unstable React list keys tied to `provider` / `model` field values).
 

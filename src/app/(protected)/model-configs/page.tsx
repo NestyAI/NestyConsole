@@ -30,6 +30,7 @@ import {
 import { fetchRuntimeProviders } from "@/lib/runtime-providers/client";
 import { fetchBuiltinProviders } from "@/lib/builtin-providers/client";
 import {
+  createEmptyChainItem,
   sanitizeChainItems,
   toEditableItem,
   providerChainSummary,
@@ -282,14 +283,7 @@ export default function ModelConfigsPage() {
   };
 
   const addChainItem = () => {
-    setDraftProviderChain((prev) => [
-      ...prev,
-      {
-        provider: "",
-        model: "",
-        enabled: true
-      }
-    ]);
+    setDraftProviderChain((prev) => [...prev, createEmptyChainItem()]);
   };
 
   const removeChainItem = (index: number) => {
@@ -509,7 +503,7 @@ export default function ModelConfigsPage() {
                       const capability = findProviderCapability(providerCatalog, item.provider);
                       const chainWarnings = providerChainWarnings(providerCatalog, item.provider);
                       return (
-                      <article key={`${item.provider}-${item.model}-${index}`} className="rounded border border-neural-text-muted/25 bg-neural-elevated/70 p-2">
+                      <article key={item.clientId} className="rounded border border-neural-text-muted/25 bg-neural-elevated/70 p-2">
                         <div className="mb-2 flex flex-wrap items-center gap-1.5">
                           <Badge variant={providerBadgeVariant(normalizeProvider(item.provider))}>
                             {capability?.display_name || providerDisplayName(normalizeProvider(item.provider))}

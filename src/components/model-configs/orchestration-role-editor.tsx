@@ -9,7 +9,7 @@ import { ConfirmAction } from "@/components/ui/confirm-action";
 import { ErrorBanner } from "@/components/ui/error-banner";
 import { LoadingBlock } from "@/components/ui/loading-block";
 import { Select } from "@/components/ui/select";
-import type { EditableChainItem } from "@/lib/model-configs/chain-utils";
+import { createEmptyChainItem, type EditableChainItem } from "@/lib/model-configs/chain-utils";
 import {
   findProviderCapability,
   normalizeProvider,
@@ -305,7 +305,7 @@ export function OrchestrationRoleEditor({
                     onClick={() =>
                       updateRole(roleId, (prev) => ({
                         ...prev,
-                        providerChain: [...prev.providerChain, { provider: "", model: "", enabled: true }]
+                        providerChain: [...prev.providerChain, createEmptyChainItem()]
                       }))
                     }
                     className="inline-flex items-center gap-1 rounded border border-neural-cyan/35 bg-neural-cyan/10 px-2 py-1 font-display text-[10px] uppercase tracking-[0.06em] text-neural-cyan hover:bg-neural-cyan/20 disabled:opacity-50"
@@ -324,7 +324,7 @@ export function OrchestrationRoleEditor({
                       const chainWarnings = providerChainWarnings(providerCatalog, item.provider);
                       return (
                         <div
-                          key={`${roleId}-${item.provider}-${item.model}-${index}`}
+                          key={item.clientId}
                           className="rounded border border-neural-text-muted/20 bg-neural-overlay/40 p-2"
                         >
                           <div className="mb-2 flex flex-wrap items-center gap-1.5">

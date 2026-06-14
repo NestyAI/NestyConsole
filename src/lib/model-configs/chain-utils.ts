@@ -2,7 +2,19 @@ import type { GatewayProviderChainItem } from "@/lib/gateway/types";
 
 const SECRET_LIKE_PATTERN = /(key|token|secret|password|auth|credential)/i;
 
+let chainItemIdCounter = 0;
+
+function nextChainItemId(): string {
+  chainItemIdCounter += 1;
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `chain-item-${Date.now()}-${chainItemIdCounter}`;
+}
+
 export type EditableChainItem = {
+  /** Stable React list key — never sent to Gateway */
+  clientId: string;
   provider: string;
   model: string;
   enabled?: boolean;
@@ -25,8 +37,18 @@ export function parseOptionalNumber(value: string | undefined): number | undefin
   return parsed;
 }
 
+export function createEmptyChainItem(): EditableChainItem {
+  return {
+    clientId: nextChainItemId(),
+    provider: "",
+    model: "",
+    enabled: true
+  };
+}
+
 export function toEditableItem(item: GatewayProviderChainItem): EditableChainItem {
   return {
+    clientId: nextChainItemId(),
     provider: String(item.provider || ""),
     model: String(item.model || ""),
     enabled: item.enabled !== false,

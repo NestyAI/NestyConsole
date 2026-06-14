@@ -2,7 +2,12 @@
 
 All notable changes to Nesty Console will be documented in this file.
 
-## [0.10.3] - Unreleased
+## [0.10.31] - 2026-06-14
+
+### Fixed
+- Model Configs provider chain and orchestration role inputs losing focus after the first keystroke (unstable React list keys tied to `provider` / `model` field values).
+
+## [0.10.3] - 2026-06-13
 
 ### Added
 - Orchestration role editor on Model Configs for Gateway v1.6.2 (`planner`, `researcher`, `critic`, `finalizer`).

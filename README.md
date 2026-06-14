@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.10.3-blue" alt="Console v0.10.3" />
+  <img src="https://img.shields.io/badge/version-0.10.31-blue" alt="Console v0.10.31" />
   <img src="https://img.shields.io/badge/Gateway-v1.5.2-009688" alt="Gateway v1.5.2" />
   <img src="https://img.shields.io/badge/Next.js-16-black" alt="Next.js 16" />
   <img src="https://img.shields.io/badge/TypeScript-5.x-3178C6" alt="TypeScript" />
@@ -56,16 +56,16 @@ Full release history: **[CHANGELOG.md](CHANGELOG.md)**
 
 ---
 
-## Current Release — v0.10.3
+## Current Release — v0.10.31
 
-**Gateway v1.6.2 Orchestration Role Editor Sync**
+**Model Config input focus hotfix**
 
-| Feature | Detail |
+| Fix | Detail |
 | --- | --- |
-| Orchestration roles | Editable `planner`, `researcher`, `critic`, `finalizer` rows on Model Configs |
-| Dedicated BFF | `GET/PATCH /api/console/runtime/model-configs/[modelId]/orchestration` |
-| Separate saves | Alias Save = chain/display/notes; Role Save = `{ roles: {...} }` only |
-| Safety | Allowlisted orchestration fields; no prompts, secrets, or PATCH body logging |
+| Provider chain editor | Inputs keep focus while typing (`provider`, `model`, numeric fields) |
+| Orchestration role chains | Same stable list keys for role-level provider/model fields |
+
+**v0.10.3** — Gateway v1.6.2 orchestration role editor sync. See [CHANGELOG.md](CHANGELOG.md).
 
 **v0.10.2** — Gateway v1.6 built-in provider credentials sync. See [CHANGELOG.md](CHANGELOG.md).
 
@@ -335,7 +335,8 @@ Single-admin, self-host focused. Use reverse-proxy and network controls; do not 
 | v0.9.0 | Product UI rebuild |
 | v0.9.1 | Gateway v1.3.1 provider sync |
 | v0.9.3 | Gateway v1.5 runtime provider and policy sync |
-| **v0.10.3** | **Gateway v1.6.2 orchestration role editor sync (current)** |
+| **v0.10.31** | **Model Config input focus hotfix (current)** |
+| **v0.10.3** | Gateway v1.6.2 orchestration role editor sync |
 | **v0.10.2** | Gateway v1.6 built-in provider credentials sync |
 | v0.10.1 | Runtime provider management sync patch |
 | Later | X-RateLimit-Limit/Remaining UI; extended SSE metadata |

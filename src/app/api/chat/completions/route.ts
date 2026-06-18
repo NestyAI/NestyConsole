@@ -95,6 +95,12 @@ function normalizeChatRequest(raw: unknown): ChatRequest | null {
   }
   if (typeof input.store === "boolean") payload.store = input.store;
   if (typeof input.semantic_recall === "string") payload.semantic_recall = input.semantic_recall as ChatRequest["semantic_recall"];
+  if (typeof input.session_compact === "string") {
+    const mode = input.session_compact.trim().toLowerCase();
+    if (mode === "auto" || mode === "off" || mode === "force") {
+      payload.session_compact = mode;
+    }
+  }
   if (typeof input.conversation_id === "string") payload.conversation_id = input.conversation_id.trim();
   if (typeof input.temperature === "number") payload.temperature = input.temperature;
   if (typeof input.max_tokens === "number") payload.max_tokens = input.max_tokens;

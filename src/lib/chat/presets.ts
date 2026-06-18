@@ -7,6 +7,7 @@ export type ChatPreset = {
   tools: "auto" | "off";
   store: boolean;
   semantic_recall: "auto" | "on" | "off";
+  session_compact: "auto" | "off" | "force";
   stream: boolean;
   temperature?: number | null;
   max_tokens?: number | null;
@@ -25,6 +26,7 @@ const BUILTIN_PRESETS: ChatPreset[] = [
     tools: "off",
     store: true,
     semantic_recall: "auto",
+    session_compact: "auto",
     stream: true,
     is_builtin: true
   },
@@ -37,6 +39,7 @@ const BUILTIN_PRESETS: ChatPreset[] = [
     tools: "auto",
     store: true,
     semantic_recall: "auto",
+    session_compact: "auto",
     stream: true,
     is_builtin: true
   },
@@ -49,6 +52,7 @@ const BUILTIN_PRESETS: ChatPreset[] = [
     tools: "auto",
     store: true,
     semantic_recall: "auto",
+    session_compact: "auto",
     stream: true,
     is_builtin: true
   },
@@ -61,6 +65,7 @@ const BUILTIN_PRESETS: ChatPreset[] = [
     tools: "auto",
     store: true,
     semantic_recall: "auto",
+    session_compact: "auto",
     stream: true,
     system_prompt: "You are a careful coding assistant. Prefer small, safe changes, explain risks, and do not invent APIs.",
     is_builtin: true
@@ -74,6 +79,7 @@ const BUILTIN_PRESETS: ChatPreset[] = [
     tools: "auto",
     store: true,
     semantic_recall: "auto",
+    session_compact: "auto",
     stream: true,
     system_prompt: "Respond in Vietnamese unless the user asks otherwise.",
     is_builtin: true
@@ -105,6 +111,7 @@ export function normalizeChatPreset(raw: unknown): ChatPreset | null {
   
   const store = r.store !== false;
   const semantic_recall = r.semantic_recall === "on" || r.semantic_recall === "off" ? r.semantic_recall : "auto";
+  const session_compact = r.session_compact === "off" || r.session_compact === "force" ? r.session_compact : "auto";
   const stream = r.stream !== false;
 
   let temperature: number | null | undefined = undefined;
@@ -134,6 +141,7 @@ export function normalizeChatPreset(raw: unknown): ChatPreset | null {
     tools,
     store,
     semantic_recall,
+    session_compact,
     stream,
     temperature,
     max_tokens,

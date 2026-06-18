@@ -27,8 +27,10 @@ function formatDecision(decision: string): string {
     .join(" ");
 }
 
-function getSearchDecisionVariant(value: string): "success" | "warning" | "error" | "inactive" | "ai" | "live" {
+function getSearchDecisionVariant(value: string, searchReason?: string): "success" | "warning" | "error" | "inactive" | "ai" | "live" {
   const v = value.toLowerCase().trim();
+  const reason = String(searchReason || "").toLowerCase().trim();
+  if (reason === "memory_followup" && v === "memory_context_sufficient") return "success";
   if (["forced_on", "current_info_needed"].includes(v)) return "live";
   if (["forced_off", "no_search_needed", "memory_context_sufficient", "stable_knowledge"].includes(v)) return "inactive";
   if (v === "unavailable") return "error";
@@ -77,7 +79,7 @@ export function PlannerDetails({ metadata }: PlannerDetailsProps) {
             {data.search_decision ? (
               <div className="flex items-center justify-between">
                 <span>Decision:</span>
-                <Badge variant={getSearchDecisionVariant(data.search_decision)}>
+                <Badge variant={getSearchDecisionVariant(data.search_decision, data.search_reason)}>
                   {formatDecision(data.search_decision)}
                 </Badge>
               </div>
@@ -86,7 +88,14 @@ export function PlannerDetails({ metadata }: PlannerDetailsProps) {
             <p>Search used: <span className="font-semibold text-neural-text-primary">{data.search_used !== undefined ? (data.search_used ? "yes" : "no") : "-"}</span></p>
             {data.search_reason ? (
               <div className="mt-1 border-t border-white/5 pt-1 text-[11px] text-neural-text-muted" title={data.search_reason}>
-                Reason: <span className="text-neural-text-secondary">{truncateString(data.search_reason, 140)}</span>
+                Reason:{" "}
+                {data.search_reason === "memory_followup" ? (
+                  <Badge variant="success" className="ml-1 align-middle">
+                    memory_followup
+                  </Badge>
+                ) : (
+                  <span className="text-neural-text-secondary">{truncateString(data.search_reason, 140)}</span>
+                )}
               </div>
             ) : null}
           </div>

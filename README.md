@@ -8,8 +8,8 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.10.31-blue" alt="Console v0.10.31" />
-  <img src="https://img.shields.io/badge/Gateway-v1.5.2-009688" alt="Gateway v1.5.2" />
+  <img src="https://img.shields.io/badge/version-0.10.32-blue" alt="Console v0.10.32" />
+  <img src="https://img.shields.io/badge/Gateway-v1.7.0-009688" alt="Gateway v1.7.0" />
   <img src="https://img.shields.io/badge/Next.js-16-black" alt="Next.js 16" />
   <img src="https://img.shields.io/badge/TypeScript-5.x-3178C6" alt="TypeScript" />
   <img src="https://img.shields.io/badge/Tailwind-CSS-06B6D4" alt="Tailwind CSS" />
@@ -44,13 +44,14 @@ Designed for self-host and panel-style deployments (local Node, VPS, Vercel with
 
 | Area | Console surface |
 | --- | --- |
-| **Chat** | Streaming/non-stream chat, conversation sidebar, presets, safe metadata panel |
+| **Chat** | Streaming/non-stream chat, incremental payload with `conversation_id`, `session_compact` option, presets, safe metadata panel |
 | **Workspaces** | Local-first project hub (`localStorage`), notes, deep links, context injection |
 | **Diagnostics** | Provider health, reliability, manual checks (internal admin) |
-| **Model configs** | Safe runtime provider-chain overrides |
+| **Model configs** | Provider-chain overrides + **Pro orchestration roles** (v1.6.2+) |
+| **Providers** | Built-in credential management + runtime OpenAI-compatible providers |
 | **Memory** | Conversation search, export, summarize, message memory controls |
 | **API keys** | Create, list, update, revoke Gateway keys (one-time raw key display) |
-| **Settings** | Gateway URL, API key, internal admin token, runtime providers, connection test |
+| **Settings** | Gateway URL, API key, internal admin token, **Providers**, connection test |
 | **Status / Models** | Health, readiness, published model aliases |
 
 Full release history: **[CHANGELOG.md](CHANGELOG.md)**
@@ -59,16 +60,18 @@ Full release history: **[CHANGELOG.md](CHANGELOG.md)**
 
 ## Current Release — v0.10.31
 
-**Model Config input focus hotfix**
+**Model Config input focus hotfix + Apache 2.0 license**
 
-| Fix | Detail |
+| Change | Detail |
 | --- | --- |
-| Provider chain editor | Inputs keep focus while typing (`provider`, `model`, numeric fields) |
-| Orchestration role chains | Same stable list keys for role-level provider/model fields |
+| Input focus fix | Provider chain + orchestration role fields keep focus while typing |
+| License | `LICENSE` / `NOTICE` — Apache 2.0, copyright pr0w4.dev |
 
-**v0.10.3** — Gateway v1.6.2 orchestration role editor sync. See [CHANGELOG.md](CHANGELOG.md).
+**Recommended Gateway:** [NestyAI v1.6.3](../NestyAI) (tool intent router, panel bootstrap, built-in endpoint fixes).
 
-**v0.10.2** — Gateway v1.6 built-in provider credentials sync. See [CHANGELOG.md](CHANGELOG.md).
+**v0.10.3** — Gateway v1.6.2 orchestration role editor on Model Configs. See [CHANGELOG.md](CHANGELOG.md).
+
+**v0.10.2** — Gateway v1.6 built-in provider credentials UI. See [CHANGELOG.md](CHANGELOG.md).
 
 **v0.9.3** — Gateway v1.5 runtime provider and policy sync. See [CHANGELOG.md](CHANGELOG.md).
 
@@ -154,13 +157,14 @@ pnpm run validate:provider-parsers
 | `/chat` | Gateway chat with streaming, conversations, workspace context |
 | `/workspaces` | Local project hub, import/export, deep links |
 | `/diagnostics` | Provider health dashboard |
-| `/model-configs` | Runtime model config overrides |
+| `/model-configs` | Runtime model overrides + orchestration roles |
 | `/memory` | Conversation and memory management |
 | `/api-keys` | Gateway API key administration |
 | `/models` | Published model aliases from Gateway |
 | `/status` | Gateway health / readiness |
 | `/settings` | Console settings overview |
 | `/settings/gateway` | Gateway credentials manager |
+| `/settings/providers` | Built-in + runtime provider credentials |
 
 ---
 
@@ -192,7 +196,9 @@ NESTY_CONSOLE_DISABLE_CREDENTIAL_STORAGE=true
 
 ### Ephemeral Console key flow (panels / containers)
 
-1. Start Gateway and copy `nsk_console_...` from startup logs.
+When Gateway runs on a **Pterodactyl / panel** host, the backend may use `PY_FILE=bootstrap.py` for git sync — see [NestyAI DEPLOYMENT.md](../NestyAI/docs/DEPLOYMENT.md).
+
+1. Start Gateway and copy `nsk_console_...` from startup logs (or set `NESTY_EPHEMERAL_CONSOLE_KEY_ENABLED=true` on Gateway).
 2. **Settings → Gateway Credentials** → paste and save.
 3. After Gateway restart, update the key when Console shows invalid/revoked warnings.
 
@@ -224,7 +230,7 @@ NESTY_CONSOLE_ENABLE_INTERNAL_ADMIN=true
 NESTY_INTERNAL_ADMIN_TOKEN=<same-token>
 ```
 
-Enables `/diagnostics`, `/model-configs`, `/memory` semantic recall test, and `/api-keys`.
+Enables `/diagnostics`, `/model-configs` (orchestration roles), `/settings/providers`, `/memory` semantic recall test, and `/api-keys`.
 
 ---
 
@@ -279,7 +285,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
 
 ### Internal admin proxy (authenticated)
 
-`/api/internal/diagnostics/*`, `/api/internal/model-configs/*`, `/api/internal/embeddings/recall-test`, `/api/internal/api-keys/*`
+`/api/internal/diagnostics/*`, `/api/internal/model-configs/*`, `/api/console/runtime/model-configs/*/orchestration`, `/api/internal/embeddings/recall-test`, `/api/internal/api-keys/*`, built-in provider routes under `/api/console/runtime/builtin-providers/*`
 
 ---
 
@@ -312,11 +318,13 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
 
 | Project | Role |
 | --- | --- |
-| [NestyAI](../NestyAI) | Backend Gateway (FastAPI, OpenAI-compatible API) |
-| **NestyConsole** | Admin UI + server-side proxies |
+| [NestyAI Gateway](../NestyAI) | Backend — FastAPI, `/v1`, tools, memory, panel bootstrap |
+| **Nesty Console** (this repo) | Admin UI + server-side `/api/*` proxies |
 | DeskMart / others | Separate ecosystem apps — not bundled here |
 
-Console targets **Gateway v1.5.2** runtime provider, policy, and provider error envelopes. Run a matching Gateway version for full error UX parity.
+**Version pairing:** Console **v0.10.31** targets Gateway **v1.6.3** (v1.6.x internal admin + orchestration APIs). Minimum practical baseline: Gateway **v1.6.0** for built-in provider credentials UI.
+
+Gateway panel deploy (`bootstrap.py`, git sync): [NestyAI README — Panel Deployments](../NestyAI/README.md#panel-deployments-pterodactyl--container-panel) and [DEPLOYMENT.md](../NestyAI/docs/DEPLOYMENT.md).
 
 ---
 
@@ -336,9 +344,9 @@ Single-admin, self-host focused. Use reverse-proxy and network controls; do not 
 | v0.9.0 | Product UI rebuild |
 | v0.9.1 | Gateway v1.3.1 provider sync |
 | v0.9.3 | Gateway v1.5 runtime provider and policy sync |
-| **v0.10.31** | **Model Config input focus hotfix (current)** |
-| **v0.10.3** | Gateway v1.6.2 orchestration role editor sync |
-| **v0.10.2** | Gateway v1.6 built-in provider credentials sync |
+| **v0.10.31** | **Model Config focus hotfix + Apache 2.0 (current)** |
+| **v0.10.3** | Gateway v1.6.2 orchestration role editor |
+| **v0.10.2** | Gateway v1.6 built-in provider credentials UI |
 | v0.10.1 | Runtime provider management sync patch |
 | Later | X-RateLimit-Limit/Remaining UI; extended SSE metadata |
 

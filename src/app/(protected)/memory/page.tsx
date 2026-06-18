@@ -573,6 +573,17 @@ export default function MemoryPage() {
                 {selectedConversation?.summary ? (
                   <p>summary preview: {truncateText(String(selectedConversation.summary), 220)}</p>
                 ) : null}
+                <p>session_brief_exists: {selectedConversation?.session_brief_exists ? "yes" : "no"}</p>
+                <p>session_brief_updated_at: {formatDateTime(selectedConversation?.session_brief_updated_at ?? undefined)}</p>
+                <p>
+                  session_brief_message_count:{" "}
+                  {typeof selectedConversation?.session_brief_message_count === "number"
+                    ? selectedConversation.session_brief_message_count
+                    : "-"}
+                </p>
+                <p className="text-neural-text-muted italic">
+                  Session brief is internal compact memory; content is not displayed for security.
+                </p>
               </div>
             )}
 

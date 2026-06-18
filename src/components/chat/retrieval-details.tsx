@@ -28,7 +28,7 @@ function formatNumber(num?: number): string {
 function getSourceBadgeVariant(source: string): "success" | "warning" | "error" | "inactive" | "ai" | "live" {
   const s = source.toLowerCase().trim();
   if (s === "recent") return "inactive";
-  if (["summary", "pinned_memory", "semantic_recall"].includes(s)) return "ai";
+  if (["summary", "pinned_memory", "semantic_recall", "session_brief"].includes(s)) return "ai";
   if (["fts", "search", "tool"].includes(s)) return "live";
   return "inactive";
 }
@@ -40,7 +40,7 @@ export function RetrievalDetails({ metadata }: RetrievalDetailsProps) {
 
   const data = metadata!;
   const isTruncated = data.context_truncated === true;
-  const isMemoryUsed = data.pinned_memory_used === true || data.semantic_recall_used === true;
+  const isMemoryUsed = data.pinned_memory_used === true || data.semantic_recall_used === true || data.context_sources?.includes("session_brief");
 
   let panelBorderColor = "border-neural-cyan/30";
   let panelBgColor = "bg-neural-cyan/10";
@@ -63,6 +63,7 @@ export function RetrievalDetails({ metadata }: RetrievalDetailsProps) {
   if (data.pinned_memory_used) activeSignals.push("pinned memory used");
   if (data.fts_used) activeSignals.push("fts used");
   if (data.semantic_recall_used) activeSignals.push("semantic recall used");
+  if (data.context_sources?.includes("session_brief")) activeSignals.push("session brief used");
   if (data.search_used) activeSignals.push("search used");
 
   return (

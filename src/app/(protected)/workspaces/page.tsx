@@ -86,6 +86,7 @@ export default function WorkspacesPage() {
   const [formTools, setFormTools] = useState<string>("");
   const [formStore, setFormStore] = useState<string>("");
   const [formSemanticRecall, setFormSemanticRecall] = useState<string>("");
+  const [formSessionCompact, setFormSessionCompact] = useState<string>("");
   const [formPrompt, setFormPrompt] = useState<string>("");
   const [formTags, setFormTags] = useState<string>("");
 
@@ -148,6 +149,7 @@ export default function WorkspacesPage() {
     setFormTools("");
     setFormStore("");
     setFormSemanticRecall("");
+    setFormSessionCompact("");
     setFormPrompt("");
     setFormTags("");
     setShowEditor(true);
@@ -164,6 +166,7 @@ export default function WorkspacesPage() {
     setFormTools(w.preferred_tools || "");
     setFormStore(w.preferred_store === undefined ? "" : (w.preferred_store ? "true" : "false"));
     setFormSemanticRecall(w.preferred_semantic_recall || "");
+    setFormSessionCompact(w.preferred_session_compact || "");
     setFormPrompt(w.system_prompt || "");
     setFormTags(w.memory_tags ? w.memory_tags.join(", ") : "");
     setShowEditor(true);
@@ -190,6 +193,10 @@ export default function WorkspacesPage() {
       formSemanticRecall === "auto" || formSemanticRecall === "on" || formSemanticRecall === "off"
         ? formSemanticRecall
         : undefined;
+    const preferredSessionCompact: Workspace["preferred_session_compact"] =
+      formSessionCompact === "auto" || formSessionCompact === "off" || formSessionCompact === "force"
+        ? formSessionCompact
+        : undefined;
 
     const payload: Partial<Omit<Workspace, "id" | "created_at">> = {
       name: formName.trim(),
@@ -201,6 +208,7 @@ export default function WorkspacesPage() {
       preferred_tools: preferredTools,
       preferred_store: storeBool,
       preferred_semantic_recall: preferredSemanticRecall,
+      preferred_session_compact: preferredSessionCompact,
       system_prompt: formPrompt.trim() || undefined,
       memory_tags: tagsArr
     };
@@ -218,6 +226,7 @@ export default function WorkspacesPage() {
         preferred_tools: payload.preferred_tools,
         preferred_store: payload.preferred_store,
         preferred_semantic_recall: payload.preferred_semantic_recall,
+        preferred_session_compact: payload.preferred_session_compact,
         system_prompt: payload.system_prompt,
         memory_tags: tagsArr
       });
@@ -757,6 +766,10 @@ export default function WorkspacesPage() {
                     <span className="text-neural-text-muted block text-[10px] uppercase tracking-[0.06em]">Semantic Recall</span>
                     <span className="font-mono text-neural-text-primary">{selectedWorkspace.preferred_semantic_recall || "Default"}</span>
                   </div>
+                  <div>
+                    <span className="text-neural-text-muted block text-[10px] uppercase tracking-[0.06em]">Session Compact</span>
+                    <span className="font-mono text-neural-text-primary">{selectedWorkspace.preferred_session_compact || "Default"}</span>
+                  </div>
                 </div>
 
                 {selectedWorkspace.system_prompt && (
@@ -1086,6 +1099,19 @@ export default function WorkspacesPage() {
                       <option value="auto">auto</option>
                       <option value="on">on</option>
                       <option value="off">off</option>
+                    </Select>
+                  </label>
+                  <label className="block space-y-1 text-neural-text-secondary">
+                    <span>Session Compact</span>
+                    <Select
+                      value={formSessionCompact}
+                      onChange={(e) => setFormSessionCompact(e.target.value)}
+                      className="py-2"
+                    >
+                      <option value="">Default</option>
+                      <option value="auto">auto</option>
+                      <option value="off">off</option>
+                      <option value="force">force</option>
                     </Select>
                   </label>
                 </div>

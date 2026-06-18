@@ -1,9 +1,9 @@
 {
   "name": "nesty-console",
-  "version": "0.10.31",
+  "version": "0.10.32",
   "private": true,
   "license": "Apache-2.0",
-  "description": "Nesty Console v0.10.31 - Model Config input focus hotfix",
+  "description": "Nesty Console v0.10.32 - Session compact UI and incremental chat payload",
   "packageManager": "pnpm@11.5.0",
   "scripts": {
     "dev": "next dev",

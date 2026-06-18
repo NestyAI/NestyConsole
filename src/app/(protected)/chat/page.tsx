@@ -16,6 +16,7 @@ import { RequestIdTag } from "@/components/ui/request-id-tag";
 import { Select } from "@/components/ui/select";
 import { TokenTag } from "@/components/ui/token-tag";
 import { formatRateLimitHint, rateLimitFallbackMessage } from "@/lib/gateway/provider-error-parsers";
+import { MemoryDetails } from "@/components/chat/memory-details";
 import { ProOrchestrationDetails } from "@/components/chat/pro-orchestration-details";
 import { RetrievalDetails } from "@/components/chat/retrieval-details";
 import { PlannerDetails } from "@/components/chat/planner-details";
@@ -98,6 +99,7 @@ type ChatPreferences = {
   tools: "auto" | "off";
   store: boolean;
   semanticRecall: "auto" | "on" | "off";
+  sessionCompact: "auto" | "off" | "force";
   stream: boolean;
   temperature: string;
   maxTokens: string;
@@ -381,6 +383,19 @@ function extractMetadata(payload: unknown): Partial<ChatCompletionMetadata> {
     ? Object.fromEntries(Object.entries(answerQuality).filter(([, v]) => v !== undefined))
     : undefined;
 
+  const rawMemory = (data.memory || metadataObj?.memory) as Record<string, unknown> | null | undefined;
+  const memory = rawMemory && typeof rawMemory === "object"
+    ? {
+        session_brief_used: typeof rawMemory.session_brief_used === "boolean" ? rawMemory.session_brief_used : undefined,
+        session_compactor_ran: typeof rawMemory.session_compactor_ran === "boolean" ? rawMemory.session_compactor_ran : undefined,
+        history_messages_injected: typeof rawMemory.history_messages_injected === "number" ? rawMemory.history_messages_injected : undefined,
+        session_compact_mode: typeof rawMemory.session_compact_mode === "string" ? rawMemory.session_compact_mode : undefined,
+      }
+    : undefined;
+  const cleanMemory = memory
+    ? Object.fromEntries(Object.entries(memory).filter(([, v]) => v !== undefined))
+    : undefined;
+
   return {
     model,
     model_alias: modelAlias,
@@ -397,7 +412,8 @@ function extractMetadata(payload: unknown): Partial<ChatCompletionMetadata> {
     fallback_reason: fallbackReason,
     retrieval: cleanRetrieval,
     planner: cleanPlanner,
-    answer_quality: cleanAnswerQuality
+    answer_quality: cleanAnswerQuality,
+    memory: cleanMemory
   };
 }
 
@@ -654,6 +670,7 @@ function ChatPageContent() {
   const [tools, setTools] = useState<"auto" | "off">("auto");
   const [store, setStore] = useState(true);
   const [semanticRecall, setSemanticRecall] = useState<"auto" | "on" | "off">("auto");
+  const [sessionCompact, setSessionCompact] = useState<"auto" | "off" | "force">("auto");
   const [stream, setStream] = useState(true);
   const [temperature, setTemperature] = useState("0.7");
   const [maxTokens, setMaxTokens] = useState("1024");
@@ -707,6 +724,7 @@ function ChatPageContent() {
       setTools(found.tools);
       setStore(found.store);
       setSemanticRecall(found.semantic_recall);
+      setSessionCompact(found.session_compact ?? "auto");
       setStream(found.stream);
 
       if (found.temperature !== undefined && found.temperature !== null) {
@@ -769,6 +787,7 @@ function ChatPageContent() {
       tools,
       store,
       semantic_recall: semanticRecall,
+      session_compact: sessionCompact,
       stream,
       temperature: tempNum,
       max_tokens: tokensNum,
@@ -879,6 +898,7 @@ function ChatPageContent() {
       setTools((current) => getEnumValue(parsed.tools, ["auto", "off"], current));
       setStore((current) => getBooleanValue(parsed.store, current));
       setSemanticRecall((current) => getEnumValue(parsed.semanticRecall, ["auto", "on", "off"], current));
+      setSessionCompact((current) => getEnumValue(parsed.sessionCompact, ["auto", "off", "force"], current));
       setStream((current) => getBooleanValue(parsed.stream, current));
       setTemperature((current) => getTextValue(parsed.temperature, current));
       setMaxTokens((current) => getTextValue(parsed.maxTokens, current));
@@ -903,6 +923,7 @@ function ChatPageContent() {
       tools,
       store,
       semanticRecall,
+      sessionCompact,
       stream,
       temperature,
       maxTokens,
@@ -911,7 +932,7 @@ function ChatPageContent() {
     };
 
     window.localStorage.setItem(PREFERENCES_KEY, JSON.stringify(preferences));
-  }, [model, search, tools, store, semanticRecall, stream, temperature, maxTokens, showSystemPrompt, systemPrompt]);
+  }, [model, search, tools, store, semanticRecall, sessionCompact, stream, temperature, maxTokens, showSystemPrompt, systemPrompt]);
 
   const sidebarCredentialError = useMemo(
     () =>
@@ -938,6 +959,7 @@ function ChatPageContent() {
           setTools(found.tools);
           setStore(found.store);
           setSemanticRecall(found.semantic_recall);
+          setSessionCompact(found.session_compact ?? "auto");
           setStream(found.stream);
           if (found.temperature !== undefined && found.temperature !== null) {
             setTemperature(String(found.temperature));
@@ -969,6 +991,9 @@ function ChatPageContent() {
           if (workspace.preferred_semantic_recall) {
             setSemanticRecall(workspace.preferred_semantic_recall);
           }
+          if (workspace.preferred_session_compact) {
+            setSessionCompact(workspace.preferred_session_compact);
+          }
         }
       } else {
         setSelectedPresetId("");
@@ -986,6 +1011,9 @@ function ChatPageContent() {
         }
         if (workspace.preferred_semantic_recall) {
           setSemanticRecall(workspace.preferred_semantic_recall);
+        }
+        if (workspace.preferred_session_compact) {
+          setSessionCompact(workspace.preferred_session_compact);
         }
       }
 
@@ -1528,7 +1556,9 @@ function ChatPageContent() {
       content: ""
     };
 
-    const outgoingMessages: ChatMessage[] = [...messages.map(({ role, content }) => ({ role, content })), userMessage];
+    const outgoingMessages: ChatMessage[] = conversationId
+      ? [userMessage]
+      : [...messages.map(({ role, content }) => ({ role, content })), userMessage];
     const payloadMessages: ChatMessage[] = [...outgoingMessages];
 
     const systemValue = systemPrompt.trim();
@@ -1556,7 +1586,8 @@ function ChatPageContent() {
       search,
       tools,
       store,
-      semantic_recall: semanticRecall
+      semantic_recall: semanticRecall,
+      session_compact: sessionCompact
     };
 
     if (conversationId) {
@@ -1817,6 +1848,9 @@ function ChatPageContent() {
         ) : (
           <Badge variant="warning">store=off</Badge>
         )}
+        {responseMetadata?.memory?.session_brief_used ? (
+          <Badge variant="ai">session_brief</Badge>
+        ) : null}
         {conversationId ? (
           <button
             type="button"
@@ -2292,6 +2326,9 @@ function ChatPageContent() {
                     <RetrievalDetails metadata={responseMetadata.retrieval} />
                   </div>
                   <div className="col-span-full font-sans">
+                    <MemoryDetails metadata={responseMetadata.memory} />
+                  </div>
+                  <div className="col-span-full font-sans">
                     <PlannerDetails metadata={responseMetadata.planner} />
                   </div>
                   <div className="col-span-full font-sans">
@@ -2442,6 +2479,23 @@ function ChatPageContent() {
               <option value="auto">auto</option>
               <option value="on">on</option>
               <option value="off">off</option>
+            </Select>
+          </label>
+
+          <label className="block space-y-1 text-sm text-neural-text-secondary">
+            <span title="Session compact reduces tokens on long chats; Gateway keeps topic context for follow-ups.">
+              Session compact
+            </span>
+            <Select
+              value={sessionCompact}
+              onChange={(event) => {
+                setSessionCompact(event.target.value as "auto" | "off" | "force");
+                handleManualOptionChange();
+              }}
+            >
+              <option value="auto">auto</option>
+              <option value="off">off</option>
+              <option value="force">force</option>
             </Select>
           </label>
 

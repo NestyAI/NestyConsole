@@ -28,6 +28,7 @@ export type Workspace = {
   preferred_tools?: "auto" | "off";
   preferred_store?: boolean;
   preferred_semantic_recall?: "auto" | "on" | "off";
+  preferred_session_compact?: "auto" | "off" | "force";
   system_prompt?: string;
   pinned_notes?: WorkspaceNote[];
   linked_conversation_ids?: string[];
@@ -370,6 +371,7 @@ export function normalizeWorkspace(raw: unknown): Workspace | null {
   
   const preferred_store = typeof r.preferred_store === "boolean" ? r.preferred_store : undefined;
   const preferred_semantic_recall = r.preferred_semantic_recall === "on" || r.preferred_semantic_recall === "off" || r.preferred_semantic_recall === "auto" ? r.preferred_semantic_recall : undefined;
+  const preferred_session_compact = r.preferred_session_compact === "off" || r.preferred_session_compact === "force" || r.preferred_session_compact === "auto" ? r.preferred_session_compact : undefined;
   
   const system_prompt = typeof r.system_prompt === "string" ? r.system_prompt : undefined;
 
@@ -425,6 +427,7 @@ export function normalizeWorkspace(raw: unknown): Workspace | null {
     preferred_tools,
     preferred_store,
     preferred_semantic_recall,
+    preferred_session_compact,
     system_prompt,
     pinned_notes,
     linked_conversation_ids,

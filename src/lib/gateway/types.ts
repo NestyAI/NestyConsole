@@ -104,6 +104,7 @@ export type ChatRequest = {
   tools?: "auto" | "off" | string[];
   store?: boolean;
   semantic_recall?: "auto" | "on" | "off";
+  session_compact?: "auto" | "off" | "force";
   conversation_id?: string;
   temperature?: number;
   max_tokens?: number;
@@ -201,6 +202,13 @@ export type GatewayAnswerQualityMetadata = {
   action?: string;
 };
 
+export type GatewayMemoryMetadata = {
+  session_brief_used?: boolean;
+  session_compactor_ran?: boolean;
+  history_messages_injected?: number;
+  session_compact_mode?: string;
+};
+
 export type ChatCompletionMetadata = {
   model?: string;
   model_alias?: string;
@@ -222,6 +230,7 @@ export type ChatCompletionMetadata = {
   retrieval?: GatewayRetrievalMetadata;
   planner?: GatewayPlannerMetadata;
   answer_quality?: GatewayAnswerQualityMetadata;
+  memory?: GatewayMemoryMetadata;
 };
 
 export type GatewayChatMetadata = ChatCompletionMetadata;
@@ -307,6 +316,9 @@ export type GatewayConversation = {
   summary_exists?: boolean;
   summary_updated_at?: string;
   summary_message_count?: number;
+  session_brief_exists?: boolean;
+  session_brief_updated_at?: string | null;
+  session_brief_message_count?: number;
   config_source?: string;
   metadata?: Record<string, unknown> | null;
   [key: string]: unknown;

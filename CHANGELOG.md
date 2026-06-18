@@ -2,6 +2,20 @@
 
 All notable changes to Nesty Console will be documented in this file.
 
+## [0.10.32] - 2026-06-18
+
+### Added
+- Chat option `session_compact` (`auto` / `off` / `force`) with localStorage and preset persistence.
+- Incremental chat payload: when `conversation_id` is set, Console sends only the new user turn (+ system/workspace prompts).
+- `MemoryDetails` response panel for Gateway `memory.*` metadata (`session_brief_used`, `session_compactor_ran`, etc.).
+- Memory admin page session brief status flags (exists / updated_at / message_count; no brief body).
+- Workspace preferred `session_compact` override.
+
+### Changed
+- Gateway types and chat BFF passthrough for `session_compact` and conversation `session_brief_*` flags.
+- Retrieval/Planner detail badges: `session_brief` source, `memory_followup` planner reason highlight.
+- Requires NestyAI Gateway **≥ 1.7.0** for session compactor features.
+
 ## [0.10.31] - 2026-06-14
 
 ### Added

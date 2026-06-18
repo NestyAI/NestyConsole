@@ -11,6 +11,7 @@ import type {
   GatewaySemanticRecallTestResponse
 } from "@/lib/gateway/types";
 import { redactSecrets } from "@/lib/security/redact";
+import { normalizeGatewayArchivedFilter } from "@/lib/gateway/query-utils";
 
 export type MemoryConsoleError = {
   code: string;
@@ -140,7 +141,7 @@ export async function listConversations(params: {
     q: params.q?.trim() || undefined,
     limit: parseOptionalInt(params.limit, 1, 200),
     offset: parseOptionalInt(params.offset, 0, 10000),
-    archived: params.archived
+    archived: normalizeGatewayArchivedFilter(params.archived)
   });
 
   const result = await requestJson<GatewayConversationListResponse>(url);
@@ -169,7 +170,7 @@ export async function searchConversations(params: {
     limit: parseOptionalInt(params.limit, 1, 200),
     offset: parseOptionalInt(params.offset, 0, 10000),
     scope: params.scope?.trim() || undefined,
-    archived: params.archived
+    archived: normalizeGatewayArchivedFilter(params.archived)
   });
 
   const result = await requestJson<GatewayConversationSearchResponse>(url);
@@ -351,7 +352,7 @@ export async function getMemoryControls(params: {
   const url = appendQuery("/api/gateway/conversations/memory-controls", {
     limit: parseOptionalInt(params.limit, 1, 200),
     offset: parseOptionalInt(params.offset, 0, 10000),
-    archived: params.archived
+    archived: normalizeGatewayArchivedFilter(params.archived)
   });
   return requestJson<GatewayConversationMemoryControlsResponse>(url);
 }

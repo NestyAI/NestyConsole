@@ -4,6 +4,7 @@ import type {
   GatewayConversationMessage,
   GatewayConversationMessagesResponse
 } from "@/lib/gateway/types";
+import { normalizeGatewayArchivedFilter } from "@/lib/gateway/query-utils";
 
 export type ConversationListItem = {
   id: string;
@@ -179,7 +180,7 @@ function buildListUrl(params: ListConversationsParams = {}): string {
     query.set("offset", String(params.offset));
   }
   if (typeof params.archived === "boolean") {
-    query.set("archived", String(params.archived));
+    query.set("archived", normalizeGatewayArchivedFilter(params.archived) || "active");
   }
   if (params.q?.trim()) {
     query.set("q", params.q.trim());

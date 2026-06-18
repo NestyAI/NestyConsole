@@ -4,6 +4,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { TerminalBlock } from "@/components/ui/terminal-block";
 import { CodeBlock } from "@/components/chat/code-block";
+import { stripModelReasoningForDisplay } from "@/lib/chat/model-reasoning";
 
 type ChatCanvasRendererProps = {
   content: string;
@@ -12,8 +13,11 @@ type ChatCanvasRendererProps = {
 };
 
 export function ChatCanvasRenderer({ content, mode = "rendered" }: ChatCanvasRendererProps) {
+  const displayContent =
+    mode === "rendered" ? stripModelReasoningForDisplay(content, true) : content;
+
   // If content is empty or only whitespace, show a subtle streaming/empty indicator
-  if (!content || !content.trim()) {
+  if (!displayContent || !displayContent.trim()) {
     return (
       <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-neural-text-muted select-none">
         <span className="h-2 w-2 animate-status-pulse rounded-full bg-neural-cyan" />
@@ -175,7 +179,7 @@ export function ChatCanvasRenderer({ content, mode = "rendered" }: ChatCanvasRen
           }
         }}
       >
-        {content}
+        {displayContent}
       </ReactMarkdown>
     </div>
   );

@@ -25,6 +25,7 @@ import {
   type UpstreamGatewayError
 } from "@/lib/gateway/provider-errors";
 import { getConsoleClientAuthHeaders, isConsoleInternalPath } from "@/lib/gateway/console-client-auth";
+import { normalizeGatewayArchivedFilter, type GatewayArchivedFilter } from "@/lib/gateway/query-utils";
 
 function toGatewayError(
   code: string,
@@ -287,7 +288,7 @@ export async function getGatewayModels(): Promise<GatewayResult<GatewayModelsRes
 type ConversationListQuery = {
   limit?: number;
   offset?: number;
-  archived?: boolean;
+  archived?: boolean | GatewayArchivedFilter;
   q?: string;
 };
 
@@ -296,7 +297,7 @@ type ConversationSearchQuery = {
   limit?: number;
   offset?: number;
   scope?: string;
-  archived?: boolean;
+  archived?: boolean | GatewayArchivedFilter;
 };
 
 type ConversationMessagesQuery = {
@@ -313,7 +314,7 @@ type ConversationExportQuery = {
 type ConversationMemoryControlsQuery = {
   limit?: number;
   offset?: number;
-  archived?: boolean;
+  archived?: boolean | GatewayArchivedFilter;
 };
 
 function withQuery(path: string, params: Record<string, string | number | boolean | undefined>): string {
@@ -335,7 +336,7 @@ export async function listGatewayConversations(
     withQuery("/v1/conversations", {
       limit: query.limit,
       offset: query.offset,
-      archived: query.archived,
+      archived: normalizeGatewayArchivedFilter(query.archived),
       q: query.q
     })
   );
@@ -350,7 +351,7 @@ export async function searchGatewayConversations(
       limit: query.limit,
       offset: query.offset,
       scope: query.scope,
-      archived: query.archived
+      archived: normalizeGatewayArchivedFilter(query.archived)
     })
   );
 }
@@ -458,7 +459,7 @@ export async function getGatewayConversationMemoryControls(
     withQuery("/v1/conversations/memory-controls", {
       limit: query.limit,
       offset: query.offset,
-      archived: query.archived
+      archived: normalizeGatewayArchivedFilter(query.archived)
     })
   );
 }

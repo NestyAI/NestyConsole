@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { listGatewayConversations } from "@/lib/gateway/client";
+import { parseArchivedFilterParam } from "@/lib/gateway/query-utils";
 import { gatewayResultToResponse } from "@/lib/gateway/route-errors";
 
 export const dynamic = "force-dynamic";
@@ -16,25 +17,12 @@ function parseOptionalInt(value: string | null, min: number, max: number): numbe
   return Math.max(min, Math.min(max, parsed));
 }
 
-function parseOptionalBool(value: string | null): boolean | undefined {
-  if (!value) {
-    return undefined;
-  }
-  const lowered = value.trim().toLowerCase();
-  if (["1", "true", "yes", "on"].includes(lowered)) {
-    return true;
-  }
-  if (["0", "false", "no", "off"].includes(lowered)) {
-    return false;
-  }
-  return undefined;
-}
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const limit = parseOptionalInt(url.searchParams.get("limit"), 1, 200);
   const offset = parseOptionalInt(url.searchParams.get("offset"), 0, 10000);
-  const archived = parseOptionalBool(url.searchParams.get("archived"));
+  const archived = parseArchivedFilterParam(url.searchParams.get("archived"));
   const q = url.searchParams.get("q")?.trim() || undefined;
 
   const result = await listGatewayConversations({

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { gatewayResultToResponse } from "@/lib/gateway/route-errors";
 import { searchGatewayConversations } from "@/lib/gateway/client";
+import { parseArchivedFilterParam } from "@/lib/gateway/query-utils";
 
 export const dynamic = "force-dynamic";
 
@@ -16,19 +17,6 @@ function parseOptionalInt(value: string | null, min: number, max: number): numbe
   return Math.max(min, Math.min(max, parsed));
 }
 
-function parseOptionalBool(value: string | null): boolean | undefined {
-  if (!value) {
-    return undefined;
-  }
-  const lowered = value.trim().toLowerCase();
-  if (["1", "true", "yes", "on"].includes(lowered)) {
-    return true;
-  }
-  if (["0", "false", "no", "off"].includes(lowered)) {
-    return false;
-  }
-  return undefined;
-}
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -36,7 +24,7 @@ export async function GET(request: Request) {
   const limit = parseOptionalInt(url.searchParams.get("limit"), 1, 200);
   const offset = parseOptionalInt(url.searchParams.get("offset"), 0, 10000);
   const scope = url.searchParams.get("scope")?.trim() || undefined;
-  const archived = parseOptionalBool(url.searchParams.get("archived"));
+  const archived = parseArchivedFilterParam(url.searchParams.get("archived"));
 
   const result = await searchGatewayConversations({
     q,
